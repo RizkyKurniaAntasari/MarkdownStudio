@@ -65,6 +65,11 @@ drop it on any machine with a browser — it keeps working.
 - `Alt+1`–`9` jumps to a tab, `Ctrl+Alt+←/→` cycles, `Ctrl+Alt+W` closes
 - The folder is remembered, so you can reopen it in one click after a reload
 - **New file** and **Refresh** buttons at the top of the tree
+- **Links between files work.** Click `[notes](notes.md)` in the preview and it opens
+  that file as a tab instead of navigating away. Relative paths resolve from the file
+  you are in, so `../notes.md` and `sub/deep.md` both work, an extension-less
+  `[notes](notes)` still finds `notes.md`, and `notes.md#a-heading` opens the file and
+  jumps to that heading. Links to the open web still open in a new browser tab.
 
 **Editing**
 - Live preview that updates as you type, with scroll synced between the two panes

@@ -1933,6 +1933,77 @@ const MD = (function () {
     activateTab(tab.id, true);
   }
 
+  /* ---------- following links from one file to another ---------- */
+
+  /* "../notes.md" seen from "docs/guide.md" -> "notes.md" */
+  function resolveRel(fromPath, href) {
+    const base = fromPath ? fromPath.split("/").slice(0, -1) : [];
+    const out = href.charAt(0) === "/" ? [] : base.slice();
+    const segs = href.replace(/^\/+/, "").split("/");
+    for (let i = 0; i < segs.length; i++) {
+      const s = segs[i];
+      if (!s || s === ".") continue;
+      if (s === "..") { out.pop(); continue; }
+      out.push(s);
+    }
+    return out.join("/");
+  }
+
+  /* walks the tree by path, opening directories on the way if needed */
+  async function findFileNode(path) {
+    if (!tree) return null;
+    const parts = path.split("/").filter(p => p);
+    if (!parts.length) return null;
+    let node = tree;
+    for (let i = 0; i < parts.length; i++) {
+      if (!node.kids && node.handle) await loadDir(node);
+      const kids = node.kids || [];
+      const last = i === parts.length - 1;
+      const want = parts[i].toLowerCase();
+      let next = kids.find(k => k.name.toLowerCase() === want &&
+        (last ? k.kind === "file" : k.kind === "dir"));
+      /* a link written without the extension still finds the file */
+      if (!next && last && want.indexOf(".") === -1)
+        next = kids.find(k => k.kind === "file" &&
+          k.name.toLowerCase().replace(MD_EXT, "") === want);
+      if (!next) return null;
+      node = next;
+    }
+    return node.kind === "file" ? node : null;
+  }
+
+  function scrollToAnchor(id) {
+    if (!id) return;
+    let el = null;
+    try { el = preview.querySelector('[id="' + CSS.escape(id) + '"]'); } catch (e) { }
+    if (!el) return;
+    /* measured from the rects, so it does not depend on which ancestor happens
+       to be positioned, and assigned directly because it always takes effect */
+    const delta = el.getBoundingClientRect().top - previewPane.getBoundingClientRect().top;
+    previewPane.scrollTop = Math.max(0, previewPane.scrollTop + delta - 16);
+  }
+
+  /* Opens the linked file as a tab instead of letting the browser navigate away,
+     which would throw the whole app (and anything unsaved) out of the window. */
+  async function followLink(href) {
+    const h = href.indexOf("#");
+    const hash = h >= 0 ? href.slice(h + 1) : "";
+    let path = h >= 0 ? href.slice(0, h) : href;
+    try { path = decodeURIComponent(path); } catch (e) { }
+
+    if (!path) { scrollToAnchor(hash); return; }           /* plain #anchor */
+    if (!root) { toast("Open a folder first to follow links between files"); return; }
+
+    const t = active();
+    const target = resolveRel(t && t.kind === "file" ? t.path : "", path);
+    const node = await findFileNode(target);
+    if (!node) { toast('"' + path + '" is not in the opened folder'); return; }
+
+    const already = tabs.some(x => x.kind === "file" && x.path === node.path && x.id === activeTab);
+    await openFileNode(node);
+    if (hash) setTimeout(() => scrollToAnchor(hash), already ? 0 : 140);
+  }
+
   /* ---------- local (browser-stored) documents ---------- */
   function openDoc(id) {
     const d = state.docs.find(x => x.id === id);
@@ -3218,10 +3289,14 @@ const MD = (function () {
         return;
       }
       const a = e.target.closest("a");
-      if (a && a.getAttribute("href") && a.getAttribute("href").startsWith("#")) {
+      if (a) {
+        const href = a.getAttribute("href") || "";
+        if (!href || href === "#") { e.preventDefault(); return; }
+        /* absolute links keep normal behaviour - they already open in a new tab */
+        if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.indexOf("//") === 0) return;
+        /* everything else is in-app: never let the browser leave the page */
         e.preventDefault();
-        const t = preview.querySelector('[id="' + CSS.escape(a.getAttribute("href").slice(1)) + '"]');
-        if (t) previewPane.scrollTo({ top: t.offsetTop - 16, behavior: "smooth" });
+        followLink(href);
       }
     });
 
