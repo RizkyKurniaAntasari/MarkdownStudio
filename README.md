@@ -18,6 +18,27 @@ It picks a free loopback port, opens Edge (or Chrome) in app mode with its own p
 in `%LOCALAPPDATA%\MarkdownStudio`, and shuts the server down when you close the window.
 Nothing is installed and nothing listens on the network — only `127.0.0.1`.
 
+The window is sized to your screen the first time it runs; after that it reopens at
+whatever size you last left it.
+
+### Open with
+
+Right-click any `.md` file → **Open with** → `MarkdownStudio.exe`, and it opens that
+file straight away — no Open Folder step. The **folder that file lives in becomes the
+workspace**, so the Explorer tree is filled in, links to sibling files work, and
+`Ctrl+S` writes back to the real file on disk.
+
+You can hand it a folder the same way, or drag a file or folder onto the exe.
+
+Doing this again while the app is already open gives you a second window rather than
+replacing the one you are working in.
+
+Under the hood: a browser cannot read a path just because it was named on a command
+line, so the launcher serves that folder over the same loopback connection and the app
+reads and writes through it. Those endpoints are guarded by a random key generated per
+launch and passed on the app's own URL, they refuse any path outside the folder, and
+they only ever touch Markdown and text files.
+
 To rebuild it after editing `index.html`, run `build-exe.cmd`. It uses the C# compiler
 that already ships with Windows, so there is nothing to install.
 
@@ -34,6 +55,7 @@ difference is only what saving does:
 
 | Opened via | Open Folder | First `Ctrl+S` | Later `Ctrl+S` |
 | ---------- | ----------- | -------------- | -------------- |
+| **`MarkdownStudio.exe`, Open with** | Folder is already loaded | Writes to that file, no dialog | Writes to that file, no dialog |
 | **`MarkdownStudio.exe`** | Full read/write tree | Asks where to save | Writes to that file, no dialog |
 | `http://localhost/MDpreviewer/` (laragon) | Full read/write tree | Asks where to save | Writes to that file, no dialog |
 | Double-clicked `index.html` | Read-only tree | Downloads a copy | Downloads a copy |
@@ -50,7 +72,7 @@ On a `file://` page browsers refuse the save dialog outright, so saving falls ba
 download. Chrome's **"Ask where to save each file before downloading"** setting is the
 closest you get to choosing a folder there; serving through laragon is the real fix.
 
-The whole app is one file, `index.html` (~157 KB). Copy it to a USB stick, email it,
+The whole app is one file, `index.html` (~164 KB). Copy it to a USB stick, email it,
 drop it on any machine with a browser — it keeps working.
 
 ## What it does
@@ -59,7 +81,8 @@ drop it on any machine with a browser — it keeps working.
 - **Open Folder** (`Ctrl+Shift+O`) loads a whole folder into an Explorer tree
 - Nested folders expand on click; heavy folders (`node_modules`, `.git`, `vendor`,
   `dist`, ...) are skipped, and only Markdown and text files are listed
-- Open as many files as you like — each gets a **tab** across the top
+- Open as many files as you like — each gets a **tab** across the top, and the tab
+  strip scrolls with a plain mouse wheel once there are more tabs than fit
 - Unsaved tabs show a dot and italic name; closing one asks first
 - `Ctrl+S` saves the current file, `Ctrl+Alt+S` saves every changed file
 - `Alt+1`–`9` jumps to a tab, `Ctrl+Alt+←/→` cycles, `Ctrl+Alt+W` closes
@@ -88,6 +111,12 @@ drop it on any machine with a browser — it keeps working.
   Preview is read-only, so replace is switched off there and the bar says so.
   Switching views hands the search over to whichever pane is on screen
 - Three view modes: editor only, split, preview only (`Ctrl+1/2/3`)
+- Both panes centre their text in a readable column instead of stretching across a
+  maximised window; **Menu → Wide layout** turns that off when you want the full width
+- Files keep their own line endings and encoding: a CRLF file is written back as CRLF
+  and a byte-order mark is preserved, so opening a file never counts as changing it
+- The ⋮ menu sizes itself to the window and scrolls when it does not fit, so nothing
+  hides off the bottom edge on a short screen
 - **Unsaved changes are hard to miss**: an orange dot and italic name on the tab, a dot
   in the file tree, a badge on the Save button, an orange "Unsaved changes" in the
   status bar, and a ● in the browser tab title. Hover the status bar to see exactly
@@ -102,13 +131,27 @@ drop it on any machine with a browser — it keeps working.
 - Links, reference links, images, autolinks, and footnotes
 - A safe subset of inline HTML (`<details>`, `<kbd>`, `<mark>`, ...) — scripts and
   event handlers are stripped
+- Hard line breaks with a trailing `\` or two trailing spaces; escape any special
+  character with a backslash, and `<!-- comments -->` never render
+
+**The Welcome document is a guide to writing a README.** It opens on first run and is
+a live reference in three parts — the basics (headings, emphasis, lists, links, code,
+quotes, tables), going further (callouts, task lists, footnotes, collapsible sections,
+reference links, anchors and a table of contents, inline HTML, escaping), and a README
+skeleton you can copy straight out, with notes on what separates a good one. Every
+example shows the syntax and the result side by side, so you can read it in Preview
+and look at the editor to see how each piece was typed. Delete it whenever you like —
+it is just a document.
 
 **On phones and tablets**
 - Below 780px the layout switches to one pane at a time — the Edit/Preview toggle in
   the top bar swaps between them (split view is two useless slivers on a phone)
 - The sidebar becomes a slide-over drawer: tap the dimmed backdrop to dismiss it, and
   it closes itself once you pick a file
-- Toolbar scrolls sideways in a single row, buttons grow to 36px touch targets
+- Toolbar and tab strip scroll sideways in a single row, buttons grow to 36px touch
+  targets, and the ⋮ menu is capped to the screen so it never runs off the bottom
+- Text keeps the same readable column on a tablet or a rotated phone as it does on a
+  desktop, so the line length stays proportional instead of stretching to the edges
 - Editor stays at 16px so iOS does not zoom the page when you tap into it
 - Respects notch/home-indicator safe areas, and nothing overflows sideways at 375px
 - Find and dark mode move into the ⋮ menu, since phones have no `Ctrl+F`

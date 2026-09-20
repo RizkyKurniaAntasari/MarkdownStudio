@@ -17,6 +17,7 @@ if not exist "%CSC%" (
   /resource:index.html,app.html ^
   /reference:System.dll ^
   /reference:System.Management.dll ^
+  /reference:System.Drawing.dll ^
   /reference:System.Windows.Forms.dll ^
   MarkdownStudio.cs
 

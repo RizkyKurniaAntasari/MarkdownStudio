@@ -17,6 +17,9 @@
   --f-mono:"JetBrains Mono","Cascadia Mono","SF Mono",Consolas,"Liberation Mono",Menlo,monospace;
   --r:8px; --r-sm:6px;
   --ed-size:14px; --pv-size:16px;
+  /* the readable column both panes centre themselves in, so text does not run
+     the full width of a maximised window */
+  --col:820px; --gut:24px;
   --tr:.15s ease;
   --bg:#fff; --bg2:#f6f7f9; --bg3:#ecedf1; --panel:#fbfbfd;
   --fg:#1c1f24; --fg2:#4d545e; --fg3:#8a919c;
@@ -149,22 +152,25 @@ body.view-edit #previewPane,body.view-preview #editorPane{display:none}
 #editor{
   flex:1;width:100%;border:0;resize:none;outline:none;background:transparent;color:var(--fg);
   font-family:var(--f-mono);font-size:var(--ed-size);line-height:1.75;
-  padding:20px 24px 45vh;tab-size:2;white-space:pre-wrap;word-wrap:break-word;
+  padding:20px max(var(--gut),(100% - var(--col))/2) 45vh;
+  tab-size:2;white-space:pre-wrap;word-wrap:break-word;
   overflow-y:auto;overflow-x:hidden;caret-color:var(--acc);
   position:relative;z-index:1;
 }
 body.nowrap #editor{white-space:pre;overflow-x:auto;word-wrap:normal}
 /* Doubles as a hidden measuring rig and, during a search, a highlight layer
    painted behind the transparent textarea. */
-#mirror{position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;z-index:0;color:transparent;font-family:var(--f-mono);font-size:var(--ed-size);line-height:1.75;padding:20px 24px 45vh;white-space:pre-wrap;word-wrap:break-word;overflow:hidden}
+#mirror{position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;z-index:0;color:transparent;font-family:var(--f-mono);font-size:var(--ed-size);line-height:1.75;padding:20px max(var(--gut),(100% - var(--col))/2) 45vh;white-space:pre-wrap;word-wrap:break-word;overflow:hidden}
 #mirror.hl{visibility:visible}
 #mirror mark{background:color-mix(in srgb,#ffd84d 80%,transparent);color:transparent;border-radius:2px}
 #mirror mark.cur{background:color-mix(in srgb,var(--acc) 45%,transparent);box-shadow:0 0 0 1.5px var(--acc)}
 :root[data-theme="dark"] #mirror mark{background:color-mix(in srgb,#d29922 60%,transparent)}
 :root[data-theme="dark"] #mirror mark.cur{background:color-mix(in srgb,var(--acc) 55%,transparent)}
 #previewPane{overflow-y:auto;overflow-x:hidden;min-width:0;background:var(--bg)}
-#preview{padding:24px 34px 45vh;max-width:820px;margin:0 auto;font-size:var(--pv-size)}
+#preview{padding:24px 34px 45vh;max-width:var(--col);margin:0 auto;font-size:var(--pv-size)}
+/* "Wide" drops the column on both panes, for wide tables and side-by-side reading */
 body.wide #preview{max-width:none}
+body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--gut)}
 
 /* ---------------- status ---------------- */
 #status{display:flex;align-items:center;gap:14px;padding:5px 12px;font-size:11.5px;color:var(--fg3);border-top:1px solid var(--bd);background:var(--panel);flex:0 0 auto;font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap}
@@ -187,7 +193,9 @@ body.wide #preview{max-width:none}
 .tree-row.dirty .tree-name::after{color:var(--warn)}
 
 /* ---------------- editor tabs ---------------- */
-#tabbar{display:flex;align-items:stretch;background:var(--bg2);border-bottom:1px solid var(--bd);flex:0 0 auto;overflow-x:auto;overflow-y:hidden}
+/* the wheel is turned into horizontal scrolling in JS - a strip of tabs that only
+   moves with Shift held is a dead end when a dozen files are open */
+#tabbar{display:flex;align-items:stretch;background:var(--bg2);border-bottom:1px solid var(--bd);flex:0 0 auto;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none}
 #tabbar[hidden]{display:none}
 #tabbar::-webkit-scrollbar{height:0}
 .etab{display:flex;align-items:center;gap:7px;padding:0 7px 0 12px;height:33px;border:0;border-right:1px solid var(--bd);border-top:2px solid transparent;background:transparent;color:var(--fg3);cursor:pointer;font-size:12.5px;white-space:nowrap;max-width:220px;flex:0 0 auto}
@@ -223,7 +231,14 @@ body.wide #preview{max-width:none}
 .hint code{font-family:var(--f-mono);font-size:10.5px;background:var(--bg3);padding:1px 4px;border-radius:4px}
 
 /* ---------------- menus / modal ---------------- */
-.menu{position:absolute;z-index:60;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--shadow);padding:5px;min-width:212px}
+/* max-height is set from the viewport when it opens; without it a menu taller
+   than the window simply ran off the bottom with no way to reach the rest */
+.menu{position:absolute;z-index:60;background:var(--bg);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--shadow);padding:5px;min-width:212px;
+  max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--bd2) transparent}
+.menu::-webkit-scrollbar{width:10px}
+.menu::-webkit-scrollbar-track{background:transparent}
+.menu::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:6px;border:3px solid var(--bg)}
+.menu::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
 .menu[hidden]{display:none}
 .mi{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:0;background:transparent;border-radius:var(--r-sm);color:var(--fg);cursor:pointer;font-size:13px;text-align:left;transition:var(--tr)}
 .mi:hover{background:var(--bg3)}
@@ -409,7 +424,7 @@ body.wide #preview{max-width:none}
   .side-foot{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
   #findbar{gap:5px;padding:6px}
   #findbar input[type=text]{min-width:0;flex:1 1 40%}
-  .menu{min-width:min(92vw,268px);max-height:70vh;overflow-y:auto}
+  .menu{min-width:min(92vw,268px);max-width:min(94vw,320px)}
   .sheet{max-height:92vh}
   .kbgrid{grid-template-columns:1fr;gap:16px}
   #toast{bottom:calc(58px + env(safe-area-inset-bottom));max-width:86vw;text-align:center}
@@ -587,7 +602,7 @@ body.wide #preview{max-width:none}
   <div class="mlab">Layout</div>
   <button class="mi" data-act="wrap" role="menuitem">Soft wrap<span class="k" id="kWrap">on</span></button>
   <button class="mi" data-act="sync" role="menuitem">Sync scroll &amp; selection<span class="k" id="kSync">on</span></button>
-  <button class="mi" data-act="wide" role="menuitem">Wide preview<span class="k" id="kWide">off</span></button>
+  <button class="mi" data-act="wide" role="menuitem">Wide layout (full width)<span class="k" id="kWide">off</span></button>
   <div class="mrow"><span>Editor font</span>
     <button class="btn btn-out" data-act="font-" style="height:24px;padding:0 8px">A-</button>
     <button class="btn btn-out" data-act="font+" style="height:24px;padding:0 8px">A+</button></div>
@@ -626,59 +641,137 @@ A complete **Markdown editor with live preview** that runs entirely offline. No 
 
 1. Type in the left pane — the preview updates as you write
 2. Use the toolbar or shortcuts like <kbd>Ctrl</kbd>+<kbd>B</kbd> for **bold**
-3. Hit <kbd>Ctrl</kbd>+<kbd>S</kbd> to download a real `.md` file
-4. Drag any `.md` file onto the window to open it
+3. Hit <kbd>Ctrl</kbd>+<kbd>S</kbd> to save a real `.md` file
+4. Drag a `.md` file onto the window, or open a whole folder with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>
+
+**The rest of this page is a working guide to writing a README.** Every example is
+live: read the result on the right, and look at the same place on the left to see
+exactly how it was typed. Delete any of it once you are done.
+
+- [Part 1: The basics](#part-1-the-basics)
+- [Part 2: Going further](#part-2-going-further)
+- [Part 3: A README worth reading](#part-3-a-readme-worth-reading)
 
 ---
 
-## Formatting basics
+# Part 1: The basics
 
-**Bold**, *italic*, ***both***, ~~strikethrough~~, `inline code`, ==highlighted==, H~2~O, and x^2^.
+## Headings
 
-You can [link to things](https://example.com "Optional title"), use footnotes[^1], and press <kbd>Esc</kbd> to close panels.
+One `#` per level, a space after the hashes. Give a file a **single** `#` title and
+put everything else underneath it.
 
-[^1]: Footnotes collect themselves at the bottom automatically.
+````markdown
+# Project title      (one per file)
+## A section
+### A subsection
+````
 
-### Lists
+Every heading quietly becomes a link target, which is what makes a table of contents
+possible — more on that in Part 2.
+
+## Paragraphs and line breaks
+
+A blank line starts a new paragraph. A plain newline does **not** break the line —
+the text just keeps flowing, which is usually what you want. To force a break inside
+one paragraph, end the line with a backslash. (Two trailing spaces do the same thing
+and you will see it in other people's files, but invisible syntax is easy to lose to
+an editor that trims whitespace.)
+
+````markdown
+These two lines
+end up on the same line.
+
+This one breaks \
+right here.
+````
+
+These two lines
+end up on the same line.
+
+This one breaks \
+right here.
+
+## Emphasis and inline marks
+
+| You type | You get |
+| -------- | ------- |
+| `**bold**` | **bold** |
+| `*italic*` | *italic* |
+| `***both***` | ***both*** |
+| `~~struck out~~` | ~~struck out~~ |
+| `` `inline code` `` | `inline code` |
+| `==highlighted==` | ==highlighted== |
+| `H~2~O` | H~2~O |
+| `x^2^` | x^2^ |
+
+Use `` ` `` around anything the reader might otherwise mistype: file names, flags,
+commands, values. In a README that matters more than bold does.
+
+## Lists
+
+Indent by two spaces to nest. Numbered lists renumber themselves, so you can leave
+every line as `1.` while drafting and the output still counts correctly.
+
+````markdown
+- Unordered items
+- Nested structure
+  - One level deeper
+  - And another
+
+1. Ordered lists
+2. Count themselves
+3. Automatically
+````
 
 - Unordered items
 - Nested structure
   - One level deeper
   - And another
-- Back to the top level
 
 1. Ordered lists
 2. Count themselves
 3. Automatically
 
-- [x] Task lists work too
-- [x] Checkboxes are clickable
-- [ ] Clicking updates the source
+To put a code block or a paragraph **inside** a list item, indent it to line up with
+the item's text:
 
-### Quotes and callouts
+1. Install it:
 
-> A plain blockquote for quiet asides.
-> It can span multiple lines.
+   ```shell
+   npm install my-package
+   ```
 
-> [!NOTE]
-> Useful context the reader should know.
+2. Then run it. The indentation is what keeps this step attached to item 2.
 
-> [!WARNING]
-> Something that needs careful attention.
+## Links and images
 
-## Tables
+````markdown
+[link text](https://example.com)
+[with a tooltip](https://example.com "Shown on hover")
+![alt text](path/to/image.png)
+<https://example.com>
+````
 
-| Feature          | Shortcut       | Works offline |
-| ---------------- | :------------: | ------------: |
-| Bold             | `Ctrl+B`       |           Yes |
-| Link             | `Ctrl+K`       |           Yes |
-| Find and replace | `Ctrl+F`       |           Yes |
-| Export HTML      | menu           |           Yes |
+An image is a link with a `!` in front. Always write real alt text — it is what
+someone hears when the image cannot be seen, and what shows if the file goes missing.
 
-## Code with syntax highlighting
+Links to **other Markdown files work here**: `[the guide](docs/guide.md)` opens that
+file as a tab instead of leaving the page, as long as you opened the folder.
+
+## Code
+
+Inline for short things. Fenced blocks for anything you expect to be copied — and
+always name the language, which is what turns highlighting on.
+
+````markdown
+```js
+const greet = (name = "world") => `Hello, ${name}!`;
+```
+````
 
 ```js
-// Fenced blocks are highlighted for many languages
+// Around 25 languages are recognised
 const greet = (name = "world") => {
   const stamp = Date.now();
   return `Hello, ${name}! (${stamp})`;
@@ -696,20 +789,218 @@ def fib(n: int) -> list[int]:
     return out
 ```
 
-```sql
-SELECT name, COUNT(*) AS total
-FROM documents
-WHERE updated_at > NOW() - INTERVAL '7 days'
-GROUP BY name
-ORDER BY total DESC;
+```shell
+# shell, sql, json, yaml, html, css, go, rust, java and more all work
+git clone https://example.com/project.git && cd project
 ```
+
+## Quotes
+
+> A plain blockquote for quiet asides.
+> It can span multiple lines.
+>
+> > And nest, if you really need it to.
+
+## Tables
+
+The header row and the dashed row are required. The colons in the dashed row set the
+alignment: left, `:-:` centred, `-:` right.
+
+````markdown
+| Feature | Shortcut | Works offline |
+| ------- | :------: | ------------: |
+| Bold    | `Ctrl+B` |           Yes |
+````
+
+| Feature          | Shortcut       | Works offline |
+| ---------------- | :------------: | ------------: |
+| Bold             | `Ctrl+B`       |           Yes |
+| Link             | `Ctrl+K`       |           Yes |
+| Find and replace | `Ctrl+F`       |           Yes |
+| Export HTML      | menu           |           Yes |
+
+The pipes do not have to line up — that is only for your own comfort while editing.
+To put a literal `|` inside a cell, escape it as `\|`.
+
+## Horizontal rules
+
+Three or more dashes on their own line. Useful between major parts of a long README,
+but easy to overuse.
+
+---
+
+# Part 2: Going further
+
+## Callouts
+
+Five kinds, and they render as coloured panels. Reach for these instead of writing
+**Note:** in bold.
+
+````markdown
+> [!NOTE]
+> Useful context the reader should know.
+````
+
+> [!NOTE]
+> Useful context the reader should know.
+
+> [!TIP]
+> A shortcut or a better way of doing it.
+
+> [!IMPORTANT]
+> Something they must not skip.
+
+> [!WARNING]
+> Something that can go wrong.
+
+> [!CAUTION]
+> Something with consequences that are hard to undo.
+
+## Task lists
+
+- [x] Checkboxes are clickable
+- [x] Clicking one edits the source for you
+- [ ] Useful for a roadmap section
+
+## Footnotes
+
+Keep a heavy aside out of the sentence[^why] and let it collect itself at the bottom.
+
+[^why]: Like this. The marker can be any label — `[^why]`, `[^1]` — and the order in
+the output follows the order they are referenced, not the order you wrote them.
 
 ## Collapsible sections
 
+Long output, full logs, and rarely-needed detail belong behind a fold.
+
 <details>
 <summary>Click to expand</summary>
-Raw HTML is supported for a safe subset of tags, so <b>details</b>, <kbd>kbd</kbd>, <mark>mark</mark> and friends all work.
+
+A safe subset of HTML is supported, so <b>details</b>, <kbd>kbd</kbd> and
+<mark>mark</mark> all work. Leave a blank line after the summary and you can use
+normal Markdown in here:
+
+- including lists
+- and `code`
+
 </details>
+
+## Reference-style links
+
+When the same link appears repeatedly, or a URL is long enough to wreck the sentence,
+define it once at the bottom. The prose stays readable, and you fix a moved URL in one
+place.
+
+````markdown
+See the [docs][d] and the [changelog][c].
+
+[d]: https://example.com/docs
+[c]: https://example.com/changelog
+````
+
+Badges are just reference links with an image inside — the shields.io style row at the
+top of most READMEs is nothing more than this.
+
+## Anchors and a table of contents
+
+Every heading gets an id derived from its text: lowercased, punctuation dropped,
+spaces turned into dashes. `## Quick start` becomes `#quick-start`. A repeated
+heading gets `-1`, `-2` appended.
+
+````markdown
+- [Quick start](#quick-start)
+- [Going further](#part-2-going-further)
+````
+
+That is all a table of contents is. It is worth adding once a README passes roughly
+two screens.
+
+> [!NOTE]
+> Characters outside plain ASCII survive into the id — a heading written with an em
+> dash keeps it. Click your own links in preview once before you commit them.
+
+## Keys, marks and small text
+
+Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save. Write keys as `<kbd>Ctrl</kbd>`, call
+something out with `==highlight==`, and use `H~2~O` and `x^2^` for sub and superscript.
+
+## Inline HTML
+
+Handy for the one thing Markdown cannot do — usually a centred header block:
+
+<div align="center">
+  <b>Markdown Studio</b><br>
+  <i>an offline editor in a single file</i>
+</div>
+
+Scripts and event handlers are stripped, so a pasted README cannot run anything here.
+
+## Escaping and comments
+
+Put a backslash in front of a character to show it literally: `\*not italic\*` gives
+\*not italic\*. The same works for `` \` ``, `\_`, `\#` and `\|`.
+
+To leave a note for yourself that readers never see, use an HTML comment. There is one
+on the next line, and it renders as nothing at all.
+
+<!-- TODO: mention the deployment steps once they settle -->
+
+---
+
+# Part 3: A README worth reading
+
+Someone landing on your project asks three things in order: **what is this, does it
+solve my problem, and how do I start?** Answer those in the first screen and the rest
+can be as long as it needs to be.
+
+## A skeleton to start from
+
+````markdown
+# Project name
+
+One sentence on what it does and who it is for.
+
+## Install
+
+```shell
+npm install project-name
+```
+
+## Usage
+
+The smallest example that actually runs.
+
+## Configuration
+
+A table of options, defaults, and what each one changes.
+
+## Contributing
+
+How to set up a dev environment and what you expect in a pull request.
+
+## License
+
+MIT — see LICENSE.
+````
+
+## What separates a good one
+
+- **Lead with the sentence, not the badges.** Someone should know whether to keep
+  reading before they scroll.
+- **The first example must run as written.** No placeholders, no missing import, no
+  step that "obviously" comes first.
+- **Say what it does not do.** Scope and known limits save more time than any feature
+  list.
+- **Show output, not just commands.** A block of what they should see beats a
+  paragraph describing it.
+- **Prefer a table** for anything with more than three options.
+- **Fold away the long parts** with `<details>` rather than deleting them.
+- **Write the install section last**, after you have followed your own steps on a
+  clean machine.
+
+> [!TIP]
+> Press <kbd>Ctrl</kbd>+<kbd>3</kbd> for preview only and read it top to bottom as a
+> stranger would. Most README problems are visible within ten seconds of doing that.
 
 ---
 
@@ -1100,8 +1391,13 @@ const MD = (function () {
       }
       if (done) continue;
 
+      /* a backslash at the end of a line is a hard break: consume both, or the
+         backslash itself ends up on screen. "\\" was already taken by the escape
+         rule above, so reaching here means a single one. */
+      if (c === "\\" && text[i + 1] === "\n") { out += "<br>"; i += 2; continue; }
+
       if (c === "\n") {
-        if (/ {2,}$/.test(out) || text[i - 1] === "\\") out = out.replace(/ +$/, "") + "<br>";
+        if (/ {2,}$/.test(out)) out = out.replace(/ +$/, "") + "<br>";
         else out += "\n";
         i++; continue;
       }
@@ -1492,7 +1788,7 @@ const MD = (function () {
       kind = "dirty";
       text = "Unsaved changes";
       tip = "Ctrl+S writes them to " + (t.path || t.name);
-    } else if (t && t.handle) {
+    } else if (writable(t)) {
       kind = "ok";
       text = "Saved";
       tip = "In sync with " + (t.path || t.name);
@@ -1516,7 +1812,7 @@ const MD = (function () {
     el.innerHTML = '<span class="dot ' + kind + '"></span>' + MD.escape(text);
     $("#btnSave").classList.toggle("pending", dirty);
     $("#btnSave").title = dirty ? "Save changes (Ctrl+S)"
-      : t && t.handle ? "Already in sync (Ctrl+S)" : "Save as .md file (Ctrl+S)";
+      : writable(t) ? "Already in sync (Ctrl+S)" : "Save as .md file (Ctrl+S)";
     document.title = (dirty ? "● " : "") + (t ? t.name : "Markdown Studio") + " - Markdown Studio";
   }
   /* Deliberately no doc() helper: it resolved via state.active, which still names
@@ -1650,6 +1946,9 @@ const MD = (function () {
      of sync. An unbound scratch document autosaves into the browser instead, so it
      is never "unsaved"; it just has nowhere on disk to be out of sync with. */
   const isBound = t => !!t && (t.kind === "file" || !!t.handle);
+  /* can Ctrl+S write straight back? either a folder handle, or a file the exe
+     is serving for us */
+  const writable = t => !!t && (!!t.handle || !!t.srv);
   const isDirty = t => isBound(t) && bufOf(t) !== t.saved;
   const activeName = () => { const t = active(); return t ? t.name : "untitled"; };
 
@@ -1730,6 +2029,8 @@ const MD = (function () {
 
   /* re-reads the folder from disk, keeping expanded directories expanded */
   async function refreshTree(node) {
+    /* the exe sends the whole listing in one go, so re-fetch it instead of walking */
+    if (root && root.mode === "server") { await loadServerWorkspace(false); return; }
     if (node.kind !== "dir" || !node.handle) return;
     const wasOpen = {};
     (function walk(n) { if (n.kind === "dir") { wasOpen[n.path] = n.open; (n.kids || []).forEach(walk); } })(node);
@@ -1778,6 +2079,93 @@ const MD = (function () {
     toast("Opened " + rootName + " (" + count + " files, read-only)");
   }
 
+  /* ---------- a folder served by MarkdownStudio.exe ---------- */
+  /* Right-clicking a .md and picking "Open with -> Markdown Studio" hands the exe a
+     path. A browser cannot reach a path on its own, so the launcher serves that
+     file's folder as a workspace and these two calls are the read and the write.
+     The key comes in on the launch URL: without it the endpoints refuse, so another
+     page that guessed the port still cannot touch your files. */
+  const SRV_KEY = (function () {
+    try { return new URLSearchParams(location.search).get("k") || ""; } catch (e) { return ""; }
+  })();
+  const srvUrl = (p, path) => p + "?k=" + encodeURIComponent(SRV_KEY) +
+    (path == null ? "" : "&p=" + encodeURIComponent(path));
+
+  async function srvRead(path) {
+    const r = await fetch(srvUrl("/__file", path));
+    if (!r.ok) throw new Error((await r.text()) || r.status);
+    return r.text();
+  }
+  async function srvWrite(path, text) {
+    const r = await fetch(srvUrl("/__file", path), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: text
+    });
+    if (!r.ok) throw new Error((await r.text()) || r.status);
+  }
+
+  /* the same tree shape loadDir() builds, from the flat list of paths the exe sends */
+  function treeFromPaths(rootName, paths) {
+    const rootNode = { name: rootName, path: "", kind: "dir", kids: [], open: true };
+    const dirs = { "": rootNode };
+    paths.forEach(p => {
+      const parts = String(p).split("/");
+      let cur = rootNode, prefix = "";
+      for (let i = 0; i < parts.length - 1; i++) {
+        prefix = prefix ? prefix + "/" + parts[i] : parts[i];
+        let node = dirs[prefix];
+        if (!node) {
+          node = { name: parts[i], path: prefix, kind: "dir", kids: [], open: false };
+          dirs[prefix] = node;
+          cur.kids.push(node);
+        }
+        cur = node;
+      }
+      cur.kids.push({ name: parts[parts.length - 1], path: p, kind: "file", srv: true });
+    });
+    const by = (a, b) => (a.kind === b.kind
+      ? a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+      : a.kind === "dir" ? -1 : 1);
+    (function sortAll(n) { if (!n.kids) return; n.kids.sort(by); n.kids.forEach(sortAll); })(rootNode);
+    return rootNode;
+  }
+
+  async function loadServerWorkspace(openFiles) {
+    if (!SRV_KEY) return false;
+    let ws;
+    try {
+      const r = await fetch(srvUrl("/__ws", null));
+      if (!r.ok) return false;
+      ws = await r.json();
+    } catch (e) { return false; }
+    if (!ws || !ws.root) return false;               /* launched with no file */
+
+    /* a refresh should not collapse every folder you had expanded */
+    const wasOpen = {};
+    if (tree && root && root.mode === "server")
+      (function walk(n) { if (n.kind === "dir") { wasOpen[n.path] = n.open; (n.kids || []).forEach(walk); } })(tree);
+
+    root = { name: ws.root, handle: null, mode: "server", readonly: false, disk: ws.path || "" };
+    tree = treeFromPaths(ws.root, ws.files || []);
+    (function walk(n) {
+      if (n.kind === "dir" && wasOpen[n.path] !== undefined) n.open = wasOpen[n.path];
+      (n.kids || []).forEach(walk);
+    })(tree);
+
+    showSideTab("files");
+    renderTree();
+
+    if (openFiles) {
+      for (const p of (ws.open || [])) {
+        const n = await findFileNode(p);
+        if (n) await openFileNode(n);
+        else toast("Could not find " + p);
+      }
+    }
+    return true;
+  }
+
   function closeFolder() {
     if (tabs.some(t => t.kind === "file" && isDirty(t)) &&
       !confirm("Some open files have unsaved changes. Close the folder anyway?")) return;
@@ -1790,11 +2178,22 @@ const MD = (function () {
   }
 
   async function newFileInFolder() {
-    if (!root || root.mode !== "fs" || root.readonly) return;
+    if (!root || root.readonly || (root.mode !== "fs" && root.mode !== "server")) return;
     let name = prompt("New file name:", "untitled.md");
     if (!name) return;
     name = name.trim().replace(/[\\/:*?"<>|]/g, "-");
     if (!MD_EXT.test(name)) name += ".md";
+
+    if (root.mode === "server") {
+      try {
+        await srvWrite(name, "# " + name.replace(MD_EXT, "") + "\n\n");
+        await loadServerWorkspace(false);
+        const n = await findFileNode(name);
+        if (n) openFileNode(n);
+      } catch (e) { toast("Could not create file: " + (e.message || e.name)); }
+      return;
+    }
+
     try {
       const h = await root.handle.getFileHandle(name, { create: true });
       const w = await h.createWritable();
@@ -1821,12 +2220,12 @@ const MD = (function () {
     }
     nodeByPath.clear();
     el.innerHTML =
-      '<div class="root-bar"><span class="root-name" title="' + esc(root.name) + '">' + esc(root.name) +
+      '<div class="root-bar"><span class="root-name" title="' + esc(root.disk || root.name) + '">' + esc(root.name) +
       (root.readonly ? " (read-only)" : "") + "</span>" +
-      (root.mode === "fs" && !root.readonly
+      ((root.mode === "fs" || root.mode === "server") && !root.readonly
         ? '<button class="ibtn" data-fs="new" title="New file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>'
         : "") +
-      (root.mode === "fs"
+      (root.mode === "fs" || root.mode === "server"
         ? '<button class="ibtn" data-fs="refresh" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 3v6h-6"/></svg></button>'
         : "") +
       '<button class="ibtn" data-fs="close" title="Close folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>' +
@@ -1920,14 +2319,26 @@ const MD = (function () {
     if (open) { activateTab(open.id); return; }
     let text = "";
     try {
-      const f = n.handle ? await n.handle.getFile() : n.file;
-      text = await f.text();
+      if (n.srv) text = await srvRead(n.path);
+      else {
+        const f = n.handle ? await n.handle.getFile() : n.file;
+        text = await f.text();
+      }
     } catch (e) { toast("Could not read " + n.name); return; }
+    /* Windows editors like to prefix UTF-8 with a BOM; left in, it sits invisibly
+       in front of the first "#" and stops it being read as a heading */
+    const bom = text.charCodeAt(0) === 0xFEFF;
+    text = text.replace(/^﻿/, "");
+    /* A textarea silently drops the \r from CRLF, so a Windows file compared
+       against what it was read as looks edited the instant it opens. Edit in LF
+       and put the file's own convention back when it is written. */
+    const eol = /\r\n/.test(text) ? "\r\n" : "\n";
+    text = text.replace(/\r\n?/g, "\n");
     stashActive();
     const tab = {
       id: uid(), kind: "file", name: n.name, path: n.path,
-      handle: n.handle || null, readonly: !n.handle,
-      content: text, saved: text, scrollTop: 0, cursor: 0
+      handle: n.handle || null, srv: !!n.srv, readonly: !n.handle && !n.srv,
+      content: text, saved: text, eol: eol, bom: bom, scrollTop: 0, cursor: 0
     };
     tabs.push(tab);
     activateTab(tab.id, true);
@@ -2667,6 +3078,12 @@ const MD = (function () {
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
   const safeName = n => (String(n || "untitled").replace(/[\\/:*?"<>|]+/g, "-").trim() || "untitled").slice(0, 80);
+  /* what actually goes to disk: the buffer, back in the file's own line endings */
+  function outText(t) {
+    if (!t) return "";
+    const body = t.eol === "\r\n" ? t.content.replace(/\n/g, "\r\n") : t.content;
+    return (t.bom ? "﻿" : "") + body;
+  }
 
   /* writes straight back to the file on disk when the tab came from an
      opened folder; otherwise falls back to the save dialog / a download */
@@ -2686,9 +3103,10 @@ const MD = (function () {
     const t = active();
 
     /* already bound to a file: write straight back, no dialog - just a sync */
-    if (t && t.handle) {
+    if (writable(t)) {
       try {
-        await writeHandle(t.handle, t.content);
+        if (t.srv) await srvWrite(t.path, outText(t));
+        else await writeHandle(t.handle, outText(t));
         t.saved = t.content;
         renderTabs(); renderTree(); updateSaveUI();
         toast("Saved " + t.name);
@@ -2741,12 +3159,15 @@ const MD = (function () {
 
   async function saveAll() {
     stashActive();
-    const list = tabs.filter(t => t.kind === "file" && t.handle && isDirty(t));
+    const list = tabs.filter(t => t.kind === "file" && writable(t) && isDirty(t));
     if (!list.length) { toast("Nothing to save"); return; }
     let ok = 0;
     for (const t of list) {
-      try { await writeHandle(t.handle, t.content); t.saved = t.content; ok++; }
-      catch (e) { toast("Could not save " + t.name); }
+      try {
+        if (t.srv) await srvWrite(t.path, outText(t));
+        else await writeHandle(t.handle, outText(t));
+        t.saved = t.content; ok++;
+      } catch (e) { toast("Could not save " + t.name); }
     }
     renderTabs(); renderTree();
     updateSaveUI();
@@ -2822,14 +3243,39 @@ const MD = (function () {
   }
 
   /* ---------- menu ---------- */
+  const MENU_EDGE = 8, MENU_GAP = 6;
   function showMenu(show) {
     const m = $("#menu");
-    if (show) {
-      const r = $("#btnMenu").getBoundingClientRect();
-      m.hidden = false;
-      m.style.top = r.bottom + 6 + "px";
-      m.style.left = Math.max(8, Math.min(r.right - m.offsetWidth, window.innerWidth - m.offsetWidth - 8)) + "px";
-    } else m.hidden = true;
+    if (!show) { m.hidden = true; return; }
+    m.hidden = false;
+    m.style.maxHeight = "none";                      /* measure it unconstrained */
+    const want = m.offsetHeight;
+    const r = $("#btnMenu").getBoundingClientRect();
+    const below = window.innerHeight - r.bottom - MENU_GAP - MENU_EDGE;
+    /* hangs under the button while it fits; otherwise it takes the whole column
+       and scrolls, instead of running off the bottom of a short window */
+    const top = want <= below ? r.bottom + MENU_GAP
+      : Math.max(MENU_EDGE, window.innerHeight - MENU_EDGE - want);
+    m.style.top = top + "px";
+    m.style.maxHeight = (window.innerHeight - top - MENU_EDGE) + "px";
+    m.style.left = Math.max(MENU_EDGE, Math.min(r.right - m.offsetWidth, window.innerWidth - m.offsetWidth - MENU_EDGE)) + "px";
+    m.scrollTop = 0;
+  }
+
+  /* A horizontal strip ignores a normal wheel unless Shift is held, which leaves
+     tabs past the right edge unreachable with a plain mouse. */
+  function wheelScrollsX(el) {
+    el.addEventListener("wheel", e => {
+      if (e.ctrlKey) return;                         /* leave zoom alone */
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 0) return;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      const step = e.deltaMode === 1 ? d * 24 : d;   /* some mice report lines */
+      const next = Math.max(0, Math.min(max, el.scrollLeft + step));
+      if (next === el.scrollLeft) return;            /* at an end - let it bubble */
+      el.scrollLeft = next;
+      e.preventDefault();
+    }, { passive: false });
   }
   function menuAct(a) {
     const s = state.settings;
@@ -3097,6 +3543,13 @@ const MD = (function () {
     idbGet("root").then(h => {
       if (h && !root) { reopen = { name: h.name, handle: h }; renderTree(); }
     });
+    /* launched as "Open with" from Explorer: the exe is serving that file's folder */
+    loadServerWorkspace(true);
+
+    wheelScrollsX($("#tabbar"));
+    wheelScrollsX($("#toolbar"));
+    /* an open menu sized to the old viewport would hang off the new one */
+    window.addEventListener("resize", () => { if (!$("#menu").hidden) showMenu(true); });
 
     /* editor */
     ed.addEventListener("input", () => {
