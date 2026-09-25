@@ -70,7 +70,7 @@ body.no-sidebar #sidebar{margin-left:-252px}
 .logo{display:flex;align-items:center;gap:8px;font-weight:650;letter-spacing:-.01em;font-size:13.5px}
 .logo-mark{width:22px;height:22px;border-radius:6px;background:var(--acc);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;flex:0 0 22px}
 .side-tabs{display:flex;gap:2px;padding:8px 8px 2px}
-.side-tab{flex:1;padding:6px 8px;border:0;background:transparent;border-radius:var(--r-sm);color:var(--fg3);font-size:12px;font-weight:600;cursor:pointer;transition:var(--tr)}
+.side-tab{flex:1;padding:6px 4px;border:0;background:transparent;border-radius:var(--r-sm);color:var(--fg3);font-size:12px;font-weight:600;cursor:pointer;transition:var(--tr)}
 .side-tab:hover{background:var(--bg3);color:var(--fg2)}
 .side-tab[aria-selected="true"]{background:var(--accsoft);color:var(--acc)}
 .side-body{flex:1;overflow-y:auto;padding:8px;min-height:0}
@@ -195,9 +195,14 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 /* ---------------- editor tabs ---------------- */
 /* the wheel is turned into horizontal scrolling in JS - a strip of tabs that only
    moves with Shift held is a dead end when a dozen files are open */
-#tabbar{display:flex;align-items:stretch;background:var(--bg2);border-bottom:1px solid var(--bd);flex:0 0 auto;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none}
-#tabbar[hidden]{display:none}
+#tabwrap{display:flex;align-items:stretch;background:var(--bg2);border-bottom:1px solid var(--bd);flex:0 0 auto}
+#tabwrap[hidden]{display:none}
+#tabbar{display:flex;align-items:stretch;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none}
 #tabbar::-webkit-scrollbar{height:0}
+/* sits outside the scrolling strip, so it stays put however many tabs are open */
+#btnCloseAll{flex:0 0 auto;width:36px;display:grid;place-items:center;border:0;border-left:1px solid var(--bd);background:var(--bg2);color:var(--fg3);cursor:pointer;transition:var(--tr)}
+#btnCloseAll:hover{background:var(--bg3);color:var(--danger)}
+#btnCloseAll svg{width:15px;height:15px}
 .etab{display:flex;align-items:center;gap:7px;padding:0 7px 0 12px;height:33px;border:0;border-right:1px solid var(--bd);border-top:2px solid transparent;background:transparent;color:var(--fg3);cursor:pointer;font-size:12.5px;white-space:nowrap;max-width:220px;flex:0 0 auto}
 .etab:hover{background:var(--bg3);color:var(--fg2)}
 .etab.active{background:var(--bg);color:var(--fg);border-top-color:var(--acc)}
@@ -227,6 +232,30 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .tree-row.open>.tree-chev{transform:rotate(90deg)}
 .tree-kids{margin-left:10px;padding-left:4px;border-left:1px solid var(--bd)}
 .tree-pad{width:12px;flex:0 0 auto}
+/* ---------------- search across the folder ---------------- */
+.fs-box{position:sticky;top:-8px;margin:-8px -8px 6px;padding:8px 8px 6px;background:var(--panel);border-bottom:1px solid var(--bd);z-index:2}
+#fsInput{width:100%;padding:6px 9px;border:1px solid var(--bd);border-radius:var(--r-sm);background:var(--bg);font-size:12.5px}
+#fsInput::placeholder{color:var(--fg3)}
+.fs-opts{display:flex;align-items:center;gap:10px;margin-top:6px}
+#fsSummary{font-size:11px;color:var(--fg3);margin-top:5px}
+#fsSummary:empty{display:none}
+.sr-file{display:flex;align-items:center;gap:5px;padding:4px 5px;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--fg);white-space:nowrap;overflow:hidden;user-select:none}
+.sr-file:hover{background:var(--bg3)}
+.sr-file .tree-chev{transform:rotate(90deg)}
+.sr-file.shut .tree-chev{transform:none}
+.sr-name{overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+.sr-dir{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:400;color:var(--fg3)}
+.sr-n{flex:0 0 auto;margin-left:auto;font-size:10.5px;font-weight:700;color:var(--fg2);background:var(--bg3);border-radius:99px;padding:0 6px}
+.sr-hits{margin:0 0 4px 10px;padding-left:4px;border-left:1px solid var(--bd)}
+.sr-file.shut+.sr-hits{display:none}
+.sr-hit{display:flex;gap:6px;padding:2px 5px;border-radius:var(--r-sm);cursor:pointer;font-size:12px;line-height:1.45;color:var(--fg2)}
+.sr-hit:hover{background:var(--bg3);color:var(--fg)}
+.sr-hit.cur{background:var(--accsoft);color:var(--fg)}
+.sr-ln{flex:0 0 auto;min-width:22px;padding-top:1px;text-align:right;font-family:var(--f-mono);font-size:10.5px;color:var(--fg3)}
+.sr-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr-txt mark{background:color-mix(in srgb,#ffd84d 70%,transparent);color:inherit;border-radius:2px}
+:root[data-theme="dark"] .sr-txt mark{background:color-mix(in srgb,#d29922 55%,transparent)}
+.sr-more{font-size:11px;color:var(--fg3);padding:3px 5px 3px 33px}
 .hint{font-size:11.5px;color:var(--fg3);line-height:1.6;padding:10px 4px 0;border-top:1px solid var(--bd);margin-top:10px}
 .hint code{font-family:var(--f-mono);font-size:10.5px;background:var(--bg3);padding:1px 4px;border-radius:4px}
 
@@ -450,7 +479,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 @media print{
   body{overflow:visible;height:auto;background:#fff}
   #app{display:block;height:auto;overflow:visible}
-  #sidebar,#topbar,#toolbar,#status,#findbar,#splitter,#editorPane,.overlay,#toast{display:none!important}
+  #sidebar,#topbar,#tabwrap,#toolbar,#status,#findbar,#splitter,#editorPane,.overlay,#toast{display:none!important}
   #panes{display:block;overflow:visible}
   #previewPane{overflow:visible}
   #preview{max-width:none;padding:0;font-size:11.5pt}
@@ -473,8 +502,23 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
       <button class="side-tab" id="tabFiles" role="tab" aria-selected="true">Explorer</button>
       <button class="side-tab" id="tabDocs" role="tab" aria-selected="false">Docs</button>
       <button class="side-tab" id="tabToc" role="tab" aria-selected="false">Outline</button>
+      <button class="side-tab" id="tabSearch" role="tab" aria-selected="false" title="Search in folder (Ctrl+Shift+F)">Search</button>
     </div>
     <div class="side-body" id="paneFiles"><div id="treeBody"></div></div>
+    <div class="side-body" id="paneSearch" hidden>
+      <div class="fs-box">
+        <input type="text" id="fsInput" placeholder="Search in all files..." autocomplete="off" spellcheck="false">
+        <div class="fs-opts">
+          <label class="chk" title="Match case"><input type="checkbox" id="fsCase">Aa</label>
+          <label class="chk" title="Regular expression"><input type="checkbox" id="fsRe">.*</label>
+          <span class="grow"></span>
+          <button class="ibtn" id="fsCollapse" title="Collapse / expand all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15l5-5 5 5M7 20h10M7 4h10"/></svg></button>
+          <button class="ibtn" id="fsRefresh" title="Re-read files from disk and search again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 3v6h-6"/></svg></button>
+        </div>
+        <div id="fsSummary"></div>
+      </div>
+      <div id="fsResults"></div>
+    </div>
     <div class="side-body" id="paneDocs" hidden>
       <input type="text" id="docSearch" placeholder="Search documents..." autocomplete="off" spellcheck="false">
       <div id="docList"></div>
@@ -525,7 +569,12 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
       </button>
     </header>
 
-    <div id="tabbar" role="tablist" aria-label="Open files" hidden></div>
+    <div id="tabwrap" hidden>
+      <div id="tabbar" role="tablist" aria-label="Open files"></div>
+      <button id="btnCloseAll" title="Close all tabs (Ctrl+Alt+Shift+W)" aria-label="Close all tabs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h11a1 1 0 011 1v11"/><rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 12l4 4M12 12l-4 4"/></svg>
+      </button>
+    </div>
 
     <div id="toolbar" role="toolbar" aria-label="Formatting"></div>
 
@@ -574,6 +623,12 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
   <button class="mi" data-act="save-all" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
     Save all files<kbd>Ctrl Alt S</kbd></button>
+  <button class="mi" data-act="close-all" role="menuitem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h11a1 1 0 011 1v11"/><rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 12l4 4M12 12l-4 4"/></svg>
+    Close all tabs<kbd>Ctrl Alt Shift W</kbd></button>
+  <button class="mi" data-act="search-folder" role="menuitem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    Search in folder<kbd>Ctrl Shift F</kbd></button>
   <div class="mdiv"></div>
   <button class="mi" data-act="export-md" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>
@@ -2002,6 +2057,7 @@ const MD = (function () {
       if (handle.queryPermission) perm = await handle.queryPermission({ mode: "readwrite" });
       if (perm !== "granted" && handle.requestPermission) perm = await handle.requestPermission({ mode: "readwrite" });
     } catch (e) { perm = "denied"; }
+    dropSearchCache();
     root = { name: handle.name, handle: handle, mode: "fs", readonly: perm !== "granted" };
     tree = { name: handle.name, path: "", kind: "dir", handle: handle, kids: null, open: true };
     await loadDir(tree);
@@ -2072,6 +2128,7 @@ const MD = (function () {
     const by = (a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }) : a.kind === "dir" ? -1 : 1);
     (function sortAll(n) { if (!n.kids) return; n.kids.sort(by); n.kids.forEach(sortAll); })(rootNode);
 
+    dropSearchCache();
     root = { name: rootName, handle: null, mode: "flat", readonly: true };
     tree = rootNode;
     showSideTab("files");
@@ -2084,11 +2141,16 @@ const MD = (function () {
      path. A browser cannot reach a path on its own, so the launcher serves that
      file's folder as a workspace and these two calls are the read and the write.
      The key comes in on the launch URL: without it the endpoints refuse, so another
-     page that guessed the port still cannot touch your files. */
+     page that guessed the port still cannot touch your files. One exe can serve
+     several windows, each on its own folder, so "w" says which one is ours. */
   const SRV_KEY = (function () {
     try { return new URLSearchParams(location.search).get("k") || ""; } catch (e) { return ""; }
   })();
+  const SRV_WS = (function () {
+    try { return new URLSearchParams(location.search).get("w") || ""; } catch (e) { return ""; }
+  })();
   const srvUrl = (p, path) => p + "?k=" + encodeURIComponent(SRV_KEY) +
+    (SRV_WS ? "&w=" + encodeURIComponent(SRV_WS) : "") +
     (path == null ? "" : "&p=" + encodeURIComponent(path));
 
   async function srvRead(path) {
@@ -2146,6 +2208,7 @@ const MD = (function () {
     if (tree && root && root.mode === "server")
       (function walk(n) { if (n.kind === "dir") { wasOpen[n.path] = n.open; (n.kids || []).forEach(walk); } })(tree);
 
+    dropSearchCache();
     root = { name: ws.root, handle: null, mode: "server", readonly: false, disk: ws.path || "" };
     tree = treeFromPaths(ws.root, ws.files || []);
     (function walk(n) {
@@ -2171,7 +2234,9 @@ const MD = (function () {
       !confirm("Some open files have unsaved changes. Close the folder anyway?")) return;
     tabs.filter(t => t.kind === "file").forEach(t => { tabs = tabs.filter(x => x.id !== t.id); });
     root = null; tree = null; reopen = null;
+    dropSearchCache();
     idbSet("root", null);
+    if (!$("#paneSearch").hidden) runFolderSearch();
     if (!tabs.length) ensureTab(); else activateTab(tabs[0].id, true);
     renderTree();
     toast("Folder closed");
@@ -2250,7 +2315,7 @@ const MD = (function () {
   function renderTabs() {
     const bar = $("#tabbar");
     const show = tabs.length > 1 || tabs.some(t => t.kind === "file");
-    bar.hidden = !show;
+    $("#tabwrap").hidden = !show;
     if (!show) { bar.innerHTML = ""; return; }
     bar.innerHTML = tabs.map(t => {
       const d = isDirty(t);
@@ -2308,6 +2373,18 @@ const MD = (function () {
     else ensureTab();
   }
 
+  /* one confirm for the lot instead of one per unsaved tab */
+  function closeAllTabs() {
+    stashActive();
+    const n = tabs.length;
+    const dirty = tabs.filter(isDirty);
+    if (dirty.length && !confirm(dirty.length + " open file" + (dirty.length === 1 ? " has" : "s have") +
+      " unsaved changes. Close all tabs anyway?")) return;
+    tabs = []; activeTab = null;
+    ensureTab();
+    toast("Closed " + n + " tab" + (n === 1 ? "" : "s"));
+  }
+
   function cycleTab(d) {
     if (tabs.length < 2) return;
     const i = tabs.findIndex(t => t.id === activeTab);
@@ -2318,13 +2395,8 @@ const MD = (function () {
     const open = tabs.find(t => t.kind === "file" && t.path === n.path);
     if (open) { activateTab(open.id); return; }
     let text = "";
-    try {
-      if (n.srv) text = await srvRead(n.path);
-      else {
-        const f = n.handle ? await n.handle.getFile() : n.file;
-        text = await f.text();
-      }
-    } catch (e) { toast("Could not read " + n.name); return; }
+    try { text = await readNodeText(n); }
+    catch (e) { toast("Could not read " + n.name); return; }
     /* Windows editors like to prefix UTF-8 with a BOM; left in, it sits invisibly
        in front of the first "#" and stops it being read as a heading */
     const bom = text.charCodeAt(0) === 0xFEFF;
@@ -2342,6 +2414,216 @@ const MD = (function () {
     };
     tabs.push(tab);
     activateTab(tab.id, true);
+  }
+
+  /* the raw text on disk, whichever way the folder was opened */
+  async function readNodeText(n) {
+    if (n.srv) return srvRead(n.path);
+    const f = n.handle ? await n.handle.getFile() : n.file;
+    return f.text();
+  }
+
+  /* ---------- searching every file in the opened folder ---------- */
+  /* Files are read once and cached, so typing a query does not re-read the whole
+     folder on every key. An open tab is searched by its buffer instead, so hits
+     line up with what is in the editor, unsaved edits included. */
+  const fileCache = new Map();          /* path -> text, LF and no BOM, as on disk */
+  const FS_MAX_ROWS = 1500;
+  let fsRun = 0, fsTimer = null, fsLast = null, fsNodes = new Map(), fsShut = new Set();
+
+  let fsBulk = null, cacheGen = 0;      /* the exe's one-shot read of the whole folder */
+
+  const normText = s => s.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  function dropSearchCache() { fileCache.clear(); fsBulk = null; cacheGen++; }
+
+  /* The exe can send every file in one response; without that, a folder of a
+     few hundred notes costs a few hundred requests. Anything it leaves out
+     (a size cap, or an older exe with no /__all) is read one by one after.
+     Shared as a promise, so a search typed while it loads waits for it too. */
+  function prefetchServerFiles() {
+    if (!root || root.mode !== "server") return Promise.resolve();
+    if (!fsBulk) fsBulk = (async () => {
+      const gen = cacheGen;
+      try {
+        const r = await fetch(srvUrl("/__all", null));
+        if (!r.ok) return;
+        const all = await r.json();
+        if (gen !== cacheGen) return;            /* the folder was reloaded meanwhile */
+        Object.keys(all).forEach(p => { if (!fileCache.has(p)) fileCache.set(p, normText(all[p])); });
+      } catch (e) { }
+    })();
+    return fsBulk;
+  }
+
+  async function allFileNodes() {
+    const out = [];
+    async function walk(n) {
+      if (n.kind === "file") { out.push(n); return; }
+      if (n.kids === null && n.handle) await loadDir(n);
+      for (const k of n.kids || []) await walk(k);
+    }
+    if (tree) await walk(tree);
+    return out;
+  }
+
+  async function searchText(n) {
+    const tab = tabs.find(t => t.kind === "file" && t.path === n.path);
+    if (tab) return bufOf(tab);
+    if (fileCache.has(n.path)) return fileCache.get(n.path);
+    const text = normText(await readNodeText(n));
+    fileCache.set(n.path, text);
+    return text;
+  }
+
+  function searchRegex(q, cs, re) {
+    try { return new RegExp(re ? q : q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g" + (cs ? "" : "i")); }
+    catch (e) { return null; }
+  }
+
+  /* hits grouped by line: [{line, pos (offset of the first hit), ord, text, spans}] */
+  function hitsByLine(text, rx) {
+    const rows = [];
+    let m, guard = 0, ord = 0, line = 0, ls = 0, row = null;
+    rx.lastIndex = 0;
+    while ((m = rx.exec(text)) !== null && guard++ < 20000) {
+      if (m[0] === "") { rx.lastIndex++; continue; }
+      const at = m.index;
+      /* matches only move forward, so walk the line counter along with them */
+      let nl;
+      while ((nl = text.indexOf("\n", ls)) !== -1 && nl < at) { line++; ls = nl + 1; }
+      if (!row || row.line !== line) {
+        let le = text.indexOf("\n", ls);
+        if (le === -1) le = text.length;
+        row = { line: line, pos: at, ord: ord, text: text.slice(ls, le), spans: [] };
+        rows.push(row);
+      }
+      row.spans.push([at - ls, Math.min(at - ls + m[0].length, row.text.length)]);
+      ord++;
+    }
+    return { rows: rows, count: ord };
+  }
+
+  /* a window of the line around the first hit, with every hit in it marked */
+  function snippet(row) {
+    const L = row.text;
+    let s = Math.max(0, row.spans[0][0] - 28);
+    if (s === 0) s = L.length - L.replace(/^\s+/, "").length;
+    if (s > row.spans[0][0]) s = row.spans[0][0];
+    const e = Math.min(L.length, s + 180);
+    let out = s > 0 && /\S/.test(L.slice(0, s)) ? "&hellip;" : "", cx = s;
+    row.spans.forEach(sp => {
+      const a = Math.max(sp[0], cx), b = Math.min(sp[1], e);
+      if (b <= a) return;
+      out += esc(L.slice(cx, a)) + "<mark>" + esc(L.slice(a, b)) + "</mark>";
+      cx = b;
+    });
+    return out + esc(L.slice(cx, e));
+  }
+
+  function queueFolderSearch(delay) {
+    clearTimeout(fsTimer);
+    fsTimer = setTimeout(runFolderSearch, delay == null ? 250 : delay);
+  }
+
+  async function runFolderSearch() {
+    clearTimeout(fsTimer);
+    const run = ++fsRun;
+    const q = $("#fsInput").value, cs = $("#fsCase").checked, re = $("#fsRe").checked;
+    const sum = $("#fsSummary"), out = $("#fsResults");
+    if (!root) {
+      sum.textContent = "";
+      out.innerHTML = '<div class="empty">Open a folder to search<br>across all of its files.</div>' +
+        '<button class="btn btn-pri" data-fs-open style="width:100%">Open Folder</button>';
+      return;
+    }
+    if (!q) { sum.textContent = ""; out.innerHTML = ""; fsLast = null; return; }
+    const rx = searchRegex(q, cs, re);
+    if (!rx) { sum.textContent = "Invalid regular expression"; out.innerHTML = ""; return; }
+
+    sum.textContent = "Searching...";
+    stashActive();
+    const nodes = await allFileNodes();
+    await prefetchServerFiles();
+    if (run !== fsRun) return;
+
+    const found = [];
+    let hits = 0, rows = 0, failed = 0;
+    /* a few reads at a time: quick on a local disk, polite to the exe's server */
+    for (let i = 0; i < nodes.length; i += 8) {
+      const batch = nodes.slice(i, i + 8);
+      const texts = await Promise.all(batch.map(n => searchText(n).catch(() => null)));
+      if (run !== fsRun) return;                     /* a newer query took over */
+      texts.forEach((text, j) => {
+        if (text == null) { failed++; return; }
+        const r = hitsByLine(text, rx);
+        if (!r.count) return;
+        hits += r.count;
+        found.push({ node: batch[j], rows: r.rows, count: r.count });
+        rows += r.rows.length;
+      });
+    }
+
+    fsLast = { q: q, cs: cs, re: re };
+    fsNodes = new Map(found.map(f => [f.node.path, f.node]));
+    sum.textContent = hits
+      ? hits.toLocaleString() + " result" + (hits === 1 ? "" : "s") + " in " + found.length +
+        " file" + (found.length === 1 ? "" : "s") + (failed ? " (" + failed + " unreadable)" : "")
+      : "No results in " + nodes.length + " file" + (nodes.length === 1 ? "" : "s");
+
+    let shown = 0;
+    out.innerHTML = found.map(f => {
+      const p = f.node.path, i = p.lastIndexOf("/");
+      let html = '<div class="sr-file' + (fsShut.has(p) ? " shut" : "") + '" data-sr-file="' + esc(p) + '" title="' + esc(p) + '">' +
+        ICO_CHEV + ICO_FILE + '<span class="sr-name">' + esc(f.node.name) + "</span>" +
+        '<span class="sr-dir">' + (i > 0 ? esc(p.slice(0, i)) : "") + "</span>" +
+        '<span class="sr-n">' + f.count + "</span></div><div class=\"sr-hits\">";
+      for (const r of f.rows) {
+        if (shown >= FS_MAX_ROWS) break;
+        shown++;
+        html += '<div class="sr-hit" data-sr-path="' + esc(p) + '" data-sr-pos="' + r.pos + '" data-sr-ord="' + r.ord +
+          '" title="' + esc(r.text.trim().slice(0, 300)) + '"><span class="sr-ln">' + (r.line + 1) + "</span>" +
+          '<span class="sr-txt">' + snippet(r) + "</span></div>";
+      }
+      return html + "</div>";
+    }).join("") + (shown < rows ? '<div class="sr-more">Showing the first ' + FS_MAX_ROWS.toLocaleString() +
+      " lines - narrow the search to see the rest</div>" : "");
+  }
+
+  /* opens the file and hands the query to the find bar, landing on that exact hit */
+  async function openSearchHit(el) {
+    const n = fsNodes.get(el.dataset.srPath);
+    if (!n || !fsLast) return;
+    const pos = +el.dataset.srPos, ord = +el.dataset.srOrd;
+    document.querySelectorAll(".sr-hit.cur").forEach(x => x.classList.remove("cur"));
+    el.classList.add("cur");
+    await openFileNode(n);
+
+    $("#findInput").value = fsLast.q;
+    $("#findCase").checked = fsLast.cs;
+    $("#findRe").checked = fsLast.re;
+    $("#findbar").hidden = false;
+    findHL = true;
+    setReplaceEnabled(!previewMode());
+    runFind();
+    const n2 = totalHits();
+    if (!n2) return;
+    if (previewMode()) mIndex = Math.min(ord, n2 - 1);
+    else {
+      const k = matches.findIndex(m => m[0] === pos);
+      mIndex = k >= 0 ? k : Math.min(ord, n2 - 1);
+    }
+    $("#findCount").textContent = (mIndex + 1) + " / " + n2;
+    if (previewMode()) pvFocus(); else focusMatch();
+    autoCloseSide();
+  }
+
+  function showFolderSearch() {
+    if (!state.settings.sidebar) setSidebar(true);
+    const sel = ed.value.slice(ed.selectionStart, ed.selectionEnd);
+    if (sel && sel.length < 90 && sel.indexOf("\n") === -1) $("#fsInput").value = sel.trim();
+    showSideTab("search");
+    $("#fsInput").focus();
+    $("#fsInput").select();
   }
 
   /* ---------- following links from one file to another ---------- */
@@ -2463,13 +2745,15 @@ const MD = (function () {
   }
 
   function showSideTab(which) {
-    const map = { files: ["#tabFiles", "#paneFiles"], docs: ["#tabDocs", "#paneDocs"], toc: ["#tabToc", "#paneToc"] };
+    const map = { files: ["#tabFiles", "#paneFiles"], docs: ["#tabDocs", "#paneDocs"], toc: ["#tabToc", "#paneToc"], search: ["#tabSearch", "#paneSearch"] };
     Object.keys(map).forEach(k => {
       const on = k === which;
       $(map[k][0]).setAttribute("aria-selected", on ? "true" : "false");
       $(map[k][1]).hidden = !on;
     });
     if (which === "toc") buildToc(tocData);
+    /* edits may have moved things since the last run, so search again */
+    if (which === "search") runFolderSearch();
     if (window.matchMedia("(max-width:780px)").matches) sideScrollTop();
   }
   function sideScrollTop() { const b = $(".side-body:not([hidden])"); if (b) b.scrollTop = 0; }
@@ -3108,6 +3392,7 @@ const MD = (function () {
         if (t.srv) await srvWrite(t.path, outText(t));
         else await writeHandle(t.handle, outText(t));
         t.saved = t.content;
+        if (t.kind === "file") fileCache.set(t.path, t.content);
         renderTabs(); renderTree(); updateSaveUI();
         toast("Saved " + t.name);
       } catch (e) { toast("Could not save: " + (e.message || e.name)); }
@@ -3166,7 +3451,7 @@ const MD = (function () {
       try {
         if (t.srv) await srvWrite(t.path, outText(t));
         else await writeHandle(t.handle, outText(t));
-        t.saved = t.content; ok++;
+        t.saved = t.content; fileCache.set(t.path, t.content); ok++;
       } catch (e) { toast("Could not save " + t.name); }
     }
     renderTabs(); renderTree();
@@ -3282,6 +3567,8 @@ const MD = (function () {
     switch (a) {
       case "open-folder": openFolder(); break;
       case "save-all": saveAll(); break;
+      case "close-all": showMenu(false); closeAllTabs(); return;
+      case "search-folder": showMenu(false); showFolderSearch(); return;
       case "find": showMenu(false); showFind(true); return;
       case "theme": toggleTheme(); return;
       case "import": $("#jsonPick").click(); break;
@@ -3322,8 +3609,8 @@ const MD = (function () {
     ["Files", [["Open folder", "Ctrl Shift O"], ["Open .md file", "Ctrl O"], ["New document", "Alt N"],
     ["Save", "Ctrl S"], ["Save all files", "Ctrl Alt S"], ["Print / PDF", "Ctrl P"]]],
     ["Tabs", [["Next tab", "Ctrl Alt Right"], ["Previous tab", "Ctrl Alt Left"],
-    ["Go to tab 1-9", "Alt 1-9"], ["Close tab", "Ctrl Alt W"],
-    ["Find and replace", "Ctrl F"], ["Close panel", "Esc"]]],
+    ["Go to tab 1-9", "Alt 1-9"], ["Close tab", "Ctrl Alt W"], ["Close all tabs", "Ctrl Alt Shift W"],
+    ["Find and replace", "Ctrl F"], ["Search in folder", "Ctrl Shift F"], ["Close panel", "Esc"]]],
     ["View", [["Editor only", "Ctrl 1"], ["Split view", "Ctrl 2"], ["Preview only", "Ctrl 3"],
     ["Toggle sidebar", "Ctrl \\"], ["Toggle theme", "Ctrl Shift L"], ["Shortcuts", "F1"]]]
   ];
@@ -3468,7 +3755,12 @@ const MD = (function () {
     /* these must be tested before the plain Ctrl+O / Ctrl+S below */
     if (mod && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); openFolder(); return; }
     if (mod && e.altKey && e.key.toLowerCase() === "s") { e.preventDefault(); saveAll(); return; }
-    if (mod && e.altKey && e.key.toLowerCase() === "w") { e.preventDefault(); if (activeTab) closeTab(activeTab); return; }
+    if (mod && e.altKey && e.key.toLowerCase() === "w") {
+      e.preventDefault();
+      if (e.shiftKey) closeAllTabs(); else if (activeTab) closeTab(activeTab);
+      return;
+    }
+    if (mod && e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") { e.preventDefault(); showFolderSearch(); return; }
     if (mod && e.altKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
       e.preventDefault(); cycleTab(e.key === "ArrowRight" ? 1 : -1); return;
     }
@@ -3638,6 +3930,7 @@ const MD = (function () {
       const tb = e.target.closest("[data-tab]");
       if (tb && tb.dataset.tab !== activeTab) activateTab(tb.dataset.tab);
     });
+    $("#btnCloseAll").addEventListener("click", closeAllTabs);
     $("#tabbar").addEventListener("auxclick", e => {
       if (e.button !== 1) return;
       const tb = e.target.closest("[data-tab]");
@@ -3654,7 +3947,7 @@ const MD = (function () {
           try { await useFolder(reopen.handle); idbSet("root", reopen.handle); }
           catch (err) { toast("Could not reopen that folder"); }
         } else if (a === "new") newFileInFolder();
-        else if (a === "refresh") { if (tree) { await refreshTree(tree); renderTree(); toast("Refreshed"); } }
+        else if (a === "refresh") { if (tree) { dropSearchCache(); await refreshTree(tree); renderTree(); toast("Refreshed"); } }
         else if (a === "close") closeFolder();
         return;
       }
@@ -3686,6 +3979,34 @@ const MD = (function () {
     $("#tabFiles").addEventListener("click", () => showSideTab("files"));
     $("#tabDocs").addEventListener("click", () => showSideTab("docs"));
     $("#tabToc").addEventListener("click", () => showSideTab("toc"));
+    $("#tabSearch").addEventListener("click", () => showSideTab("search"));
+
+    /* search in folder */
+    $("#fsInput").addEventListener("input", () => queueFolderSearch());
+    $("#fsInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); runFolderSearch(); }
+    });
+    $("#fsCase").addEventListener("change", () => runFolderSearch());
+    $("#fsRe").addEventListener("change", () => runFolderSearch());
+    $("#fsRefresh").addEventListener("click", () => { dropSearchCache(); runFolderSearch(); });
+    $("#fsCollapse").addEventListener("click", () => {
+      const rows = document.querySelectorAll("#fsResults .sr-file");
+      const shut = Array.prototype.some.call(rows, r => !r.classList.contains("shut"));
+      rows.forEach(r => {
+        r.classList.toggle("shut", shut);
+        if (shut) fsShut.add(r.dataset.srFile); else fsShut.delete(r.dataset.srFile);
+      });
+    });
+    $("#fsResults").addEventListener("click", e => {
+      if (e.target.closest("[data-fs-open]")) { openFolder(); return; }
+      const hit = e.target.closest(".sr-hit");
+      if (hit) { openSearchHit(hit); return; }
+      const f = e.target.closest(".sr-file");
+      if (f) {
+        const p = f.dataset.srFile;
+        if (f.classList.toggle("shut")) fsShut.add(p); else fsShut.delete(p);
+      }
+    });
     $("#docSearch").addEventListener("input", renderDocs);
     $("#docList").addEventListener("click", e => {
       const del = e.target.closest("[data-del]");

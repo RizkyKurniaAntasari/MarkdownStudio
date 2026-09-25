@@ -10,7 +10,17 @@
 // Markdown Studio) the containing folder becomes a workspace this process serves,
 // so the app opens that file immediately and can still browse and save its
 // siblings. The browser cannot reach a path on its own, so those reads and writes
-// go through /__ws and /__file here.
+// go through /__ws and /__file here, and /__all hands "Search in folder" every
+// file at once.
+//
+// The port is fixed, because the browser keys everything it stores (the Docs,
+// settings, the remembered folder) to the origin, and the origin includes the
+// port - a random port per launch quietly started every session empty. Only one
+// copy can own that port, so a second launch hands its files to the running copy
+// and just opens another window on it.
+//
+// Every launch also registers the app for "Open with" on Markdown files, in the
+// current user's registry only. --register does just that, --unregister undoes it.
 //
 // Build:  build-exe.cmd
 
@@ -22,20 +32,37 @@ using System.Net;
 using System.Management;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using Microsoft.Win32;
+
+[assembly: AssemblyTitle("Markdown Studio")]
+[assembly: AssemblyProduct("Markdown Studio")]
+[assembly: AssemblyDescription("Offline Markdown editor with live preview")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
 
 static class MarkdownStudio
 {
-    static byte[] page;
+    // The one port every launch tries first. Below 49152, so it is outside the
+    // range Windows hands out for outgoing connections.
+    const int PreferredPort = 41873;
 
-    // workspace handed over from the command line - null when launched with no file
-    static string wsRoot;                 // full path of the folder we serve
-    static string wsName = "";            // its display name
-    static List<string> wsOpen = new List<string>();   // files to open on start
+    static byte[] page;
     static string key = "";               // guards the workspace endpoints
+
+    // One per window that was opened on a file or folder; the page names its own
+    // with &w= in the URL, so several windows can share this one server.
+    class Workspace
+    {
+        public string Root;               // full path of the folder we serve
+        public string Name = "";          // its display name
+        public List<string> Open = new List<string>();   // files to open on start
+    }
+    static readonly Dictionary<string, Workspace> workspaces = new Dictionary<string, Workspace>();
 
     const int MaxDepth = 6;
     const int MaxFiles = 3000;
@@ -45,6 +72,11 @@ static class MarkdownStudio
     {
         try
         {
+            foreach (string a in args)
+            {
+                if (a == "--register") { Register(); return 0; }
+                if (a == "--unregister") { Unregister(); return 0; }
+            }
             Run(args);
             return 0;
         }
@@ -59,36 +91,83 @@ static class MarkdownStudio
     static void Run(string[] args)
     {
         page = LoadPage();
-        TakeWorkspace(args);
-        key = NewKey();
+        try { Register(); } catch { }      // never worth failing a launch over
+        Workspace ws = TakeWorkspace(args);
 
-        // port 0 = let Windows pick a free one, so two copies never collide
-        TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
+        string profile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MarkdownStudio", "profile");
+
+        // already running: that copy serves this window too, so its origin (and
+        // everything stored under it) is the same one you had open before
+        string handed = HandOff(ws);
+        if (handed != null)
+        {
+            OpenWindow(handed, profile, false);
+            return;
+        }
+
+        key = NewKey();
+        string id = AddWorkspace(ws);
+        TcpListener listener = Listen();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
 
         Thread server = new Thread(delegate() { Serve(listener); });
         server.IsBackground = true;
         server.Start();
 
-        string url = "http://127.0.0.1:" + port + "/?k=" + key;
-        string browser = FindBrowser();
+        WriteInstance(port);
+        try
+        {
+            OpenWindow(PageUrl(port, id), profile, true);
+        }
+        finally
+        {
+            ClearInstance();
+        }
+    }
 
+    static string PageUrl(int port, string id)
+    {
+        return "http://127.0.0.1:" + port + "/?k=" + key + (id != null ? "&w=" + id : "");
+    }
+
+    static TcpListener Listen()
+    {
+        try
+        {
+            TcpListener l = new TcpListener(IPAddress.Loopback, PreferredPort);
+            l.ExclusiveAddressUse = true;     // nobody else may share the port with us
+            l.Start();
+            return l;
+        }
+        catch (SocketException)
+        {
+            // something else holds it - still start, just without the stable origin
+            TcpListener l = new TcpListener(IPAddress.Loopback, 0);
+            l.Start();
+            return l;
+        }
+    }
+
+    // Opens the app window. The first copy waits for it to close so the server
+    // stays up; a copy that only handed off returns straight away.
+    static void OpenWindow(string url, string profile, bool wait)
+    {
+        string browser = FindBrowser();
         if (browser == null)
         {
             // no Chromium browser found - fall back to whatever handles http
             Process.Start(url);
-            MessageBox.Show("Markdown Studio is running at\n" + url +
-                "\n\nClose this dialog when you are done.",
-                "Markdown Studio", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (wait)
+                MessageBox.Show("Markdown Studio is running at\n" + url +
+                    "\n\nClose this dialog when you are done.",
+                    "Markdown Studio", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
         // its own profile folder, so the app window is independent of your normal
         // browsing session and keeps its own documents and settings
-        string profile = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MarkdownStudio", "profile");
         bool firstRun = !Directory.Exists(profile);
         Directory.CreateDirectory(profile);
 
@@ -101,7 +180,7 @@ static class MarkdownStudio
         psi.UseShellExecute = false;
 
         Process proc = Process.Start(psi);
-        if (proc == null) return;
+        if (proc == null || !wait) return;
 
         // With its own --user-data-dir the process we started IS the browser, so this
         // blocks until the window is closed. If it returns straight away the browser
@@ -137,6 +216,158 @@ static class MarkdownStudio
         return BitConverter.ToString(b).Replace("-", "").ToLowerInvariant();
     }
 
+    // ---------------------------------------------------------------- single instance
+
+    // Where the running copy leaves its port and key for the next launch to find.
+    // It sits in your own profile, which is the same trust boundary as the key in
+    // the window's URL.
+    static string InstanceFile()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MarkdownStudio", "instance");
+    }
+
+    static void WriteInstance(int port)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(InstanceFile()));
+            File.WriteAllText(InstanceFile(),
+                port + "\n" + key + "\n" + Process.GetCurrentProcess().Id + "\n");
+        }
+        catch { }
+    }
+
+    static void ClearInstance()
+    {
+        try
+        {
+            string[] l = File.ReadAllLines(InstanceFile());
+            if (l.Length >= 3 && l[2] == Process.GetCurrentProcess().Id.ToString())
+                File.Delete(InstanceFile());
+        }
+        catch { }
+    }
+
+    // Asks a running copy to take this launch's files. Returns the URL of the new
+    // window, or null when there is no running copy (or it did not answer), in
+    // which case this launch simply becomes the server itself.
+    static string HandOff(Workspace ws)
+    {
+        string[] l;
+        try { l = File.ReadAllLines(InstanceFile()); } catch { return null; }
+        if (l.Length < 3) return null;
+
+        int port, pid;
+        if (!int.TryParse(l[0], out port) || !int.TryParse(l[2], out pid)) return null;
+        try
+        {
+            // a leftover from a copy that did not shut down cleanly
+            Process p = Process.GetProcessById(pid);
+            if (p.HasExited || p.Id == Process.GetCurrentProcess().Id) return null;
+        }
+        catch { return null; }
+
+        StringBuilder body = new StringBuilder();
+        if (ws != null)
+        {
+            body.Append(ws.Root).Append('\n');
+            foreach (string f in ws.Open) body.Append(f).Append('\n');
+        }
+
+        try
+        {
+            HttpWebRequest rq = (HttpWebRequest)WebRequest.Create(
+                "http://127.0.0.1:" + port + "/__launch?k=" + l[1]);
+            rq.Method = "POST";
+            rq.Proxy = null;
+            rq.Timeout = 3000;
+            rq.ContentType = "text/plain; charset=utf-8";
+            byte[] b = Encoding.UTF8.GetBytes(body.ToString());
+            rq.ContentLength = b.Length;
+            using (Stream s = rq.GetRequestStream()) s.Write(b, 0, b.Length);
+            using (HttpWebResponse rs = (HttpWebResponse)rq.GetResponse())
+            using (StreamReader rd = new StreamReader(rs.GetResponseStream(), Encoding.UTF8))
+            {
+                string id = rd.ReadToEnd().Trim();
+                return "http://127.0.0.1:" + port + "/?k=" + l[1] + (id.Length > 0 ? "&w=" + id : "");
+            }
+        }
+        catch { return null; }
+    }
+
+    // ---------------------------------------------------------------- "Open with"
+
+    static readonly string[] MdExts = { ".md", ".markdown", ".mdown", ".mkd", ".mdwn" };
+    const string ProgId = "MarkdownStudio.md";
+
+    static bool Put(RegistryKey root, string sub, string name, string value)
+    {
+        using (RegistryKey k = root.CreateSubKey(sub))
+        {
+            object cur = k.GetValue(name);
+            if (cur != null && cur.ToString() == value) return false;
+            k.SetValue(name, value);
+            return true;
+        }
+    }
+
+    [DllImport("shell32.dll")]
+    static extern void SHChangeNotify(int eventId, int flags, IntPtr a, IntPtr b);
+
+    // Windows only remembers an app picked through "Choose another app" in a short
+    // recently-used list, and drops it again once other apps push it out - which is
+    // why Markdown Studio kept vanishing from the menu. Listing it under each
+    // extension's OpenWithProgids keeps it there for good. Current user only, so
+    // no admin rights; it does not make itself the default app.
+    static void Register()
+    {
+        string exe = Assembly.GetExecutingAssembly().Location;
+        string file = Path.GetFileName(exe);
+        // a copy the build moved aside must not steal the registration
+        if (file.StartsWith("MarkdownStudio.old", StringComparison.OrdinalIgnoreCase) ||
+            file.StartsWith("MarkdownStudio.new", StringComparison.OrdinalIgnoreCase)) return;
+
+        string cmd = "\"" + exe + "\" \"%1\"";
+        string icon = "\"" + exe + "\",0";
+        string app = @"Applications\" + file;
+        bool changed = false;
+        using (RegistryKey c = Registry.CurrentUser.CreateSubKey(@"Software\Classes"))
+        {
+            changed |= Put(c, ProgId, "", "Markdown document");
+            changed |= Put(c, ProgId, "FriendlyTypeName", "Markdown document");
+            changed |= Put(c, ProgId + @"\DefaultIcon", "", icon);
+            changed |= Put(c, ProgId + @"\shell\open\command", "", cmd);
+            changed |= Put(c, app, "FriendlyAppName", "Markdown Studio");
+            changed |= Put(c, app + @"\DefaultIcon", "", icon);
+            changed |= Put(c, app + @"\shell\open\command", "", cmd);
+            foreach (string e in MdExts)
+            {
+                changed |= Put(c, e + @"\OpenWithProgids", ProgId, "");
+                changed |= Put(c, app + @"\SupportedTypes", e, "");
+            }
+        }
+        // tell Explorer, or the menu keeps showing the old state until a restart
+        if (changed) SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    static void Unregister()
+    {
+        string file = Path.GetFileName(Assembly.GetExecutingAssembly().Location);
+        using (RegistryKey c = Registry.CurrentUser.CreateSubKey(@"Software\Classes"))
+        {
+            c.DeleteSubKeyTree(ProgId, false);
+            c.DeleteSubKeyTree(@"Applications\" + file, false);
+            foreach (string e in MdExts)
+            {
+                using (RegistryKey k = c.OpenSubKey(e + @"\OpenWithProgids", true))
+                    if (k != null) k.DeleteValue(ProgId, false);
+            }
+        }
+        SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+    }
+
     // ---------------------------------------------------------------- workspace
 
     static bool IsMd(string path)
@@ -160,8 +391,8 @@ static class MarkdownStudio
 
     // Everything the command line gave us. A folder becomes the workspace as it
     // is; files make their own folder the workspace so links between siblings
-    // still resolve.
-    static void TakeWorkspace(string[] args)
+    // still resolve. Null when launched with nothing to open.
+    static Workspace TakeWorkspace(string[] args)
     {
         List<string> files = new List<string>();
         string dir = null;
@@ -177,24 +408,52 @@ static class MarkdownStudio
             if (dir == null) dir = Path.GetDirectoryName(full);
             files.Add(full);
         }
-        if (dir == null) return;
+        if (dir == null) return null;
 
-        wsRoot = dir.TrimEnd('\\', '/');
-        wsName = Path.GetFileName(wsRoot);
-        if (wsName.Length == 0) wsName = wsRoot;          // a drive root has no name
-
+        Workspace ws = NewWorkspace(dir);
         foreach (string f in files)
         {
-            string rel = RelOf(f);
-            // a file dropped on us from elsewhere still opens, just not as part of
-            // the tree - but since we took its own folder as the root, it always is
-            if (rel != null) wsOpen.Add(rel);
+            string rel = RelOf(ws, f);
+            // we took the first file's own folder as the root, so it always is
+            if (rel != null) ws.Open.Add(rel);
         }
+        return ws;
     }
 
-    static string RelOf(string full)
+    static Workspace NewWorkspace(string dir)
     {
-        string r = wsRoot + Path.DirectorySeparatorChar;
+        Workspace ws = new Workspace();
+        // "D:\" must keep its backslash: "D:" alone means the current folder on D:
+        string root = Path.GetFullPath(dir);
+        ws.Root = root.Length > 3 ? root.TrimEnd('\\', '/') : root;
+        ws.Name = Path.GetFileName(ws.Root);
+        if (ws.Name.Length == 0) ws.Name = ws.Root;       // a drive root has no name
+        return ws;
+    }
+
+    static string AddWorkspace(Workspace ws)
+    {
+        if (ws == null) return null;
+        string id = NewKey().Substring(0, 12);
+        lock (workspaces) workspaces[id] = ws;
+        return id;
+    }
+
+    static Workspace GetWorkspace(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        Workspace ws;
+        lock (workspaces) return workspaces.TryGetValue(id, out ws) ? ws : null;
+    }
+
+    static string Prefix(Workspace ws)
+    {
+        return ws.Root.EndsWith("\\") ? ws.Root : ws.Root + "\\";
+    }
+
+    static string RelOf(Workspace ws, string full)
+    {
+        string r = Prefix(ws);
         if (!full.StartsWith(r, StringComparison.OrdinalIgnoreCase)) return null;
         return full.Substring(r.Length).Replace('\\', '/');
     }
@@ -221,19 +480,20 @@ static class MarkdownStudio
 
     // Resolves a relative path from the page against the workspace, refusing
     // anything that escapes it or is not a text file we handle.
-    static string Resolve(string rel)
+    static string Resolve(Workspace ws, string rel)
     {
-        if (wsRoot == null || string.IsNullOrEmpty(rel)) return null;
+        if (ws == null || string.IsNullOrEmpty(rel)) return null;
         rel = rel.Replace('\\', '/');
-        if (rel.StartsWith("/") || rel.Contains("..") || rel.Contains(":")) return null;
+        if (rel.StartsWith("/") || rel.Contains(":")) return null;
+        // a ".." segment climbs out; "notes..md" is just a name and is fine
+        foreach (string seg in rel.Split('/')) if (seg == "..") return null;
         if (!IsMd(rel)) return null;
 
         string full;
-        try { full = Path.GetFullPath(Path.Combine(wsRoot, rel.Replace('/', '\\'))); }
+        try { full = Path.GetFullPath(Path.Combine(ws.Root, rel.Replace('/', '\\'))); }
         catch { return null; }
 
-        string r = wsRoot + Path.DirectorySeparatorChar;
-        if (!full.StartsWith(r, StringComparison.OrdinalIgnoreCase)) return null;
+        if (!full.StartsWith(Prefix(ws), StringComparison.OrdinalIgnoreCase)) return null;
         return full;
     }
 
@@ -252,16 +512,16 @@ static class MarkdownStudio
         return b.Append('"').ToString();
     }
 
-    static string Manifest()
+    static string Manifest(Workspace ws)
     {
-        if (wsRoot == null) return "{\"root\":null}";
+        if (ws == null) return "{\"root\":null}";
         List<string> files = new List<string>();
-        Walk(wsRoot, "", 0, files);
+        Walk(ws.Root, "", 0, files);
         files.Sort(StringComparer.OrdinalIgnoreCase);
 
         StringBuilder b = new StringBuilder();
-        b.Append("{\"root\":").Append(JsonStr(wsName));
-        b.Append(",\"path\":").Append(JsonStr(wsRoot));
+        b.Append("{\"root\":").Append(JsonStr(ws.Name));
+        b.Append(",\"path\":").Append(JsonStr(ws.Root));
         b.Append(",\"files\":[");
         for (int i = 0; i < files.Count; i++)
         {
@@ -269,13 +529,61 @@ static class MarkdownStudio
             b.Append(JsonStr(files[i]));
         }
         b.Append("],\"open\":[");
-        for (int i = 0; i < wsOpen.Count; i++)
+        for (int i = 0; i < ws.Open.Count; i++)
         {
             if (i > 0) b.Append(',');
-            b.Append(JsonStr(wsOpen[i]));
+            b.Append(JsonStr(ws.Open[i]));
         }
         b.Append("]}");
         return b.ToString();
+    }
+
+    // Every workspace file in one response, for "Search in folder". One request
+    // per file is fine for a handful of notes but crawls once a folder has a few
+    // hundred. Past the size cap the rest is left out, and the page reads those
+    // one by one through /__file as before.
+    const long MaxBulk = 48L * 1024 * 1024;
+
+    static string AllFiles(Workspace ws)
+    {
+        StringBuilder b = new StringBuilder("{");
+        if (ws == null) return b.Append('}').ToString();
+
+        List<string> files = new List<string>();
+        Walk(ws.Root, "", 0, files);
+        long total = 0;
+        bool first = true;
+        foreach (string rel in files)
+        {
+            string full = Resolve(ws, rel);
+            if (full == null) continue;
+            byte[] raw;
+            try { raw = File.ReadAllBytes(full); } catch { continue; }
+            if (total + raw.Length > MaxBulk) break;
+            total += raw.Length;
+            if (!first) b.Append(',');
+            first = false;
+            b.Append(JsonStr(rel)).Append(':').Append(JsonStr(Encoding.UTF8.GetString(raw)));
+        }
+        return b.Append('}').ToString();
+    }
+
+    // A later launch's files, sent over by HandOff: the folder on the first line,
+    // then the files to open relative to it. Answers with the new workspace id,
+    // or nothing for a plain window with no file.
+    static string Launch(byte[] body)
+    {
+        string[] lines = Encoding.UTF8.GetString(body).Replace("\r", "").Split('\n');
+        if (lines.Length == 0 || lines[0].Trim().Length == 0) return "";
+        if (!Directory.Exists(lines[0])) return "";
+
+        Workspace ws = NewWorkspace(lines[0]);
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string rel = lines[i].Trim();
+            if (rel.Length > 0 && Resolve(ws, rel) != null) ws.Open.Add(rel);
+        }
+        return AddWorkspace(ws);
     }
 
     // ---------------------------------------------------------------- lifecycle
@@ -441,16 +749,29 @@ static class MarkdownStudio
                 if (path == "/" || path == "/index.html")
                 { Send(ns, "200 OK", "text/html; charset=utf-8", page); return; }
 
-                if (path == "/__ws" || path == "/__file")
+                if (path == "/__ws" || path == "/__file" || path == "/__all" || path == "/__launch")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
 
+                    if (path == "/__launch")
+                    {
+                        if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+                        SendText(ns, "200 OK", Launch(body));
+                        return;
+                    }
+
+                    Workspace ws = GetWorkspace(QueryValue(query, "w"));
+
                     if (path == "/__ws")
                     { Send(ns, "200 OK", "application/json; charset=utf-8",
-                           Encoding.UTF8.GetBytes(Manifest())); return; }
+                           Encoding.UTF8.GetBytes(Manifest(ws))); return; }
 
-                    string full = Resolve(QueryValue(query, "p"));
+                    if (path == "/__all")
+                    { Send(ns, "200 OK", "application/json; charset=utf-8",
+                           Encoding.UTF8.GetBytes(AllFiles(ws))); return; }
+
+                    string full = Resolve(ws, QueryValue(query, "p"));
                     if (full == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
 
                     if (method == "GET")

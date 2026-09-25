@@ -14,33 +14,55 @@ The exe is self-contained (the whole app is baked into it), so you can copy it t
 Desktop, a USB stick, anywhere. If an `index.html` happens to sit next to it, that one
 is used instead, so you can tweak the app without rebuilding.
 
-It picks a free loopback port, opens Edge (or Chrome) in app mode with its own profile
-in `%LOCALAPPDATA%\MarkdownStudio`, and shuts the server down when you close the window.
-Nothing is installed and nothing listens on the network — only `127.0.0.1`.
+It serves on a fixed loopback port, `127.0.0.1:41873`, opens Edge (or Chrome) in app
+mode with its own profile in `%LOCALAPPDATA%\MarkdownStudio`, and shuts the server down
+when you close the last window. Nothing listens on the network — only `127.0.0.1`.
+
+The port is fixed on purpose: the browser files everything it stores (your Docs,
+settings, the remembered folder) under the page's origin, and the origin includes the
+port. A random port per launch meant every session quietly started empty. If some
+other program already holds 41873 the app still starts on a free port, just without
+that memory for the session.
 
 The window is sized to your screen the first time it runs; after that it reopens at
 whatever size you last left it.
 
 ### Open with
 
-Right-click any `.md` file → **Open with** → `MarkdownStudio.exe`, and it opens that
+Right-click any `.md` file → **Open with** → **Markdown Studio**, and it opens that
 file straight away — no Open Folder step. The **folder that file lives in becomes the
 workspace**, so the Explorer tree is filled in, links to sibling files work, and
 `Ctrl+S` writes back to the real file on disk.
 
+Run the exe once and it registers itself for **Open with** on `.md`, `.markdown`,
+`.mdown`, `.mkd` and `.mdwn` files, so it stays in that menu for good. Picking an exe
+through "Choose another app" only lands it in a short recently-used list, and Windows
+drops it again once other apps push it out, which is why it used to vanish. This goes
+in your own user's registry only (no admin), it does not make itself the default app,
+and it follows the exe if you move it — just run it once from the new place.
+`MarkdownStudio.exe --unregister` removes it; `--register` re-adds it without opening
+a window. To have `.md` files open in it on a double-click, pick it once in
+**Open with → Choose another app** and tick **Always**.
+
 You can hand it a folder the same way, or drag a file or folder onto the exe.
 
 Doing this again while the app is already open gives you a second window rather than
-replacing the one you are working in.
+replacing the one you are working in. The new launch hands its file to the copy that
+is already running and exits, so both windows share one server and one origin.
 
 Under the hood: a browser cannot read a path just because it was named on a command
 line, so the launcher serves that folder over the same loopback connection and the app
-reads and writes through it. Those endpoints are guarded by a random key generated per
-launch and passed on the app's own URL, they refuse any path outside the folder, and
-they only ever touch Markdown and text files.
+reads and writes through it. Those endpoints are guarded by a random key generated
+when the app starts and passed on the app's own URL, they refuse any path outside the
+folder, and they only ever touch Markdown and text files. A later launch finds that key
+in `%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
 
-To rebuild it after editing `index.html`, run `build-exe.cmd`. It uses the C# compiler
-that already ships with Windows, so there is nothing to install.
+To rebuild it after editing `index.html`, run `build-exe.cmd` (from PowerShell:
+`.\build-exe.cmd`). It uses the C# compiler that already ships with Windows, so there
+is nothing to install. It is fine to build while Markdown Studio is open: the running
+copy is moved aside as `MarkdownStudio.old.exe` and keeps working, the build tells you
+to restart it, and the next build deletes the old copy. A failed build never touches
+the working exe.
 
 ### Or just open the HTML
 
@@ -157,8 +179,15 @@ it is just a document.
 - Find and dark mode move into the ⋮ menu, since phones have no `Ctrl+F`
 
 **Files**
-- Three sidebar panes: **Explorer** (your folder), **Docs** (scratch documents kept in
-  the browser, with search), **Outline** (headings of the current file)
+- Four sidebar panes: **Explorer** (your folder), **Docs** (scratch documents kept in
+  the browser, with search), **Outline** (headings of the current file), and **Search**
+- **Search in folder** (`Ctrl+Shift+F`) looks through every Markdown file in the opened
+  folder, subfolders included, with case-sensitive and regex modes. Results are grouped
+  by file with line numbers; click one to open the file and land on that exact match,
+  with the find bar ready to step through the rest. Open tabs are searched as they are
+  in the editor, unsaved edits included; the refresh button re-reads files from disk
+- **Close all tabs** with the button at the right end of the tab bar, **Menu → Close all
+  tabs**, or `Ctrl+Alt+Shift+W` — it asks once if any open file has unsaved changes
 - Export to standalone HTML, or print / save as PDF
 - Drag any `.md` file onto the window to open it
 - JSON backup of every scratch document, and import to restore
