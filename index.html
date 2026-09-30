@@ -77,6 +77,10 @@ body.no-sidebar #sidebar{margin-left:-252px}
 .side-foot{padding:8px;border-top:1px solid var(--bd);display:flex;gap:6px}
 #docSearch{width:100%;padding:6px 9px;border:1px solid var(--bd);border-radius:var(--r-sm);background:var(--bg);font-size:12.5px;margin-bottom:8px}
 #docSearch::placeholder{color:var(--fg3)}
+#docHome{font-size:11px;color:var(--fg3);line-height:1.5;margin:-4px 0 8px;word-break:break-all}
+#docHome b{color:var(--fg2);font-weight:600}
+#docHome button{border:0;background:none;padding:0;margin-left:3px;color:var(--acc);font:inherit;cursor:pointer;text-decoration:underline;white-space:nowrap}
+#docHome button:hover{opacity:.8}
 
 .doc{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:var(--r-sm);cursor:pointer;transition:var(--tr);margin-bottom:1px}
 .doc:hover{background:var(--bg3)}
@@ -144,6 +148,12 @@ body.view-preview #toolbar{display:none}
 body.view-edit #panes,body.view-preview #panes{grid-template-columns:1fr}
 body.view-edit #splitter,body.view-preview #splitter,
 body.view-edit #previewPane,body.view-preview #editorPane{display:none}
+/* Only the pane that was hidden a moment ago fades in - fading the one that
+   stayed on screen would read as a flicker on every switch. */
+@media (prefers-reduced-motion:no-preference){
+  #editorPane.pane-in,#previewPane.pane-in{animation:paneIn .17s ease-out}
+}
+@keyframes paneIn{from{opacity:0}to{opacity:1}}
 #splitter{background:var(--bd);cursor:col-resize;position:relative;transition:background var(--tr)}
 #splitter::after{content:"";position:absolute;inset:0 -4px;z-index:5}
 #splitter:hover,#splitter.drag{background:var(--acc)}
@@ -171,6 +181,36 @@ body.nowrap #editor{white-space:pre;overflow-x:auto;word-wrap:normal}
 /* "Wide" drops the column on both panes, for wide tables and side-by-side reading */
 body.wide #preview{max-width:none}
 body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--gut)}
+
+/* ---------------- mermaid ---------------- */
+/* Literal colours, not var(--fg) and friends: saving a diagram reads these back
+   with getComputedStyle, and a value that is itself a var() would come back as one. */
+:root{--mmd-fill:#ffffff;--mmd-bd:#c3cad4;--mmd-fg:#1f2328;--mmd-line:#848d97;
+      --mmd-lab:#ffffff;--mmd-sg-bd:#d0d7de;--mmd-sg-bg:rgba(27,31,36,.03);--mmd-sg-fg:#6e7781}
+:root[data-theme="dark"]{--mmd-fill:#1c2128;--mmd-bd:#444c56;--mmd-fg:#e6edf3;--mmd-line:#7d8590;
+      --mmd-lab:#0d1117;--mmd-sg-bd:#373e47;--mmd-sg-bg:rgba(255,255,255,.03);--mmd-sg-fg:#8b949e}
+#preview .mmd{margin:18px 0;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg);overflow:hidden}
+#preview .mmd-view{padding:18px 16px;overflow-x:auto;text-align:center}
+.mmd-svg{max-width:100%;height:auto;font-family:var(--f-ui)}
+.mmd-node>rect,.mmd-node>polygon,.mmd-node>ellipse,.mmd-node>path{fill:var(--mmd-fill);stroke:var(--mmd-bd);stroke-width:1.4}
+.mmd-node>path.mmd-line-only{fill:none}
+.mmd-node text{fill:var(--mmd-fg);font-size:13px;text-anchor:middle}
+.mmd-edge{fill:none;stroke:var(--mmd-line);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mmd-dotted{stroke-dasharray:5 4}
+.mmd-thick{stroke-width:3}
+.mmd-elabel rect{fill:var(--mmd-lab);stroke:none}
+.mmd-elabel text{fill:var(--mmd-fg);font-size:11.5px;text-anchor:middle}
+.mmd-sg rect{fill:var(--mmd-sg-bg);stroke:var(--mmd-sg-bd);stroke-width:1.2;stroke-dasharray:4 4}
+.mmd-sg text{fill:var(--mmd-sg-fg);font-size:11.5px;font-weight:600;text-anchor:start}
+.mmd-mk{fill:var(--mmd-line);stroke:none}
+.mmd-mk-o{fill:none;stroke:var(--mmd-line);stroke-width:1.6}
+#preview .mmd-src{margin:0;border:0;border-radius:0;background:var(--bg2)}
+#preview .mmd-msg{padding:10px 14px;font-size:12.5px;color:var(--warn);border-bottom:1px solid var(--bd);background:var(--bg2)}
+.mmd-bar{display:flex;align-items:center;gap:6px;padding:7px 10px;border-top:1px solid var(--bd);background:var(--bg2)}
+.mmd-bar button{border:1px solid var(--bd);background:var(--bg);color:var(--fg2);border-radius:var(--r-sm);
+  padding:3px 9px;font-size:11.5px;font-family:inherit;cursor:pointer;transition:var(--tr)}
+.mmd-bar button:hover{border-color:var(--acc);color:var(--acc)}
+@media print{.mmd-bar{display:none}#preview .mmd{break-inside:avoid;border-color:#ddd}}
 
 /* ---------------- status ---------------- */
 #status{display:flex;align-items:center;gap:14px;padding:5px 12px;font-size:11.5px;color:var(--fg3);border-top:1px solid var(--bd);background:var(--panel);flex:0 0 auto;font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap}
@@ -521,6 +561,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
     </div>
     <div class="side-body" id="paneDocs" hidden>
       <input type="text" id="docSearch" placeholder="Search documents..." autocomplete="off" spellcheck="false">
+      <div id="docHome" hidden></div>
       <div id="docList"></div>
     </div>
     <div class="side-body" id="paneToc" hidden><div id="tocList"></div></div>
@@ -917,6 +958,39 @@ Five kinds, and they render as coloured panels. Reach for these instead of writi
 - [x] Clicking one edits the source for you
 - [ ] Useful for a roadmap section
 
+## Diagrams
+
+A code block marked `mermaid` is drawn instead of printed. Flowcharts, that is —
+`flowchart` or `graph`, going `TD` (down), `LR`, `RL` or `BT`.
+
+```mermaid
+flowchart TD
+    A([Buka file]) --> B{Sudah pernah diedit?}
+    B -- belum --> C[Tulis draft]
+    B -- sudah --> D[Perbaiki]
+    C --> E[Simpan]
+    D --> E
+    E --> F([Selesai])
+```
+
+The bar under a diagram has **Code** to read the source that made it, **Copy** to take
+it with you, and **PNG** / **SVG** to save the picture.
+
+Node shapes come from the brackets around the label, links from the dashes between:
+
+| You write | You get |
+| --------- | ------- |
+| `A[Text]` `A(Text)` `A([Text])` | box, rounded, pill |
+| `A[[Text]]` `A[(Text)]` `A((Text))` | subroutine, database, circle |
+| `A{Text}` `A{{Text}}` `A[/Text/]` | decision, hexagon, parallelogram |
+| `A --> B` `A --- B` | arrow, plain line |
+| `A -.-> B` `A ==> B` | dotted, thick |
+| `A -- yes --> B` `A -->|yes| B` | a label on the link |
+| `A --> B & C` | both, from one line |
+
+`subgraph Name` ... `end` draws a box around a group, `%%` starts a comment, and
+`classDef`/`style` colour things in. A diagram that loops back on itself is fine.
+
 ## Footnotes
 
 Keep a heavy aside out of the sentence[^why] and let it collect itself at the bottom.
@@ -1228,7 +1302,806 @@ const HL = (function () {
 })();
 
 /* =========================================================
-   2. Markdown parser
+   2. Mermaid flowcharts
+   ========================================================= */
+/* Enough of Mermaid to draw the diagrams people actually put in a README:
+   flowchart / graph in all four directions, the usual node shapes, the usual link
+   styles, edge labels, subgraphs and styling. Hand-written for the same reason the
+   Markdown parser below it is - Mermaid itself is some three megabytes once d3,
+   dagre and cytoscape come with it, an order of magnitude more than this whole app,
+   and it would have to be carried inside it to keep working with no connection.
+
+   Layout is the textbook layered one: rank the nodes, give long edges invisible
+   stops to travel through, order each rank to untangle the crossings, then place
+   them. Everything is computed in "along the ranks" and "across a rank", and only
+   the last step knows whether that means down, up, right or left.
+
+   Whatever it cannot read is reported by line, and the block falls back to showing
+   its source instead of a broken picture. */
+const MMD = (function () {
+  const E = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const esc = s => String(s).replace(/[&<>"']/g, c => E[c]);
+
+  const FONT = '13px ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+  const LFONT = '11.5px ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+  const PAD_X = 15, PAD_Y = 9, MIN_W = 48, MIN_H = 36, LH = 17;
+  const GAP_ACROSS = 28, GAP_ALONG = 48, PAD = 10;
+  const MAX_NODES = 400;
+
+  /* Text is measured rather than guessed at, or every box would be the wrong size
+     for its label. A canvas is the cheapest ruler the browser has. */
+  let ctx;
+  function measure(text, font) {
+    if (ctx === undefined) {
+      try { ctx = document.createElement("canvas").getContext("2d"); }
+      catch (e) { ctx = null; }
+    }
+    if (!ctx) return String(text).length * 7.1;
+    ctx.font = font || FONT;
+    return ctx.measureText(String(text)).width;
+  }
+
+  /* ---------------------------------------------------------------- parsing */
+
+  /* Longest opener first: "[[" must be tried before "[", or every subroutine reads
+     as a rectangle whose label starts with a bracket. */
+  const SHAPES = [
+    ["(((", ")))", "circle"],
+    ["([", "])", "stadium"],
+    ["[[", "]]", "subroutine"],
+    ["[(", ")]", "cylinder"],
+    ["((", "))", "circle"],
+    ["{{", "}}", "hexagon"],
+    ["[/", "/]", "leanr"],
+    ["[/", "\\]", "trapa"],
+    ["[\\", "\\]", "leanl"],
+    ["[\\", "/]", "trapb"],
+    ["[", "]", "rect"],
+    ["(", ")", "round"],
+    ["{", "}", "rhombus"],
+    [">", "]", "odd"]
+  ];
+  /* No "-" in an id: "A-->B" would otherwise read as a node called "A-". */
+  const ID_RE = /^[A-Za-z0-9_À-￿]+/;
+  const HEADS = ">xo";
+
+  function unquote(s) {
+    s = String(s).trim();
+    const a = s.charAt(0), b = s.charAt(s.length - 1);
+    if (s.length > 1 && ((a === '"' && b === '"') || (a === "'" && b === "'"))) s = s.slice(1, -1);
+    return s;
+  }
+  /* "<br/>" is how Mermaid breaks a label; a literal \n is how people try to. */
+  function textLines(s) {
+    const parts = unquote(s).replace(/<br\s*\/?>/gi, "\n").replace(/\\n/g, "\n")
+      .split("\n").map(x => x.trim());
+    while (parts.length > 1 && parts[0] === "") parts.shift();
+    while (parts.length > 1 && parts[parts.length - 1] === "") parts.pop();
+    return parts;
+  }
+
+  function readNode(s, p) {
+    const m = ID_RE.exec(s.slice(p));
+    if (!m) return null;
+    const id = m[0];
+    const q = p + id.length;
+    for (let i = 0; i < SHAPES.length; i++) {
+      const open = SHAPES[i][0], close = SHAPES[i][1];
+      if (s.substr(q, open.length) !== open) continue;
+      const at = s.indexOf(close, q + open.length);
+      if (at < 0) continue;
+      return { id: id, text: s.slice(q + open.length, at), shape: SHAPES[i][2],
+               end: at + close.length };
+    }
+    return { id: id, text: null, shape: null, end: q };
+  }
+
+  /* One link, in any of the spellings: --> --- -.-> ==> --x --o <--> and the two
+     ways of labelling one, "-- yes -->" and "-->|yes|". */
+  function readLink(s, p) {
+    let q = p, back = false;
+    if (s.charAt(q) === "<" && "-=.".indexOf(s.charAt(q + 1)) >= 0) { back = true; q++; }
+    const a = q;
+    while (q < s.length && "-=.".indexOf(s.charAt(q)) >= 0) q++;
+    const lead = s.slice(a, q);
+    if (lead.length < 2) return null;
+
+    let label = "", tail = "";
+    if (q < s.length && HEADS.indexOf(s.charAt(q)) < 0 && /^(--|==|-\.)$/.test(lead)) {
+      const m = /^\s*(\S[^\n]*?)\s*([-=.]{2,})/.exec(s.slice(q));
+      if (!m) return null;                 /* "A -- B" is a dangling link, not one */
+      label = m[1]; tail = m[2]; q += m[0].length;
+    }
+    let head = "";
+    if (q < s.length && HEADS.indexOf(s.charAt(q)) >= 0) { head = s.charAt(q); q++; }
+    if (!label && s.charAt(q) === "|") {
+      const at = s.indexOf("|", q + 1);
+      if (at > 0) { label = s.slice(q + 1, at); q = at + 1; }
+    }
+    const all = lead + tail;
+    return {
+      end: q, back: back, head: head,
+      label: unquote(label),
+      style: all.indexOf(".") >= 0 ? "dotted" : all.indexOf("=") >= 0 ? "thick" : "solid"
+    };
+  }
+
+  /* Semicolons separate statements, but only outside a label - "A[a;b]" is one node. */
+  function statements(line) {
+    const out = [];
+    let depth = 0, quote = "", start = 0;
+    for (let i = 0; i < line.length; i++) {
+      const c = line.charAt(i);
+      if (quote) { if (c === quote) quote = ""; continue; }
+      if (c === '"' || c === "'") { quote = c; continue; }
+      if (c === "[" || c === "(" || c === "{") depth++;
+      else if (c === "]" || c === ")" || c === "}") depth--;
+      else if (c === ";" && depth <= 0) { out.push(line.slice(start, i)); start = i + 1; }
+    }
+    out.push(line.slice(start));
+    return out.map(x => x.trim()).filter(Boolean);
+  }
+
+  function props(s) {
+    const o = {};
+    String(s).split(",").forEach(kv => {
+      const i = kv.indexOf(":");
+      if (i > 0) o[kv.slice(0, i).trim().toLowerCase()] = kv.slice(i + 1).trim();
+    });
+    return o;
+  }
+
+  function node(g, id) {
+    let n = g.nodes.get(id);
+    if (!n) {
+      n = { id: id, lines: [id], shape: "rect", group: null, cls: [], style: null };
+      g.nodes.set(id, n);
+      g.order.push(id);
+    }
+    return n;
+  }
+
+  function parse(src) {
+    const g = {
+      dir: "TB", nodes: new Map(), order: [], edges: [],
+      groups: [], classes: new Map()
+    };
+    const raw = String(src).replace(/\r\n?/g, "\n").split("\n");
+    const open = [];
+    let started = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      let line = raw[i];
+      const c = line.indexOf("%%");
+      if (c >= 0) line = line.slice(0, c);
+      line = line.trim();
+      if (!line) continue;
+
+      if (!started) {
+        const m = /^(?:flowchart|graph)[ \t]*(TB|TD|BT|LR|RL)?\b/i.exec(line);
+        if (!m) {
+          return { error: 'the first line should be "flowchart TD" (or graph LR, ' +
+                          'and TB, BT, RL work too) - only flowcharts are drawn here' };
+        }
+        g.dir = (m[1] || "TB").toUpperCase();
+        if (g.dir === "TD") g.dir = "TB";
+        started = true;
+        line = line.slice(m[0].length).trim();
+        if (!line) continue;
+      }
+
+      const sts = statements(line);
+      for (let k = 0; k < sts.length; k++) {
+        const err = statement(sts[k], g, open, i + 1);
+        if (err) return { error: err };
+        if (g.nodes.size > MAX_NODES) {
+          return { error: "this diagram has more than " + MAX_NODES + " nodes" };
+        }
+      }
+    }
+    if (!started) return { error: "there is nothing here to draw" };
+    if (!g.nodes.size) return { error: "no nodes were defined" };
+    return { graph: g };
+  }
+
+  function statement(st, g, open, ln) {
+    const where = " (line " + ln + ")";
+
+    let m = /^subgraph\b\s*(.*)$/i.exec(st);
+    if (m) {
+      const rest = m[1].trim();
+      let id = "sg" + g.groups.length, title = rest;
+      const n = readNode(rest, 0);
+      if (n && n.text !== null && n.end === rest.length) { id = n.id; title = n.text; }
+      else if (rest) title = unquote(rest);
+      const grp = { id: id, title: textLines(title || " ").join(" "), members: [] };
+      g.groups.push(grp);
+      open.push(grp);
+      return null;
+    }
+    if (/^end$/i.test(st)) { open.pop(); return null; }
+    /* recognised, and deliberately not acted on */
+    if (/^(direction|click|linkStyle|call)\b/i.test(st)) return null;
+
+    if ((m = /^classDef\s+(\S+)\s+(.*)$/i.exec(st))) {
+      m[1].split(",").forEach(name => g.classes.set(name.trim(), props(m[2])));
+      return null;
+    }
+    if ((m = /^class\s+([^\s]+)\s+(\S+)\s*$/i.exec(st))) {
+      m[1].split(",").forEach(id => node(g, id.trim()).cls.push(m[2].trim()));
+      return null;
+    }
+    if ((m = /^style\s+(\S+)\s+(.*)$/i.exec(st))) {
+      node(g, m[1]).style = props(m[2]);
+      return null;
+    }
+    return chain(st, g, open.length ? open[open.length - 1] : null, where);
+  }
+
+  /* "A[Start] --> B{Ok?} -- yes --> C([Done])", and node lists joined with & */
+  function chain(s, g, group, where) {
+    let p = 0, prev = null, link = null;
+    const skip = () => { while (p < s.length && /\s/.test(s.charAt(p))) p++; };
+
+    while (p < s.length) {
+      skip();
+      if (p >= s.length) break;
+
+      const ids = [];
+      for (;;) {
+        const n = readNode(s, p);
+        if (!n) return 'could not read "' + s.slice(p, p + 26) + '"' + where;
+        p = n.end;
+        const nd = node(g, n.id);
+        if (n.text !== null) { nd.lines = textLines(n.text); nd.shape = n.shape; }
+        /* "A:::warning" is the inline way of putting a node in a class */
+        const cm = /^:::([A-Za-z0-9_-]+)/.exec(s.slice(p));
+        if (cm) { nd.cls.push(cm[1]); p += cm[0].length; }
+        if (group && group.members.indexOf(n.id) < 0) {
+          group.members.push(n.id);
+          if (nd.group === null) nd.group = group.id;
+        }
+        ids.push(n.id);
+        skip();
+        if (s.charAt(p) === "&") { p++; skip(); continue; }
+        break;
+      }
+
+      if (prev && link) {
+        for (let a = 0; a < prev.length; a++) {
+          for (let b = 0; b < ids.length; b++) {
+            g.edges.push({
+              from: prev[a], to: ids[b], label: link.label,
+              style: link.style, head: link.head, both: link.back
+            });
+          }
+        }
+      }
+      prev = ids;
+
+      skip();
+      if (p >= s.length) break;
+      link = readLink(s, p);
+      if (!link) return 'could not read "' + s.slice(p, p + 26) + '"' + where;
+      p = link.end;
+    }
+    return null;
+  }
+
+  /* ---------------------------------------------------------------- sizing */
+
+  function sizeOf(n) {
+    let w = 0;
+    for (let i = 0; i < n.lines.length; i++) w = Math.max(w, measure(n.lines[i]));
+    let bw = Math.max(MIN_W, Math.ceil(w) + PAD_X * 2);
+    let bh = Math.max(MIN_H, n.lines.length * LH + PAD_Y * 2);
+    switch (n.shape) {
+      case "rhombus": bw = Math.ceil(bw * 1.3) + 14; bh = Math.ceil(bh * 1.45); break;
+      case "circle": { const d = Math.ceil(Math.max(bw, bh) * 1.06) + 6; bw = d; bh = d; break; }
+      case "hexagon": bw += 26; break;
+      case "leanr": case "leanl": case "trapa": case "trapb": bw += 30; break;
+      case "cylinder": bh += 14; break;
+      case "stadium": bw += 12; break;
+      case "subroutine": bw += 16; break;
+      case "odd": bw += 14; break;
+    }
+    n.w = bw; n.h = bh;
+  }
+
+  /* ---------------------------------------------------------------- layout */
+
+  /* A cycle has no layering, so the edges that close one are found and left out of
+     the ranking. They are still drawn - they just do not get a say in what comes
+     before what, which is the usual way of laying out a graph that loops back. */
+  function backEdges(g) {
+    const adj = new Map();
+    g.nodes.forEach((n, id) => adj.set(id, []));
+    g.edges.forEach((e, i) => { if (adj.has(e.from) && adj.has(e.to)) adj.get(e.from).push(i); });
+
+    const state = new Map(), back = new Set();
+    g.order.forEach(id => {
+      if (state.get(id)) return;
+      /* an explicit stack: a deep chain would overflow a recursive walk */
+      const stack = [{ id: id, k: 0 }];
+      state.set(id, 1);
+      while (stack.length) {
+        const top = stack[stack.length - 1];
+        const list = adj.get(top.id);
+        if (top.k >= list.length) { state.set(top.id, 2); stack.pop(); continue; }
+        const ei = list[top.k++];
+        const to = g.edges[ei].to;
+        const st = state.get(to) || 0;
+        if (st === 1) back.add(ei);
+        else if (st === 0) { state.set(to, 1); stack.push({ id: to, k: 0 }); }
+      }
+    });
+    return back;
+  }
+
+  function rankNodes(g, back) {
+    const indeg = new Map(), outs = new Map();
+    g.nodes.forEach((n, id) => { indeg.set(id, 0); outs.set(id, []); });
+    g.edges.forEach((e, i) => {
+      if (back.has(i) || !outs.has(e.from) || !indeg.has(e.to) || e.from === e.to) return;
+      outs.get(e.from).push(e.to);
+      indeg.set(e.to, indeg.get(e.to) + 1);
+    });
+    const rank = new Map();
+    const queue = [];
+    g.order.forEach(id => { rank.set(id, 0); if (!indeg.get(id)) queue.push(id); });
+    let head = 0;
+    while (head < queue.length) {
+      const id = queue[head++];
+      outs.get(id).forEach(to => {
+        rank.set(to, Math.max(rank.get(to), rank.get(id) + 1));
+        indeg.set(to, indeg.get(to) - 1);
+        if (!indeg.get(to)) queue.push(to);
+      });
+    }
+    return rank;
+  }
+
+  /* Virtual stops so an edge that skips a rank travels between the boxes on the way
+     rather than straight across them. */
+  function build(g, rank, back) {
+    const cells = [];
+    const all = [];
+    g.order.forEach(id => {
+      const n = g.nodes.get(id);
+      sizeOf(n);
+      n.rank = rank.get(id);
+      n.virtual = false;
+      all.push(n);
+    });
+
+    const routes = [];
+    g.edges.forEach((e, i) => {
+      const a = g.nodes.get(e.from), b = g.nodes.get(e.to);
+      if (!a || !b) return;
+      const flip = back.has(i) || a.rank > b.rank;
+      const lo = flip ? b : a, hi = flip ? a : b;
+      const chainIds = [];
+      if (hi.rank - lo.rank > 1) {
+        for (let r = lo.rank + 1; r < hi.rank; r++) {
+          const v = { id: "\u0000v" + routes.length + "_" + r, lines: [], shape: "rect",
+                      w: 1, h: 1, rank: r, virtual: true, cls: [], style: null, group: null };
+          all.push(v);
+          chainIds.push(v);
+        }
+      }
+      routes.push({ edge: e, a: a, b: b, flip: flip, via: chainIds, index: i });
+    });
+
+    all.forEach(n => {
+      (cells[n.rank] || (cells[n.rank] = [])).push(n);
+    });
+    for (let r = 0; r < cells.length; r++) if (!cells[r]) cells[r] = [];
+    return { cells: cells, routes: routes, all: all };
+  }
+
+  /* Neighbours as the ordering pass sees them: the real edge if it is short, else
+     the virtual stop that stands in for it on the next rank along. */
+  function neighbours(lay) {
+    const up = new Map(), down = new Map();
+    lay.all.forEach(n => { up.set(n, []); down.set(n, []); });
+
+    lay.routes.forEach(r => {
+      if (r.a === r.b) return;                    /* a self-loop ranks nothing */
+      const path = [r.flip ? r.b : r.a].concat(r.via, [r.flip ? r.a : r.b]);
+      for (let i = 0; i + 1 < path.length; i++) {
+        down.get(path[i]).push(path[i + 1]);
+        up.get(path[i + 1]).push(path[i]);
+      }
+    });
+    return { up: up, down: down };
+  }
+
+  function order(lay, nb) {
+    const pos = new Map();
+    const reindex = () => lay.cells.forEach(c => c.forEach((n, i) => pos.set(n, i)));
+    reindex();
+
+    const bary = (n, side) => {
+      const list = side.get(n);
+      if (!list.length) return null;
+      let s = 0;
+      for (let i = 0; i < list.length; i++) s += pos.get(list[i]);
+      return s / list.length;
+    };
+
+    for (let pass = 0; pass < 6; pass++) {
+      const down = pass % 2 === 0;
+      const from = down ? 1 : lay.cells.length - 2;
+      const step = down ? 1 : -1;
+      for (let r = from; down ? r < lay.cells.length : r >= 0; r += step) {
+        const side = down ? nb.up : nb.down;
+        const cell = lay.cells[r];
+        const keyed = cell.map((n, i) => {
+          const b = bary(n, side);
+          return { n: n, i: i, b: b === null ? i : b };
+        });
+        keyed.sort((p, q) => {
+          /* subgraph members stay side by side, or their box would swallow the rest */
+          const gp = p.n.group || "", gq = q.n.group || "";
+          if (gp !== gq) {
+            const d = (gp === "" ? 1 : 0) - (gq === "" ? 1 : 0);
+            if (d) return d;
+            return gp < gq ? -1 : 1;
+          }
+          return p.b - q.b || p.i - q.i;
+        });
+        lay.cells[r] = keyed.map(k => k.n);
+        reindex();
+      }
+    }
+  }
+
+  /* Across-rank placement: lay each rank out end to end, then a few passes pulling
+     every node towards the middle of what it is joined to, never closer to its
+     neighbour than the gap allows. */
+  function place(lay, nb, dir) {
+    /* "Across" is sideways in a top-down chart and up-down in a left-right one, so
+       which of a box's two sizes matters depends on the direction. */
+    const horiz = dir === "LR" || dir === "RL";
+    const aSize = n => (n.virtual ? 1 : horiz ? n.h : n.w);
+    const lSize = n => (n.virtual ? 0 : horiz ? n.w : n.h);
+    const gapOf = n => (n.virtual ? 12 : GAP_ACROSS);
+    lay.aSize = aSize;
+
+    lay.cells.forEach(cell => {
+      let x = 0;
+      cell.forEach(n => { n.a = x + aSize(n) / 2; x += aSize(n) + gapOf(n); });
+    });
+
+    const mid = (n, side) => {
+      const list = side.get(n);
+      if (!list.length) return null;
+      let s = 0;
+      for (let i = 0; i < list.length; i++) s += list[i].a;
+      return s / list.length;
+    };
+
+    for (let pass = 0; pass < 8; pass++) {
+      const down = pass % 2 === 0;
+      const from = down ? 1 : lay.cells.length - 2;
+      const step = down ? 1 : -1;
+      for (let r = from; down ? r < lay.cells.length : r >= 0; r += step) {
+        const side = down ? nb.up : nb.down;
+        const cell = lay.cells[r];
+        if (!cell.length) continue;
+        const want = cell.map(n => { const m = mid(n, side); return m === null ? n.a : m; });
+
+        /* in order, never closer than the gap allows */
+        for (let i = 0; i < cell.length; i++) {
+          const n = cell[i];
+          const lo = i
+            ? cell[i - 1].a + aSize(cell[i - 1]) / 2 +
+              Math.max(gapOf(n), gapOf(cell[i - 1])) + aSize(n) / 2
+            : -1e9;
+          n.a = Math.max(lo, want[i]);
+        }
+        /* that pass can only ever push right, so take the drift back out in one
+           piece - moving the whole rank keeps every gap it just established */
+        let drift = 0;
+        for (let i = 0; i < cell.length; i++) drift += want[i] - cell[i].a;
+        drift /= cell.length;
+        for (let i = 0; i < cell.length; i++) cell[i].a += drift;
+      }
+    }
+
+    /* ranks stack along the other axis, each as deep as its deepest box */
+    let along = 0;
+    lay.cells.forEach(cell => {
+      let size = 0;
+      cell.forEach(n => { size = Math.max(size, lSize(n)); });
+      cell.forEach(n => { n.l = along + size / 2; });
+      along += size + GAP_ALONG;
+    });
+    lay.along = Math.max(0, along - GAP_ALONG);
+
+    let min = 1e9, max = -1e9;
+    lay.all.forEach(n => {
+      min = Math.min(min, n.a - aSize(n) / 2);
+      max = Math.max(max, n.a + aSize(n) / 2);
+    });
+    lay.all.forEach(n => { n.a -= min; });
+    lay.across = max - min;
+  }
+
+  /* Only here does the layout learn which way is down. */
+  function toXY(lay, dir) {
+    const A = lay.across, L = lay.along;
+    lay.all.forEach(n => {
+      const across = n.a, along = n.l;
+      let cx, cy;
+      if (dir === "TB") { cx = across; cy = along; }
+      else if (dir === "BT") { cx = across; cy = L - along; }
+      else if (dir === "LR") { cx = along; cy = across; }
+      else { cx = L - along; cy = across; }           /* RL */
+      n.cx = cx + PAD; n.cy = cy + PAD;
+      n.x = n.cx - n.w / 2; n.y = n.cy - n.h / 2;
+    });
+    const horiz = dir === "LR" || dir === "RL";
+    lay.width = (horiz ? L : A) + PAD * 2;
+    lay.height = (horiz ? A : L) + PAD * 2;
+  }
+
+  /* ---------------------------------------------------------------- drawing */
+
+  function shapePath(n) {
+    const x = n.x, y = n.y, w = n.w, h = n.h, r = 6;
+    const P = (pts) => '<polygon points="' + pts + '"/>';
+    switch (n.shape) {
+      case "round":
+        return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12"/>';
+      case "stadium":
+        return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (h / 2) + '"/>';
+      case "circle":
+        return '<ellipse cx="' + n.cx + '" cy="' + n.cy + '" rx="' + (w / 2) + '" ry="' + (h / 2) + '"/>';
+      case "rhombus":
+        return P([n.cx + "," + y, (x + w) + "," + n.cy, n.cx + "," + (y + h), x + "," + n.cy].join(" "));
+      case "hexagon":
+        return P([(x + 14) + "," + y, (x + w - 14) + "," + y, (x + w) + "," + n.cy,
+                  (x + w - 14) + "," + (y + h), (x + 14) + "," + (y + h), x + "," + n.cy].join(" "));
+      case "leanr":
+        return P([(x + 16) + "," + y, (x + w) + "," + y, (x + w - 16) + "," + (y + h), x + "," + (y + h)].join(" "));
+      case "leanl":
+        return P([x + "," + y, (x + w - 16) + "," + y, (x + w) + "," + (y + h), (x + 16) + "," + (y + h)].join(" "));
+      case "trapa":
+        return P([(x + 16) + "," + y, (x + w - 16) + "," + y, (x + w) + "," + (y + h), x + "," + (y + h)].join(" "));
+      case "trapb":
+        return P([x + "," + y, (x + w) + "," + y, (x + w - 16) + "," + (y + h), (x + 16) + "," + (y + h)].join(" "));
+      case "odd":
+        return P([x + "," + y, (x + w - 12) + "," + y, (x + w) + "," + n.cy,
+                  (x + w - 12) + "," + (y + h), x + "," + (y + h)].join(" "));
+      case "cylinder": {
+        const ry = 8;
+        return '<path d="M' + x + ' ' + (y + ry) + 'a' + (w / 2) + ' ' + ry + ' 0 0 1 ' + w + ' 0' +
+               'v' + (h - ry * 2) + 'a' + (w / 2) + ' ' + ry + ' 0 0 1 ' + (-w) + ' 0Z"/>' +
+               '<path class="mmd-line-only" d="M' + x + ' ' + (y + ry) +
+               'a' + (w / 2) + ' ' + ry + ' 0 0 0 ' + w + ' 0"/>';
+      }
+      case "subroutine":
+        return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + r + '"/>' +
+               '<path class="mmd-line-only" d="M' + (x + 8) + ' ' + y + 'v' + h +
+               'M' + (x + w - 8) + ' ' + y + 'v' + h + '"/>';
+      default:
+        return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + r + '"/>';
+    }
+  }
+
+  function styleOf(g, n) {
+    let s = {};
+    for (let i = 0; i < n.cls.length; i++) {
+      const c = g.classes.get(n.cls[i]);
+      if (c) s = Object.assign(s, c);
+    }
+    if (n.style) s = Object.assign(s, n.style);
+    let out = "";
+    if (s.fill) out += "fill:" + s.fill + ";";
+    if (s.stroke) out += "stroke:" + s.stroke + ";";
+    if (s["stroke-width"]) out += "stroke-width:" + s["stroke-width"] + ";";
+    if (s["stroke-dasharray"]) out += "stroke-dasharray:" + s["stroke-dasharray"] + ";";
+    return { box: out, text: s.color ? "fill:" + s.color + ";" : "" };
+  }
+
+  /* Where an edge leaves or meets a box: the side that faces the next rank, so the
+     arrows all run with the flow instead of at the nearest corner. */
+  function port(n, dir, out) {
+    const h = dir === "LR" || dir === "RL";
+    const fwd = dir === "TB" || dir === "LR";
+    const s = out === fwd ? 1 : -1;
+    return h ? { x: n.cx + s * n.w / 2, y: n.cy } : { x: n.cx, y: n.cy + s * n.h / 2 };
+  }
+
+  /* `fan` bows the curve sideways. Two links between the same pair of boxes would
+     otherwise be drawn one exactly on top of the other, which reads as one link and
+     loses a label - the "yes" and "no" going back to the same box, typically. */
+  function edgePath(pts, dir, fan) {
+    const h = dir === "LR" || dir === "RL";
+    const ox = h ? 0 : (fan || 0), oy = h ? (fan || 0) : 0;
+    if (pts.length === 2) {
+      const a = pts[0], b = pts[1];
+      const d = h ? (b.x - a.x) * 0.5 : (b.y - a.y) * 0.5;
+      const c1 = h ? { x: a.x + d, y: a.y + oy } : { x: a.x + ox, y: a.y + d };
+      const c2 = h ? { x: b.x - d, y: b.y + oy } : { x: b.x + ox, y: b.y - d };
+      return "M" + a.x + " " + a.y + "C" + c1.x + " " + c1.y + " " + c2.x + " " + c2.y +
+             " " + b.x + " " + b.y;
+    }
+    /* a smooth run through the stops the edge was given */
+    const at = i => (i === 0 || i === pts.length - 1)
+      ? pts[i] : { x: pts[i].x + ox, y: pts[i].y + oy };
+    let d = "M" + pts[0].x + " " + pts[0].y;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = at(i), q = at(i + 1);
+      d += "Q" + p.x + " " + p.y + " " + ((p.x + q.x) / 2) + " " + ((p.y + q.y) / 2);
+    }
+    const last = pts[pts.length - 1];
+    d += "T" + last.x + " " + last.y;
+    return d;
+  }
+
+  let uid = 0;
+
+  function draw(g, lay) {
+    const dir = g.dir;
+    const id = "m" + (++uid);
+    let out = "";
+
+    /* A subgraph box reaches past the boxes it holds, and a self-loop past the one
+       it belongs to, so the picture can end up bigger than the layout was. Both
+       report what they cover and the frame is stretched to fit at the end. */
+    let bx0 = 0, by0 = 0, bx1 = lay.width, by1 = lay.height;
+    const cover = (x0, y0, x1, y1) => {
+      bx0 = Math.min(bx0, x0); by0 = Math.min(by0, y0);
+      bx1 = Math.max(bx1, x1); by1 = Math.max(by1, y1);
+    };
+
+    /* subgraph boxes go down first, so everything else sits on top of them */
+    g.groups.forEach(grp => {
+      const mem = grp.members.map(i => g.nodes.get(i)).filter(n => n && !n.virtual);
+      if (!mem.length) return;
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      mem.forEach(n => {
+        x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y);
+        x1 = Math.max(x1, n.x + n.w); y1 = Math.max(y1, n.y + n.h);
+      });
+      x0 -= 14; y0 -= 28; x1 += 14; y1 += 14;
+      x1 = Math.max(x1, x0 + 24 + Math.ceil(measure(grp.title, LFONT)));
+      cover(x0, y0, x1, y1);
+      out += '<g class="mmd-sg"><rect x="' + x0 + '" y="' + y0 + '" width="' + (x1 - x0) +
+             '" height="' + (y1 - y0) + '" rx="8"/>' +
+             '<text x="' + (x0 + 12) + '" y="' + (y0 + 18) + '">' + esc(grp.title) + "</text></g>";
+    });
+
+    /* links sharing a pair of boxes are spread out around where one would run */
+    const pairs = new Map();
+    lay.routes.forEach(r => {
+      if (r.a === r.b) return;
+      const k = r.a.id < r.b.id ? r.a.id + "\u0000" + r.b.id : r.b.id + "\u0000" + r.a.id;
+      if (!pairs.has(k)) pairs.set(k, []);
+      pairs.get(k).push(r);
+    });
+    pairs.forEach(list => list.forEach((r, i) => {
+      r.fan = list.length > 1 ? (i - (list.length - 1) / 2) * 22 : 0;
+    }));
+
+    lay.routes.forEach(r => {
+      const e = r.edge;
+      const a = g.nodes.get(e.from), b = g.nodes.get(e.to);
+      const cls = "mmd-edge mmd-" + e.style;
+      const marker = e.head === "x" ? "x" : e.head === "o" ? "o" : e.head ? "a" : "";
+      const arrow = (marker ? ' marker-end="url(#' + id + marker + ')"' : "") +
+                    (e.both ? ' marker-start="url(#' + id + 'b)"' : "");
+      let pts;
+
+      if (a === b) {
+        /* a node pointing at itself: a small loop off its top right corner */
+        const x0 = a.x + a.w, y0 = a.cy - 8, x1 = a.cx + 10, y1 = a.y;
+        out += '<path class="' + cls + '" d="M' + x0 + " " + y0 +
+               "C" + (x0 + 40) + " " + y0 + " " + (x1 + 34) + " " + (y1 - 34) + " " +
+               x1 + " " + y1 + '"' + arrow + "/>";
+        cover(x1, y1 - 30, x0 + 36, y0);
+        pts = [{ x: a.x + a.w + 24, y: a.y - 12 }];
+      } else {
+        pts = [port(a, dir, !r.flip)];
+        const via = r.flip ? r.via.slice().reverse() : r.via;
+        via.forEach(v => pts.push({ x: v.cx, y: v.cy }));
+        pts.push(port(b, dir, r.flip));
+        out += '<path class="' + cls + '" d="' + edgePath(pts, dir, r.fan) + '"' + arrow + "/>";
+        if (r.fan) {
+          const f = Math.abs(r.fan);
+          pts.forEach(q => cover(q.x - f, q.y - f, q.x + f, q.y + f));
+        }
+      }
+
+      if (e.label) {
+        const h = dir === "LR" || dir === "RL";
+        /* three quarters of the bow, which is about where the curve actually is */
+        const off = (r.fan || 0) * 0.75;
+        const mp = pts.length === 1 ? pts[0] : pts.length === 2
+          ? { x: (pts[0].x + pts[1].x) / 2 + (h ? 0 : off),
+              y: (pts[0].y + pts[1].y) / 2 + (h ? off : 0) }
+          : { x: pts[Math.floor(pts.length / 2)].x + (h ? 0 : off),
+              y: pts[Math.floor(pts.length / 2)].y + (h ? off : 0) };
+        const w = Math.ceil(measure(e.label, LFONT)) + 10;
+        cover(mp.x - w / 2, mp.y - 9, mp.x + w / 2, mp.y + 9);
+        out += '<g class="mmd-elabel"><rect x="' + (mp.x - w / 2) + '" y="' + (mp.y - 9) +
+               '" width="' + w + '" height="18" rx="4"/>' +
+               '<text x="' + mp.x + '" y="' + (mp.y + 4) + '">' + esc(e.label) + "</text></g>";
+      }
+    });
+
+    g.order.forEach(nid => {
+      const n = g.nodes.get(nid);
+      const s = styleOf(g, n);
+      out += '<g class="mmd-node"' + (s.box ? ' style="' + esc(s.box) + '"' : "") + ">" +
+             shapePath(n);
+      const top = n.cy - ((n.lines.length - 1) * LH) / 2 + 4.5;
+      n.lines.forEach((t, i) => {
+        out += '<text x="' + n.cx + '" y="' + (top + i * LH) + '"' +
+               (s.text ? ' style="' + esc(s.text) + '"' : "") + ">" + esc(t) + "</text>";
+      });
+      out += "</g>";
+    });
+
+    const head = (mid, body) =>
+      '<marker id="' + id + mid + '" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" ' +
+      'markerHeight="7" orient="auto-start-reverse">' + body + "</marker>";
+    /* the heads are styled by class, so they follow the theme like the lines do */
+    const defs = "<defs>" +
+      head("a", '<path class="mmd-mk" d="M0 0 L10 5 L0 10 z"/>') +
+      head("b", '<path class="mmd-mk" d="M0 0 L10 5 L0 10 z"/>') +
+      head("x", '<path class="mmd-mk-o" d="M1 1 L9 9 M9 1 L1 9"/>') +
+      head("o", '<circle class="mmd-mk-o" cx="5" cy="5" r="4"/>') +
+      "</defs>";
+
+    const dx = Math.max(0, -bx0), dy = Math.max(0, -by0);
+    const w = Math.ceil(bx1 + dx), h = Math.ceil(by1 + dy);
+    const body = dx || dy
+      ? '<g transform="translate(' + dx + " " + dy + ')">' + out + "</g>" : out;
+    return '<svg class="mmd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' +
+      w + " " + h + '" width="' + w + '" height="' + h + '" role="img">' +
+      defs + body + "</svg>";
+  }
+
+  /* ---------------------------------------------------------------- entry */
+
+  /* The preview is rebuilt on every keystroke, and a diagram costs far more than a
+     paragraph, so the last few are kept as they were drawn. */
+  const cache = new Map();
+  const CACHE_MAX = 40;
+
+  function render(src) {
+    const key = String(src);
+    if (cache.has(key)) return cache.get(key);
+    let res;
+    try { res = build_(key); }
+    catch (e) { res = { error: "this diagram could not be drawn (" + (e.message || e) + ")" }; }
+    if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
+    cache.set(key, res);
+    return res;
+  }
+
+  function build_(src) {
+    const p = parse(src);
+    if (p.error) return { error: p.error };
+    const g = p.graph;
+    const back = backEdges(g);
+    const rank = rankNodes(g, back);
+    const lay = build(g, rank, back);
+    const nb = neighbours(lay);
+    order(lay, nb);
+    place(lay, nb, g.dir);
+    toXY(lay, g.dir);
+    return { svg: draw(g, lay) };
+  }
+
+  return { render: render, handles: l => /^(mermaid|mmd)$/i.test(String(l || "")) };
+})();
+
+/* =========================================================
+   3. Markdown parser
    ========================================================= */
 const MD = (function () {
   const E = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -1239,6 +2112,27 @@ const MD = (function () {
   const TAG_RE = /^<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[a-zA-Z_:@#-][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>`]+))?)*)\s*(\/?)>/;
 
   let refs = {}, fnDefs = {}, fnList = [], headings = [], slugs = {};
+
+  /* A ```mermaid block is drawn rather than printed, with its source one click
+     away. If it cannot be drawn you get the source and the reason, never a broken
+     picture and never a lost block. */
+  function diagram(code, A) {
+    const r = MMD.render(code);
+    const src = '<pre class="mmd-src"><code>' + esc(code) + "</code></pre>";
+    if (r.error) {
+      return '<figure class="mmd is-bad"' + A + '><div class="mmd-msg">' +
+        esc(r.error) + "</div>" + src + "</figure>";
+    }
+    return '<figure class="mmd"' + A + '><div class="mmd-view">' + r.svg + "</div>" +
+      '<pre class="mmd-src" hidden><code>' + esc(code) + "</code></pre>" +
+      '<div class="mmd-bar">' +
+      '<button type="button" data-mmd="code" title="Show the Mermaid source">Code</button>' +
+      '<button type="button" data-mmd="copy" title="Copy the Mermaid source">Copy</button>' +
+      '<span class="grow"></span>' +
+      '<button type="button" data-mmd="png" title="Save the diagram as a picture">PNG</button>' +
+      '<button type="button" data-mmd="svg" title="Save the diagram as SVG">SVG</button>' +
+      "</div></figure>";
+  }
 
   function safeUrl(u) {
     u = String(u || "").trim().replace(/[\u0000-\u001f]/g, "");
@@ -1520,6 +2414,7 @@ const MD = (function () {
         while (j < L && !closeRe.test(lines[j])) { buf.push(lines[j]); j++; }
         const lang = (info.split(/[\s,{]/)[0] || "").toLowerCase().replace(/^\./, "");
         const code = buf.join("\n");
+        if (MMD.handles(lang)) { out += diagram(code, A); i = j + 1; continue; }
         out += '<div class="cb"' + A + '><div class="cb-h"><span class="cb-l">' +
           esc(lang || "text") + '</span><button class="cb-c" type="button" data-copy>Copy</button></div>' +
           '<pre><code class="language-' + esc(lang || "text") + '">' + HL.highlight(code, lang) + "</code></pre></div>";
@@ -1771,7 +2666,7 @@ const MD = (function () {
 })();
 
 /* =========================================================
-   3. Application
+   4. Application
    ========================================================= */
 (function () {
   const $ = s => document.querySelector(s);
@@ -1851,6 +2746,12 @@ const MD = (function () {
       kind = "warn";
       text = "Read-only copy";
       tip = "Opened without write access - Ctrl+S saves a copy instead";
+    } else if (t && t.kind === "local" && LIB.ok && libDocOf(t) && libDocOf(t).file) {
+      const d = libDocOf(t);
+      kind = d.err ? "warn" : "ok";
+      text = d.err ? "Not written" : "Saved";
+      tip = (d.err ? "Could not write " : "Written as you type to ") +
+        LIB.path + "\\" + String(d.file).replace(/\//g, "\\");
     } else if (storageWarned) {
       kind = "warn";
       text = "Not saved";
@@ -1870,9 +2771,11 @@ const MD = (function () {
       : writable(t) ? "Already in sync (Ctrl+S)" : "Save as .md file (Ctrl+S)";
     document.title = (dirty ? "● " : "") + (t ? t.name : "Markdown Studio") + " - Markdown Studio";
   }
-  /* Deliberately no doc() helper: it resolved via state.active, which still names
-     a stored document while a FILE tab is on screen. Use active() and go through
-     the tab instead. */
+  /* Deliberately no doc() helper taking no argument: that resolved via state.active,
+     which still names a stored document while a FILE tab is on screen. This one goes
+     through the tab, so it can only ever name the document actually on screen. */
+  const libDocOf = t => (t && t.kind === "local"
+    ? state.docs.find(x => x.id === t.docId) || null : null);
 
   /* ---------- settings ---------- */
   function applySettings() {
@@ -1965,9 +2868,11 @@ const MD = (function () {
     if (!items.length) { list.innerHTML = '<div class="empty">No documents match.</div>'; return; }
     list.innerHTML = items.map(d => {
       const words = ((d.content || "").trim().match(/\S+/g) || []).length;
-      return '<div class="doc' + (d.id === state.active ? " active" : "") + '" data-id="' + d.id + '">' +
+      return '<div class="doc' + (d.id === state.active ? " active" : "") + '" data-id="' + d.id + '"' +
+        (d.file && LIB.ok ? ' title="' + MD.escape(LIB.path + "\\" + d.file) + '"' : "") + ">" +
         '<div class="doc-main"><div class="doc-name">' + MD.escape(d.name || "Untitled") + "</div>" +
-        '<div class="doc-meta">' + timeAgo(d.updated) + " &middot; " + words + " words</div></div>" +
+        '<div class="doc-meta">' + timeAgo(d.updated) + " &middot; " + words + " words" +
+        (d.file && LIB.ok ? " &middot; " + MD.escape(d.file) : "") + "</div></div>" +
         '<button class="doc-del" data-del="' + d.id + '" title="Delete">' +
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>';
     }).join("");
@@ -2165,6 +3070,241 @@ const MD = (function () {
       body: text
     });
     if (!r.ok) throw new Error((await r.text()) || r.status);
+  }
+
+  /* ---------- the library: real files behind the Docs list ---------- */
+  /* Documents used to live only in this browser profile's localStorage. Nothing on
+     disk matched them, so every save had to ask where to put a copy, and closing the
+     app felt like losing them. The exe now always serves one folder - the library,
+     under the fixed workspace id "lib" - and each document is a real .md file in it:
+     written as you type, found by Windows Search, and opened from Explorer like any
+     other file. Without the exe (the page served by laragon, or opened straight from
+     disk) there is no library and documents stay where they were, in this browser. */
+  const LIB = { ok: false, name: "", path: "", files: [] };
+  const libUrl = (p, file) => p + "?k=" + encodeURIComponent(SRV_KEY) + "&w=lib" +
+    (file == null ? "" : "&p=" + encodeURIComponent(file));
+
+  async function libRead(file) {
+    const r = await fetch(libUrl("/__file", file));
+    if (!r.ok) throw new Error((await r.text()) || r.status);
+    return normText(await r.text());
+  }
+  async function libWrite(file, text) {
+    const r = await fetch(libUrl("/__file", file), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: text
+    });
+    if (!r.ok) throw new Error((await r.text()) || r.status);
+    if (LIB.files.indexOf(file) < 0) LIB.files.push(file);
+  }
+  async function libDelete(file) {
+    LIB.files = LIB.files.filter(f => f !== file);
+    const r = await fetch(libUrl("/__file", file), { method: "DELETE" });
+    if (!r.ok && r.status !== 404) throw new Error((await r.text()) || r.status);
+  }
+
+  /* A file name for a document, from its title. Collisions get a number rather
+     than overwriting the other document's file. */
+  function libNameFor(name, exceptId) {
+    const base = safeName(String(name || "Untitled").replace(MD_EXT, "")) || "Untitled";
+    const taken = new Set();
+    LIB.files.forEach(f => taken.add(f.toLowerCase()));
+    state.docs.forEach(d => { if (d.file) taken.add(d.file.toLowerCase()); });
+    const mine = state.docs.find(d => d.id === exceptId);
+    if (mine && mine.file) taken.delete(mine.file.toLowerCase());
+    let file = base + ".md";
+    for (let n = 2; taken.has(file.toLowerCase()); n++) file = base + " " + n + ".md";
+    return file;
+  }
+
+  /* Opening the library folder itself in the Explorer would give the same file two
+     editors: a document tab autosaving it, and a file tab the user saves by hand.
+     The file tab wins - it is the one being typed into - and the document's
+     autosave stands down for as long as it is open. */
+  function libClash(file) {
+    return !!(root && root.mode === "server" && root.disk && LIB.path &&
+      root.disk.toLowerCase() === LIB.path.toLowerCase() &&
+      tabs.some(t => t.kind === "file" && String(t.path).toLowerCase() === file.toLowerCase()));
+  }
+
+  /* Pairs the stored documents with the files in the folder, both ways: a document
+     that has never been written gets a file, and a file no document knows about
+     becomes one - which is how a .md dropped into the folder from Explorer turns up
+     in the list. Where both exist the file wins, because that is the copy every other
+     program, and the end of the last session, saw.
+
+     A document whose file has gone is written again rather than dropped: losing
+     notes because a folder was moved or synced away would be far worse than a file
+     coming back. Deleting one for good is what the Docs list's own delete is for. */
+  async function libSync() {
+    if (!SRV_KEY) return;
+    let ws;
+    try {
+      const r = await fetch(libUrl("/__ws", null));
+      if (!r.ok) return;
+      ws = await r.json();
+    } catch (e) { return; }
+    if (!ws || !ws.path) return;                  /* an exe from before the library */
+
+    LIB.ok = true;
+    LIB.name = ws.root || "Markdown Studio";
+    LIB.path = ws.path;
+    LIB.files = (ws.files || []).slice();
+
+    /* the whole folder in one response, rather than a request per document */
+    let all = {};
+    try {
+      const r = await fetch(libUrl("/__all", null));
+      if (r.ok) all = await r.json();
+    } catch (e) { }
+    const textOf = async f => (typeof all[f] === "string" ? normText(all[f]) : libRead(f));
+
+    const loose = new Map();
+    LIB.files.forEach(f => loose.set(f.toLowerCase(), f));
+
+    for (const d of state.docs) {
+      if (!d.file) continue;
+      const on = loose.get(String(d.file).toLowerCase());
+      if (!on) { d.file = null; continue; }
+      d.file = on;
+      loose.delete(on.toLowerCase());
+      try {
+        const text = await textOf(on);
+        if (text !== d.content) { d.content = text; d.updated = Date.now(); }
+      } catch (e) { }
+    }
+    for (const d of state.docs) {
+      if (d.file) continue;
+      const file = libNameFor(d.name, d.id);
+      try { await libWrite(file, d.content || ""); d.file = file; } catch (e) { }
+    }
+    for (const f of loose.values()) {
+      let text;
+      try { text = await textOf(f); } catch (e) { continue; }
+      state.docs.push({
+        id: uid(), name: f.replace(/^.*\//, "").replace(MD_EXT, ""), file: f,
+        content: text, created: Date.now(), updated: Date.now()
+      });
+    }
+    persist();
+    libHome();
+  }
+  function libHome() {
+    const el = $("#docHome");
+    el.hidden = !LIB.ok;
+    if (!LIB.ok) return;
+    el.innerHTML = "Each of these is a file in <b>" + esc(LIB.path) + "</b> &middot;" +
+      '<button type="button" id="libPick" title="Keep your documents somewhere else">Change&hellip;</button>';
+  }
+
+  /* Picking where the documents live. The folder browser belongs to the exe, not to
+     the page: a browser can hand back a folder to read, but never its path, and the
+     path is exactly what the exe needs to serve it again on the next launch. So the
+     page asks, the exe shows the dialog, moves the notes and writes the choice down,
+     and the page re-reads the folder it gets back. */
+  let libPicking = false;
+  async function libChooseFolder() {
+    if (!LIB.ok || libPicking) return;      /* the dialog is already up somewhere */
+    libPicking = true;
+    try {
+      /* whatever is still on a timer belongs in the move, not in the old folder */
+      for (const id of Array.from(libTimers.keys())) await libFlush(id);
+
+      let res;
+      try {
+        /* this waits for as long as the folder dialog is open, which is the point */
+        const r = await fetch(libUrl("/__libdir", null), { method: "POST" });
+        if (!r.ok) throw new Error((await r.text()) || r.status);
+        res = await r.json();
+      } catch (e) { toast("Could not open the folder picker"); return; }
+
+      if (!res || res.cancelled) return;
+      if (res.error) { toast("Could not use that folder: " + res.error); return; }
+
+      /* a note whose name was taken in the new folder arrived under another one */
+      Object.keys(res.renamed || {}).forEach(old => {
+        const d = state.docs.find(x => x.file && x.file.toLowerCase() === old.toLowerCase());
+        if (d) d.file = res.renamed[old];
+      });
+
+      /* re-reading a folder of notes is not instant, so say what is happening */
+      toast(res.moved ? "Moving your documents..." : "Reading " + res.root + "...");
+      await libSync();
+      renderDocs();
+      updateSaveUI();
+      toast(res.moved
+        ? "Documents are now in " + res.root + " - " + res.moved + " file" +
+          (res.moved === 1 ? "" : "s") + " moved"
+        : "Documents are now in " + res.root);
+    } finally { libPicking = false; }
+  }
+
+  /* Documents are written as they are typed, so there is never a copy on screen
+     that disk does not have. The debounce is per document: editing one must not
+     postpone another's write. */
+  const libTimers = new Map();
+  function libQueue(docId) {
+    if (!LIB.ok || !docId) return;
+    clearTimeout(libTimers.get(docId));
+    libTimers.set(docId, setTimeout(() => { libTimers.delete(docId); libFlush(docId); }, 500));
+  }
+  async function libFlush(docId) {
+    if (!LIB.ok) return;
+    clearTimeout(libTimers.get(docId));
+    libTimers.delete(docId);
+    const d = state.docs.find(x => x.id === docId);
+    if (!d) return;
+    if (!d.file) d.file = libNameFor(d.name, d.id);
+    if (libClash(d.file)) return;
+    try {
+      await libWrite(d.file, d.content || "");
+      d.err = false;
+      const t = tabs.find(x => x.kind === "local" && x.docId === docId);
+      if (t) t.saved = t.content;
+    } catch (e) { d.err = true; }
+    updateSaveUI();
+  }
+
+  /* Renaming a document renames its file, so the two never drift apart. Debounced
+     like the title itself: typing "Meeting notes" should leave one file behind,
+     not one per keystroke. */
+  let libRenameTimer = null;
+  function libQueueRename(docId) {
+    if (!LIB.ok) return;
+    clearTimeout(libRenameTimer);
+    libRenameTimer = setTimeout(() => libRename(docId), 900);
+  }
+  async function libRename(docId) {
+    const d = state.docs.find(x => x.id === docId);
+    if (!d || !d.file || !LIB.ok || libClash(d.file)) return;
+    const want = libNameFor(d.name, d.id);
+    if (want.toLowerCase() === String(d.file).toLowerCase()) return;
+    const old = d.file;
+    try {
+      await libWrite(want, d.content || "");
+      d.file = want;
+      await libDelete(old);
+      renderDocs();
+      updateSaveUI();
+    } catch (e) { toast("Could not rename the file on disk"); }
+  }
+
+  /* A reload or a closed window must not lose the last few hundred milliseconds of
+     typing. beforeunload cannot wait for a fetch, but a beacon is handed to the
+     browser to deliver after the page is gone. */
+  function libFlushNow() {
+    if (!LIB.ok || !navigator.sendBeacon) return;
+    for (const id of Array.from(libTimers.keys())) {
+      clearTimeout(libTimers.get(id));
+      const d = state.docs.find(x => x.id === id);
+      if (!d || !d.file || libClash(d.file)) continue;
+      try {
+        navigator.sendBeacon(libUrl("/__file", d.file),
+          new Blob([d.content || ""], { type: "text/plain;charset=utf-8" }));
+      } catch (e) { }
+    }
+    libTimers.clear();
   }
 
   /* the same tree shape loadDir() builds, from the flat list of paths the exe sends */
@@ -2715,6 +3855,8 @@ const MD = (function () {
   function newDoc(name, content, silent) {
     const d = { id: uid(), name: name || "Untitled", content: content || "", created: Date.now(), updated: Date.now() };
     state.docs.unshift(d);
+    /* give it a file straight away, so it exists on disk before the first keystroke */
+    libFlush(d.id);
     openDoc(d.id);
     if (!silent) { $("#docTitle").focus(); $("#docTitle").select(); }
     return d;
@@ -2722,8 +3864,11 @@ const MD = (function () {
   function deleteDoc(id) {
     const d = state.docs.find(x => x.id === id);
     if (!d) return;
-    if (!confirm('Delete "' + (d.name || "Untitled") + '"? This cannot be undone.')) return;
+    if (!confirm('Delete "' + (d.name || "Untitled") + '"? ' +
+      (d.file && LIB.ok ? d.file + " goes to the Recycle Bin."
+        : "This cannot be undone."))) return;
     state.docs = state.docs.filter(x => x.id !== id);
+    if (d.file && LIB.ok) libDelete(d.file).catch(() => { });
     const tab = tabs.find(t => t.kind === "local" && t.docId === id);
     if (tab) {
       const wasActive = tab.id === activeTab;
@@ -2734,7 +3879,7 @@ const MD = (function () {
     if (!state.docs.length && !tabs.length) newDoc("Untitled", "", true);
     renderDocs();
     persist();
-    toast("Document deleted");
+    toast(d.file && LIB.ok ? "Deleted " + d.file + " (in the Recycle Bin)" : "Document deleted");
   }
 
   /* falls back to a browser document when every tab is closed */
@@ -3036,24 +4181,17 @@ const MD = (function () {
     return true;
   }
 
-  function syncToPreview() {
-    if (!state.settings.sync || state.settings.view !== "split") return;
-    if (Date.now() < holdUntil) return;
-    buildMirror();
-    const line = lineAtY(ed.scrollTop);
+  /* where the preview must be scrolled to for a source line to sit at its top */
+  function previewTopFor(line) {
     const r = elForLine(line);
-    if (!r) return;
+    if (!r) return null;
     const ao = r.a.el.offsetTop;
     const bo = r.b ? r.b.el.offsetTop : ao + r.a.el.offsetHeight;
-    const target = ao + (bo - ao) * r.t - 20;
-    previewPane.scrollTop = Math.max(0, target);
+    return Math.max(0, ao + (bo - ao) * r.t - 20);
   }
-  function syncToEditor() {
-    if (!state.settings.sync || state.settings.view !== "split") return;
-    if (Date.now() < holdUntil) return;
-    buildMirror();
-    const y = previewPane.scrollTop + 20;
-    if (!lineMap.length) return;
+  /* and the reverse: the source line the preview is showing at y */
+  function previewLineAt(y) {
+    if (!lineMap.length) return -1;
     let lo = 0, hi = lineMap.length - 1;
     while (lo < hi) {
       const mid = (lo + hi + 1) >> 1;
@@ -3062,7 +4200,22 @@ const MD = (function () {
     const a = lineMap[lo], b = lineMap[lo + 1];
     const ao = a.el.offsetTop, bo = b ? b.el.offsetTop : ao + a.el.offsetHeight;
     const t = bo > ao ? Math.min(1, Math.max(0, (y - ao) / (bo - ao))) : 0;
-    const line = a.line + ((b ? b.line : a.line + 1) - a.line) * t;
+    return a.line + ((b ? b.line : a.line + 1) - a.line) * t;
+  }
+
+  function syncToPreview() {
+    if (!state.settings.sync || state.settings.view !== "split") return;
+    if (Date.now() < holdUntil) return;
+    buildMirror();
+    const top = previewTopFor(lineAtY(ed.scrollTop));
+    if (top != null) previewPane.scrollTop = top;
+  }
+  function syncToEditor() {
+    if (!state.settings.sync || state.settings.view !== "split") return;
+    if (Date.now() < holdUntil) return;
+    buildMirror();
+    const line = previewLineAt(previewPane.scrollTop + 20);
+    if (line < 0) return;
     ed.scrollTop = Math.max(0, lineTop(Math.floor(line)));
   }
   /* ---------- selecting text in the editor highlights it in the preview ---------- */
@@ -3349,6 +4502,92 @@ const MD = (function () {
     }
   }
 
+  /* ---------- diagrams ---------- */
+  /* A diagram on the page is drawn by the stylesheet, which a file saved out of it
+     would not have. So every element's computed style is written onto the copy -
+     exact, and it comes out matching the theme you are looking at. */
+  function mmdSvgText(fig) {
+    const src = fig.querySelector("svg");
+    if (!src) return null;
+    const copy = src.cloneNode(true);
+    const props = ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap",
+      "stroke-linejoin", "font-family", "font-size", "font-weight", "text-anchor", "opacity"];
+    const flat = el => {
+      const cs = getComputedStyle(el);
+      let out = "";
+      for (const p of props) { const v = cs.getPropertyValue(p); if (v) out += p + ":" + v + ";"; }
+      return out;
+    };
+    const a = src.querySelectorAll("*"), b = copy.querySelectorAll("*");
+    for (let i = 0; i < a.length && i < b.length; i++) b[i].setAttribute("style", flat(a[i]));
+    copy.setAttribute("style", flat(src));
+    copy.removeAttribute("class");
+    copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    return new XMLSerializer().serializeToString(copy);
+  }
+  const mmdName = () => safeName(activeName()).replace(MD_EXT, "") + "-diagram";
+
+  function mmdSaveSvg(fig) {
+    const text = mmdSvgText(fig);
+    if (!text) { toast("Nothing to save"); return; }
+    download(mmdName() + ".svg", '<?xml version="1.0" encoding="UTF-8"?>\n' + text, "image/svg+xml");
+    toast("Saved " + mmdName() + ".svg");
+  }
+
+  /* Straight to a canvas, at twice the size so it still looks sharp pasted into a
+     document. Everything is inline, so the canvas is never tainted. */
+  function mmdSavePng(fig) {
+    const text = mmdSvgText(fig);
+    const svg = fig.querySelector("svg");
+    if (!text || !svg) { toast("Nothing to save"); return; }
+    const box = svg.viewBox.baseVal;
+    const w = box && box.width ? box.width : svg.clientWidth;
+    const h = box && box.height ? box.height : svg.clientHeight;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.ceil(w * 2));
+      c.height = Math.max(1, Math.ceil(h * 2));
+      const g = c.getContext("2d");
+      g.fillStyle = getComputedStyle(body).backgroundColor || "#fff";
+      g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      try {
+        c.toBlob(bl => {
+          if (!bl) { toast("Could not make a PNG"); return; }
+          const url = URL.createObjectURL(bl);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = mmdName() + ".png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          toast("Saved " + mmdName() + ".png");
+        }, "image/png");
+      } catch (e) { toast("Could not make a PNG"); }
+    };
+    img.onerror = () => toast("Could not make a PNG");
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(text);
+  }
+
+  function mmdAct(btn) {
+    const fig = btn.closest(".mmd");
+    if (!fig) return;
+    const act = btn.dataset.mmd;
+    const view = fig.querySelector(".mmd-view"), src = fig.querySelector(".mmd-src");
+    if (act === "code") {
+      const showing = !src.hidden;
+      src.hidden = showing;
+      if (view) view.hidden = !showing;
+      btn.textContent = showing ? "Code" : "Diagram";
+      return;
+    }
+    if (act === "copy") { copyText(src.textContent, "Mermaid source copied"); return; }
+    if (act === "svg") { mmdSaveSvg(fig); return; }
+    if (act === "png") { mmdSavePng(fig); return; }
+  }
+
   /* ---------- export ---------- */
   function download(name, text, mime) {
     const blob = new Blob([text], { type: (mime || "text/plain") + ";charset=utf-8" });
@@ -3397,6 +4636,22 @@ const MD = (function () {
         toast("Saved " + t.name);
       } catch (e) { toast("Could not save: " + (e.message || e.name)); }
       return;
+    }
+
+    /* A document already has a file of its own in the library and is written as it
+       is typed; Ctrl+S just does it now instead of in half a second. Asking where to
+       put a copy - which is all the picker below could do - is what made documents
+       feel unsaved in the first place. */
+    if (t && t.kind === "local" && LIB.ok) {
+      const d = state.docs.find(x => x.id === t.docId);
+      if (d) {
+        d.content = ed.value;
+        d.updated = Date.now();
+        await libFlush(d.id);
+        renderDocs();
+        toast(d.err ? "Could not write " + d.file : "Saved " + d.file + " in " + LIB.name);
+        return;
+      }
     }
 
     const name = safeName(t ? t.name : "untitled").replace(MD_EXT, "") + ".md";
@@ -3468,7 +4723,7 @@ const MD = (function () {
       for (const r of rules) {
         const sel = r.selectorText || "";
         if (r.type === 1) {
-          if (sel.startsWith(":root") || /#preview|\.cb|\.t-|\.anchor|\.callout|\.task|\.footnotes|\.fn|\.tw/.test(sel)) {
+          if (sel.startsWith(":root") || /#preview|\.cb|\.mmd|\.t-|\.anchor|\.callout|\.task|\.footnotes|\.fn|\.tw/.test(sel)) {
             keep.push(r.cssText.replace(/#preview/g, ".md"));
           }
         } else if (r.type === 4) {
@@ -3785,20 +5040,71 @@ const MD = (function () {
     }
   }
 
+  /* A hidden pane is display:none, and that is enough for the browser to forget
+     where it was scrolled to - which is why every switch used to land back at the
+     first line. So note the line the visible pane is showing, and put both panes
+     back on it afterwards. Not their pixel offsets: the editor wraps differently at
+     half width than at full, and the preview measures nothing at all while it is
+     hidden, so only the line survives the switch. */
+  function viewAnchor(view) {
+    const a = { edLine: -1, pvLine: -1, edTop: ed.scrollTop, pvTop: previewPane.scrollTop };
+    try {
+      if (view !== "preview") { buildMirror(); a.edLine = lineAtY(ed.scrollTop); }
+      if (view !== "edit") a.pvLine = previewLineAt(previewPane.scrollTop + 20);
+    } catch (e) { }
+    return a;
+  }
+  /* Each pane goes back to its own line, and only borrows the other's when it was
+     not on screen to have one. Keeping them apart is what makes this work with sync
+     scrolling turned off, where the two panes are deliberately in different places. */
+  function viewRestore(was, now, a) {
+    const edBefore = was !== "preview", edNow = now !== "preview";
+    const pvBefore = was !== "edit", pvNow = now !== "edit";
+    /* the scrolling below must not set the panes syncing each other around */
+    holdUntil = Date.now() + 400;
+
+    if (edNow) {
+      buildMirror();
+      const line = a.edLine >= 0 ? a.edLine : a.pvLine;
+      ed.scrollTop = Math.max(0, line >= 0 ? lineTop(Math.floor(line)) : a.edTop);
+      if (findHL) trackMirror();
+    }
+    if (pvNow) {
+      const line = a.pvLine >= 0 ? a.pvLine : a.edLine;
+      const top = line >= 0 ? previewTopFor(line) : null;
+      previewPane.scrollTop = Math.max(0, top == null ? a.pvTop : top);
+    }
+    if (edNow && !edBefore) fadeIn($("#editorPane"));
+    if (pvNow && !pvBefore) fadeIn(previewPane);
+  }
+  function fadeIn(el) {
+    el.classList.remove("pane-in");
+    void el.offsetWidth;                 /* restart the animation, not resume it */
+    el.classList.add("pane-in");
+    clearTimeout(el._fade);
+    el._fade = setTimeout(() => el.classList.remove("pane-in"), 260);
+  }
+
   function setView(v) {
     const was = state.settings.view;
+    if (was === v) { if (v !== "preview") ed.focus(); return; }
+    const anchor = viewAnchor(was);
     state.settings.view = v;
     applySettings();
+    /* Focusing a textarea scrolls its caret into view, so it has to happen before
+       the scroll is put back - the other way round it lands on the caret, which is
+       what "back to the top" really was most of the time. */
+    const toFind = !$("#findbar").hidden;
+    if (!toFind && v !== "preview") ed.focus();
+    viewRestore(was, v, anchor);
     persist();
-    if (!$("#findbar").hidden) {
+    if (toFind) {
       /* hand the search over to whichever pane is now on screen */
       if (was === "preview") pvClear(); else { matches = []; paintHits(); }
       setReplaceEnabled(v !== "preview");
       runFind();
       $("#findInput").focus();
-      return;
     }
-    if (v !== "preview") ed.focus();
   }
   function toggleTheme() {
     state.settings.theme = state.settings.theme === "dark" ? "light" : "dark";
@@ -3817,7 +5123,7 @@ const MD = (function () {
   /* =========================================================
      wire everything up
      ========================================================= */
-  function init() {
+  async function init() {
     load();
     buildToolbar();
     buildHelp();
@@ -3827,6 +5133,8 @@ const MD = (function () {
       if (state.settings.view === "split") state.settings.view = "edit";
     }
     applySettings();
+    /* before the first tab is opened, so it opens the document as disk has it */
+    await libSync();
     ensureTab();
     renderDocs();
     renderTree();
@@ -3852,6 +5160,7 @@ const MD = (function () {
           const cur = state.docs.find(x => x.id === t.docId);
           if (cur) { cur.content = ed.value; cur.updated = Date.now(); }
           queueSave();
+          libQueue(t.docId);
           clearTimeout(ed._dl);
           ed._dl = setTimeout(renderDocs, 900);
           const ld = isDirty(t);
@@ -3899,6 +5208,7 @@ const MD = (function () {
       cur.updated = Date.now();
       t.name = cur.name;
       queueSave();
+      libQueueRename(cur.id);
       renderTabs();
       clearTimeout($("#docTitle")._t);
       $("#docTitle")._t = setTimeout(renderDocs, 400);
@@ -4008,6 +5318,9 @@ const MD = (function () {
       }
     });
     $("#docSearch").addEventListener("input", renderDocs);
+    $("#docHome").addEventListener("click", e => {
+      if (e.target.closest("#libPick")) libChooseFolder();
+    });
     $("#docList").addEventListener("click", e => {
       const del = e.target.closest("[data-del]");
       if (del) { e.stopPropagation(); deleteDoc(del.dataset.del); return; }
@@ -4042,6 +5355,8 @@ const MD = (function () {
         setTimeout(() => { cp.textContent = "Copy"; }, 1400);
         return;
       }
+      const md = e.target.closest("[data-mmd]");
+      if (md) { mmdAct(md); return; }
       const box = e.target.closest("[data-task-line]");
       if (box) {
         const line = +box.dataset.taskLine;
@@ -4134,10 +5449,12 @@ const MD = (function () {
           if (!incoming.length) throw new Error("empty");
           if (!confirm("Import " + incoming.length + " document(s) from this backup?")) return;
           incoming.forEach(x => {
-            state.docs.unshift({
+            const d = {
               id: uid(), name: String(x.name || "Imported"), content: String(x.content || ""),
               created: x.created || Date.now(), updated: Date.now()
-            });
+            };
+            state.docs.unshift(d);
+            libFlush(d.id);          /* an imported document is a file like any other */
           });
           openDoc(state.docs[0].id);
           toast("Imported " + incoming.length + " document(s)");
@@ -4178,6 +5495,7 @@ const MD = (function () {
         if (cur) cur.content = t.content;
       }
       try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (err) { }
+      libFlushNow();
       /* files live on disk and are not autosaved, so warn before losing edits */
       if (tabs.some(isDirty)) { e.preventDefault(); e.returnValue = ""; return ""; }
     });

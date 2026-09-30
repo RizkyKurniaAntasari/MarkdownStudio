@@ -1,4 +1,4 @@
-// Markdown Studio - desktop launcher
+﻿// Markdown Studio - desktop launcher
 //
 // Serves the bundled index.html from a loopback socket and opens it in Edge (or
 // Chrome) as an app window. Going through http:// rather than file:// is the whole
@@ -19,8 +19,21 @@
 // copy can own that port, so a second launch hands its files to the running copy
 // and just opens another window on it.
 //
-// Every launch also registers the app for "Open with" on Markdown files, in the
-// current user's registry only. --register does just that, --unregister undoes it.
+// One folder is always served, whatever the launch was: the library. That is
+// where documents written inside the app live, so they are ordinary .md files on
+// disk rather than rows in the browser's storage - they survive a reinstall,
+// Windows Search can read them, and Explorer can open them like any other file.
+// The page reaches that folder as w=lib.
+//
+// Where the library sits is the user's to choose. Until they do it is
+// Documents\Markdown Studio, resolved per machine and per user; picking another
+// folder moves the notes there and writes the choice next to the instance file, so
+// every later launch on this machine finds it again.
+//
+// Every launch also registers the app for "Open with" on Markdown files, puts a
+// shortcut in the Start menu so typing its name finds it, and asks the indexer to
+// read inside .md files. All in the current user's registry and profile only.
+// --register does just that, --unregister undoes it.
 //
 // Build:  build-exe.cmd
 
@@ -42,8 +55,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.6.0.0")]
+[assembly: AssemblyFileVersion("1.6.0.0")]
 
 static class MarkdownStudio
 {
@@ -63,6 +76,10 @@ static class MarkdownStudio
         public List<string> Open = new List<string>();   // files to open on start
     }
     static readonly Dictionary<string, Workspace> workspaces = new Dictionary<string, Workspace>();
+
+    // The workspace id the page uses for the library. Fixed, because every window
+    // needs it and none of them was launched on it.
+    const string LibId = "lib";
 
     const int MaxDepth = 6;
     const int MaxFiles = 3000;
@@ -108,6 +125,7 @@ static class MarkdownStudio
         }
 
         key = NewKey();
+        lock (workspaces) workspaces[LibId] = NewWorkspace(LibraryDir());
         string id = AddWorkspace(ws);
         TcpListener listener = Listen();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
@@ -125,6 +143,300 @@ static class MarkdownStudio
         {
             ClearInstance();
         }
+    }
+
+    // The folder the user picked, if they ever did. Kept beside the instance file,
+    // in this machine's own profile - the path is a property of the machine, not of
+    // the exe, so a copy carried on a USB stick still finds each machine's own.
+    static string LibraryPathFile()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MarkdownStudio", "library");
+    }
+
+    // Until something is chosen: Documents, because Windows Search indexes it out of
+    // the box, so a note saved there turns up in the search box with nothing else set
+    // up. Resolved by asking Windows, so it is this machine's Documents for this user
+    // - redirected to OneDrive, moved to another drive or renamed, it still lands right.
+    static string DefaultLibraryDir()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Markdown Studio");
+    }
+
+    static string LibraryDir()
+    {
+        string chosen = null;
+        try { chosen = File.ReadAllText(LibraryPathFile()).Trim(); } catch { }
+        if (chosen != null && chosen.Length > 0)
+        {
+            // A folder on a drive that is not plugged in today falls back for this run
+            // only. The choice stays on file, so it is picked up again once the drive
+            // is back rather than silently becoming a new empty library somewhere else.
+            try { Directory.CreateDirectory(chosen); return Path.GetFullPath(chosen); }
+            catch { }
+        }
+        string dir = DefaultLibraryDir();
+        try { Directory.CreateDirectory(dir); } catch { }
+        return dir;
+    }
+
+    static void SaveLibraryDir(string dir)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LibraryPathFile()));
+            // back to the default means forgetting the choice, not writing it down
+            if (string.Equals(dir, DefaultLibraryDir(), StringComparison.OrdinalIgnoreCase))
+                File.Delete(LibraryPathFile());
+            else
+                File.WriteAllText(LibraryPathFile(), dir);
+        }
+        catch { }
+    }
+
+    // ---------------------------------------------------------------- folder picker
+
+    // Windows' own folder picker is the File Explorer window with everything but
+    // folders switched off: an address bar you can paste a path into, search, Quick
+    // access, resizable. WinForms cannot reach it on .NET Framework - its
+    // FolderBrowserDialog is still the little "Browse For Folder" tree from XP - so
+    // the shell interfaces are declared here by hand. The method order below IS the
+    // vtable: nothing may be reordered, renamed away or left out.
+
+    [ComImport, Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IShellItem
+    {
+        void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv);
+        void GetParent(out IShellItem ppsi);
+        void GetDisplayName(uint sigdnName, out IntPtr ppszName);
+        void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
+        void Compare(IShellItem psi, uint hint, out int piOrder);
+    }
+
+    [ComImport, Guid("42f85136-db7e-439c-85f1-e4075d135fc8"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IFileDialog
+    {
+        // IModalWindow
+        [PreserveSig] int Show(IntPtr parent);
+        // IFileDialog
+        void SetFileTypes(uint cFileTypes, IntPtr rgFilterSpec);
+        void SetFileTypeIndex(uint iFileType);
+        void GetFileTypeIndex(out uint piFileType);
+        void Advise(IntPtr pfde, out uint pdwCookie);
+        void Unadvise(uint dwCookie);
+        void SetOptions(uint fos);
+        void GetOptions(out uint pfos);
+        void SetDefaultFolder(IShellItem psi);
+        void SetFolder(IShellItem psi);
+        void GetFolder(out IShellItem ppsi);
+        void GetCurrentSelection(out IShellItem ppsi);
+        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+        void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string pszName);
+        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string pszTitle);
+        void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string pszText);
+        void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string pszLabel);
+        void GetResult(out IShellItem ppsi);
+        void AddPlace(IShellItem psi, int fdap);
+        void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string pszDefaultExtension);
+        void Close(int hr);
+        void SetClientGuid(ref Guid guid);
+        void ClearClientData();
+        void SetFilter(IntPtr pFilter);
+    }
+
+    [ComImport, Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")]
+    class FileOpenDialog { }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    static extern void SHCreateItemFromParsingName(
+        [MarshalAs(UnmanagedType.LPWStr)] string path, IntPtr pbc, ref Guid riid,
+        [MarshalAs(UnmanagedType.Interface)] out object item);
+
+    const uint FOS_PICKFOLDERS = 0x00000020;
+    const uint FOS_FORCEFILESYSTEM = 0x00000040;
+    const uint FOS_PATHMUSTEXIST = 0x00000800;
+    const uint SIGDN_FILESYSPATH = 0x80058000;
+    const int ERROR_CANCELLED = unchecked((int)0x800704C7);
+
+    // Null when the dialog was cancelled. Anything else that goes wrong throws, so
+    // the caller can fall back rather than read a failure as "no thanks".
+    static string PickModern(string start, IntPtr owner)
+    {
+        IFileDialog dlg = (IFileDialog)(new FileOpenDialog());
+        try
+        {
+            uint opts;
+            dlg.GetOptions(out opts);
+            dlg.SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
+            dlg.SetTitle("Where should Markdown Studio keep your documents?");
+            dlg.SetOkButtonLabel("Use this folder");
+
+            if (!string.IsNullOrEmpty(start))
+            {
+                // a start folder that has gone is not worth failing the dialog over
+                try
+                {
+                    Guid iid = typeof(IShellItem).GUID;
+                    object si;
+                    SHCreateItemFromParsingName(start, IntPtr.Zero, ref iid, out si);
+                    dlg.SetFolder((IShellItem)si);
+                }
+                catch { }
+            }
+
+            int hr = dlg.Show(owner);
+            if (hr == ERROR_CANCELLED) return null;
+            if (hr != 0) throw new COMException("folder dialog failed", hr);
+
+            IShellItem res;
+            dlg.GetResult(out res);
+            IntPtr name;
+            res.GetDisplayName(SIGDN_FILESYSPATH, out name);
+            try { return Marshal.PtrToStringUni(name); }
+            finally { Marshal.FreeCoTaskMem(name); }
+        }
+        finally { try { Marshal.ReleaseComObject(dlg); } catch { } }
+    }
+
+    // The old tree dialog, for a Windows where the shell interfaces above are not
+    // there. Cramped, but a picker that works beats a button that does nothing.
+    static string PickClassic(string start, Form owner)
+    {
+        using (FolderBrowserDialog d = new FolderBrowserDialog())
+        {
+            d.Description = "Where should Markdown Studio keep your documents?";
+            d.ShowNewFolderButton = true;
+            d.RootFolder = Environment.SpecialFolder.MyComputer;
+            try { d.SelectedPath = start; } catch { }
+            return d.ShowDialog(owner) == DialogResult.OK ? d.SelectedPath : null;
+        }
+    }
+
+    // Asks for a folder on a thread of its own: the file dialogs need an STA thread,
+    // and the one serving this request is a pool thread. Returns null if cancelled.
+    static string AskFolder(string start)
+    {
+        string picked = null;
+        Thread t = new Thread(delegate()
+        {
+            // Our process has no window of its own - the app window belongs to the
+            // browser - so without an owner on top the dialog can open behind it.
+            using (Form owner = new Form())
+            {
+                owner.FormBorderStyle = FormBorderStyle.None;
+                owner.ShowInTaskbar = false;
+                owner.Opacity = 0;
+                owner.Size = new System.Drawing.Size(1, 1);
+                owner.StartPosition = FormStartPosition.CenterScreen;
+                owner.TopMost = true;
+                owner.Show();
+                owner.Activate();
+
+                bool shown = false;
+                try { picked = PickModern(start, owner.Handle); shown = true; }
+                catch { }
+                if (!shown) picked = PickClassic(start, owner);
+            }
+        });
+        t.SetApartmentState(ApartmentState.STA);
+        t.IsBackground = true;
+        t.Start();
+        t.Join();
+        return picked;
+    }
+
+    // A free name beside the ones already in the folder, for a note whose name is
+    // taken there. Null when even that fails, and the file is then left where it is.
+    static string Free(string root, string rel)
+    {
+        string win = rel.Replace('/', '\\');
+        string dir = Path.GetDirectoryName(win);
+        string name = Path.GetFileNameWithoutExtension(win);
+        string ext = Path.GetExtension(win);
+        for (int n = 2; n < 1000; n++)
+        {
+            string cand = (dir.Length > 0 ? dir + "\\" : "") + name + " " + n + ext;
+            if (!File.Exists(Path.Combine(root, cand))) return cand.Replace('\\', '/');
+        }
+        return null;
+    }
+
+    // Moves the library's notes to a new folder. A name already taken there is not
+    // overwritten - that note arrives under a free name instead, and the page is told
+    // so it can follow. Anything already in the new folder simply joins the library.
+    static string MoveLibrary(string from, string to, out int moved, out int kept)
+    {
+        moved = 0; kept = 0;
+        StringBuilder renamed = new StringBuilder("{");
+        bool first = true;
+        List<string> files = new List<string>();
+        Walk(from, "", 0, files);
+        foreach (string rel in files)
+        {
+            string src, dstRel = rel;
+            try { src = Path.GetFullPath(Path.Combine(from, rel.Replace('/', '\\'))); }
+            catch { kept++; continue; }
+            string dst;
+            try { dst = Path.GetFullPath(Path.Combine(to, rel.Replace('/', '\\'))); }
+            catch { kept++; continue; }
+            if (string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) continue;
+            if (File.Exists(dst))
+            {
+                dstRel = Free(to, rel);
+                if (dstRel == null) { kept++; continue; }
+                dst = Path.Combine(to, dstRel.Replace('/', '\\'));
+            }
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(dst));
+                File.Move(src, dst);
+                moved++;
+                if (dstRel != rel)
+                {
+                    if (!first) renamed.Append(',');
+                    first = false;
+                    renamed.Append(JsonStr(rel)).Append(':').Append(JsonStr(dstRel));
+                }
+            }
+            catch { kept++; }
+        }
+        return renamed.Append('}').ToString();
+    }
+
+    // Answers the page's "let me choose where my documents live".
+    static string ChooseLibrary()
+    {
+        string cur;
+        lock (workspaces) cur = workspaces[LibId].Root;
+
+        string picked = AskFolder(cur);
+        if (picked == null) return "{\"cancelled\":true}";
+
+        string full;
+        try { full = Path.GetFullPath(picked); }
+        catch { return "{\"error\":\"that path cannot be used\"}"; }
+
+        int moved = 0, kept = 0;
+        string renamed = "{}";
+        if (!string.Equals(full, cur, StringComparison.OrdinalIgnoreCase))
+        {
+            try { Directory.CreateDirectory(full); }
+            catch (Exception ex) { return "{\"error\":" + JsonStr(ex.Message) + "}"; }
+            renamed = MoveLibrary(cur, full, out moved, out kept);
+            SaveLibraryDir(full);
+            lock (workspaces) workspaces[LibId] = NewWorkspace(full);
+        }
+
+        Workspace ws;
+        lock (workspaces) ws = workspaces[LibId];
+        return "{\"path\":" + JsonStr(ws.Root) + ",\"root\":" + JsonStr(ws.Name) +
+               ",\"moved\":" + moved + ",\"kept\":" + kept +
+               ",\"renamed\":" + renamed + "}";
     }
 
     static string PageUrl(int port, string id)
@@ -321,6 +633,11 @@ static class MarkdownStudio
     // why Markdown Studio kept vanishing from the menu. Listing it under each
     // extension's OpenWithProgids keeps it there for good. Current user only, so
     // no admin rights; it does not make itself the default app.
+    // The plain-text reader Windows Search already ships with. Pointed at .md it
+    // indexes what is inside the file, not just its name - which is what makes a
+    // phrase from a note findable from the Windows search box.
+    const string TextHandler = "{5e941d80-bf96-11cd-b579-08002b30bfeb}";
+
     static void Register()
     {
         string exe = Assembly.GetExecutingAssembly().Location;
@@ -346,15 +663,63 @@ static class MarkdownStudio
             {
                 changed |= Put(c, e + @"\OpenWithProgids", ProgId, "");
                 changed |= Put(c, app + @"\SupportedTypes", e, "");
+                // Named values and a subkey only. The extension key's own default
+                // value is what names the default app, and that stays untouched.
+                changed |= Put(c, e + @"\PersistentHandler", "", TextHandler);
+                changed |= Put(c, e, "PerceivedType", "text");
+                changed |= Put(c, e, "Content Type", "text/markdown");
             }
         }
+        Shortcut(exe);
         // tell Explorer, or the menu keeps showing the old state until a restart
         if (changed) SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    static string ShortcutPath()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+            "Markdown Studio.lnk");
+    }
+
+    // A Start menu entry, which is the only thing that puts the app in the Windows
+    // search box - the "Open with" registration alone never does. Written through
+    // WScript.Shell by name, so nothing has to be referenced at build time.
+    static void Shortcut(string exe)
+    {
+        try
+        {
+            string path = ShortcutPath();
+            Type wsh = Type.GetTypeFromProgID("WScript.Shell");
+            if (wsh == null) return;
+            object shell = Activator.CreateInstance(wsh);
+            object lnk = wsh.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod,
+                null, shell, new object[] { path });
+            Type lt = lnk.GetType();
+
+            // a shortcut that already points here needs no write at all
+            if (File.Exists(path))
+            {
+                object cur = lt.InvokeMember("TargetPath", BindingFlags.GetProperty, null, lnk, null);
+                if (cur != null && string.Equals(cur.ToString(), exe, StringComparison.OrdinalIgnoreCase))
+                    return;
+            }
+            lt.InvokeMember("TargetPath", BindingFlags.SetProperty, null, lnk, new object[] { exe });
+            lt.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, lnk,
+                new object[] { Path.GetDirectoryName(exe) });
+            lt.InvokeMember("IconLocation", BindingFlags.SetProperty, null, lnk,
+                new object[] { exe + ",0" });
+            lt.InvokeMember("Description", BindingFlags.SetProperty, null, lnk,
+                new object[] { "Offline Markdown editor with live preview" });
+            lt.InvokeMember("Save", BindingFlags.InvokeMethod, null, lnk, null);
+        }
+        catch { }   // no shortcut is a smaller problem than a launch that fails
     }
 
     static void Unregister()
     {
         string file = Path.GetFileName(Assembly.GetExecutingAssembly().Location);
+        List<string> ours = new List<string>();
         using (RegistryKey c = Registry.CurrentUser.CreateSubKey(@"Software\Classes"))
         {
             c.DeleteSubKeyTree(ProgId, false);
@@ -363,8 +728,16 @@ static class MarkdownStudio
             {
                 using (RegistryKey k = c.OpenSubKey(e + @"\OpenWithProgids", true))
                     if (k != null) k.DeleteValue(ProgId, false);
+                // only the handler we set goes; one another program registered stays
+                using (RegistryKey k = c.OpenSubKey(e + @"\PersistentHandler", false))
+                {
+                    object v = k == null ? null : k.GetValue("");
+                    if (v != null && v.ToString() == TextHandler) ours.Add(e);
+                }
             }
+            foreach (string e in ours) c.DeleteSubKeyTree(e + @"\PersistentHandler", false);
         }
+        try { File.Delete(ShortcutPath()); } catch { }
         SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
     }
 
@@ -749,7 +1122,8 @@ static class MarkdownStudio
                 if (path == "/" || path == "/index.html")
                 { Send(ns, "200 OK", "text/html; charset=utf-8", page); return; }
 
-                if (path == "/__ws" || path == "/__file" || path == "/__all" || path == "/__launch")
+                if (path == "/__ws" || path == "/__file" || path == "/__all" ||
+                    path == "/__launch" || path == "/__libdir")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
@@ -758,6 +1132,14 @@ static class MarkdownStudio
                     {
                         if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
                         SendText(ns, "200 OK", Launch(body));
+                        return;
+                    }
+
+                    if (path == "/__libdir")
+                    {
+                        if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+                        Send(ns, "200 OK", "application/json; charset=utf-8",
+                             Encoding.UTF8.GetBytes(ChooseLibrary()));
                         return;
                     }
 
@@ -796,6 +1178,19 @@ static class MarkdownStudio
                         catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
                         return;
                     }
+                    // renaming a document is a write under the new name and this under
+                    // the old one, so the folder does not fill up with stale copies
+                    if (method == "DELETE")
+                    {
+                        try
+                        {
+                            if (!File.Exists(full)) { SendText(ns, "404 Not Found", "no such file"); return; }
+                            Recycle(full);
+                            SendText(ns, "200 OK", "ok");
+                        }
+                        catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+                        return;
+                    }
                     SendText(ns, "405 Method Not Allowed", "no");
                     return;
                 }
@@ -804,6 +1199,34 @@ static class MarkdownStudio
             }
         }
         catch { }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
+    struct SHFILEOPSTRUCT
+    {
+        public IntPtr hwnd;
+        public uint wFunc;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pFrom;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pTo;
+        public ushort fFlags;
+        public int fAnyOperationsAborted;
+        public IntPtr hNameMappings;
+        [MarshalAs(UnmanagedType.LPWStr)] public string lpszProgressTitle;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    static extern int SHFileOperation(ref SHFILEOPSTRUCT op);
+
+    // A deleted document goes to the Recycle Bin rather than being wiped. These are
+    // the user's own notes in their own Documents folder, so a delete clicked by
+    // mistake should be something Windows can undo.
+    static void Recycle(string path)
+    {
+        SHFILEOPSTRUCT op = new SHFILEOPSTRUCT();
+        op.wFunc = 3;                          // FO_DELETE
+        op.pFrom = path + "\0\0";
+        op.fFlags = 0x0040 | 0x0010 | 0x0004;  // ALLOWUNDO | NOCONFIRMATION | SILENT
+        if (SHFileOperation(ref op) != 0) File.Delete(path);
     }
 
     static void SendText(NetworkStream ns, string status, string text)
