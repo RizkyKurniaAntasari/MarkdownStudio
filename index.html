@@ -79,7 +79,7 @@ body.no-sidebar #sidebar{margin-left:-252px}
 #docSearch::placeholder{color:var(--fg3)}
 #docHome{font-size:11px;color:var(--fg3);line-height:1.5;margin:-4px 0 8px;word-break:break-all}
 #docHome b{color:var(--fg2);font-weight:600}
-#docHome button{border:0;background:none;padding:0;margin-left:3px;color:var(--acc);font:inherit;cursor:pointer;text-decoration:underline;white-space:nowrap}
+#docHome button{border:0;background:none;padding:0;color:var(--acc);font:inherit;cursor:pointer;text-decoration:underline}
 #docHome button:hover{opacity:.8}
 
 .doc{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:var(--r-sm);cursor:pointer;transition:var(--tr);margin-bottom:1px}
@@ -326,6 +326,33 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .sheet-b{padding:18px 20px 22px}
 .kbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:16px 26px}
 .kbsec h3{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fg3)}
+
+/* ---------------- settings ---------------- */
+.setsec+.setsec{margin-top:24px}
+.setsec h3{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fg3)}
+.sethint{margin:0 0 11px;font-size:12.5px;line-height:1.65;color:var(--fg2)}
+.setpath{font-family:var(--f-mono);font-size:12px;line-height:1.5;color:var(--fg);background:var(--bg2);
+  border:1px solid var(--bd);border-radius:var(--r-sm);padding:10px 12px;word-break:break-all;user-select:text}
+.setpath.off{color:var(--fg3);font-family:var(--f-ui)}
+.setbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.setbtns .btn[disabled]{opacity:.45;pointer-events:none}
+.setrow{display:flex;align-items:center;gap:12px;padding:10px 0;font-size:13px;color:var(--fg2);border-bottom:1px dashed var(--bd)}
+.setrow:last-child{border-bottom:0}
+.setrow>span:first-child{flex:1}
+.tgl{width:38px;height:21px;flex:0 0 auto;border:1px solid var(--bd);border-radius:11px;background:var(--bg2);
+  position:relative;cursor:pointer;transition:var(--tr);padding:0}
+.tgl::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;
+  background:var(--fg3);transition:var(--tr)}
+.tgl.on{background:var(--acc);border-color:var(--acc)}
+.tgl.on::after{left:19px;background:#fff}
+.step{display:inline-flex;align-items:center;gap:8px}
+.step button{width:28px;height:24px;border:1px solid var(--bd);border-radius:var(--r-sm);background:var(--bg);
+  color:var(--fg2);font:inherit;font-size:11.5px;cursor:pointer;transition:var(--tr)}
+.step button:hover{border-color:var(--acc);color:var(--acc)}
+.step b{min-width:22px;text-align:center;color:var(--fg);font-weight:600}
+.setsel{border:1px solid var(--bd);border-radius:var(--r-sm);background:var(--bg);color:var(--fg);
+  font:inherit;font-size:12.5px;padding:4px 8px;cursor:pointer}
+.setsel:hover{border-color:var(--acc)}
 .kbrow{display:flex;align-items:center;gap:10px;padding:3.5px 0;font-size:13px;color:var(--fg2);border-bottom:1px dashed var(--bd)}
 .kbrow span{flex:1}
 
@@ -695,17 +722,9 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
     Toggle dark mode<kbd>Ctrl Shift L</kbd></button>
   <div class="mdiv"></div>
-  <div class="mlab">Layout</div>
-  <button class="mi" data-act="wrap" role="menuitem">Soft wrap<span class="k" id="kWrap">on</span></button>
-  <button class="mi" data-act="sync" role="menuitem">Sync scroll &amp; selection<span class="k" id="kSync">on</span></button>
-  <button class="mi" data-act="wide" role="menuitem">Wide layout (full width)<span class="k" id="kWide">off</span></button>
-  <div class="mrow"><span>Editor font</span>
-    <button class="btn btn-out" data-act="font-" style="height:24px;padding:0 8px">A-</button>
-    <button class="btn btn-out" data-act="font+" style="height:24px;padding:0 8px">A+</button></div>
-  <div class="mrow"><span>Preview font</span>
-    <button class="btn btn-out" data-act="pfont-" style="height:24px;padding:0 8px">A-</button>
-    <button class="btn btn-out" data-act="pfont+" style="height:24px;padding:0 8px">A+</button></div>
-  <div class="mdiv"></div>
+  <button class="mi" data-act="settings" role="menuitem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007.9 19a1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 003.6 8a1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H8a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V8a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+    Settings<kbd>Ctrl ,</kbd></button>
   <button class="mi" data-act="help" role="menuitem">Keyboard shortcuts<kbd>F1</kbd></button>
 </div>
 
@@ -715,6 +734,49 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
     <div class="sheet-h"><h2>Keyboard shortcuts</h2><span class="grow"></span>
       <button class="btn btn-ico" id="helpClose">&#10005;</button></div>
     <div class="sheet-b"><div class="kbgrid" id="kbGrid"></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="settings" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="sheet-h"><h2>Settings</h2><span class="grow"></span>
+      <button class="btn btn-ico" id="setClose">&#10005;</button></div>
+    <div class="sheet-b">
+      <section class="setsec">
+        <h3>Documents</h3>
+        <p class="sethint">Everything in the Docs pane is a real Markdown file in this folder,
+          written as you type. Nothing ever asks where to save it.</p>
+        <div class="setpath" id="setPath">&mdash;</div>
+        <div class="setbtns">
+          <button class="btn btn-out" id="setChange">Change folder&hellip;</button>
+          <button class="btn btn-out" id="setOpen">Open in Explorer</button>
+        </div>
+      </section>
+      <section class="setsec">
+        <h3>Editor</h3>
+        <div class="setrow"><span>Soft wrap</span>
+          <button class="tgl" data-set="wrap" role="switch" aria-label="Soft wrap"></button></div>
+        <div class="setrow"><span>Sync scroll &amp; selection</span>
+          <button class="tgl" data-set="sync" role="switch" aria-label="Sync scroll and selection"></button></div>
+        <div class="setrow"><span>Wide layout (use the whole window)</span>
+          <button class="tgl" data-set="wide" role="switch" aria-label="Wide layout"></button></div>
+        <div class="setrow"><span>Editor text size</span>
+          <span class="step"><button data-set="font-" aria-label="Smaller">A-</button><b id="setEdSize">14</b><button data-set="font+" aria-label="Larger">A+</button></span></div>
+        <div class="setrow"><span>Preview text size</span>
+          <span class="step"><button data-set="pfont-" aria-label="Smaller">A-</button><b id="setPvSize">16</b><button data-set="pfont+" aria-label="Larger">A+</button></span></div>
+      </section>
+      <section class="setsec">
+        <h3>Appearance</h3>
+        <div class="setrow"><span>Dark mode</span>
+          <button class="tgl" data-set="theme" role="switch" aria-label="Dark mode"></button></div>
+        <div class="setrow"><span>Language</span>
+          <select class="setsel" id="setLang" aria-label="Language">
+            <option value="auto">Follow the system</option>
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select></div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -1302,7 +1364,241 @@ const HL = (function () {
 })();
 
 /* =========================================================
-   2. Mermaid flowcharts
+   2. Language
+   ========================================================= */
+/* English is the source, so there is no English table: a string that is not in the
+   Indonesian one is already what it should be. Keys are the English text itself
+   rather than invented ids, which means a string nobody translated still reads
+   correctly instead of showing "menu.file.open" to somebody.
+
+   The function is called tr, not t: half the application already has a local `t`
+   for the active tab or a tool, and a shadowed translator fails silently. */
+const I18N = (function () {
+  const ID = {
+    /* ---- panes, bars and buttons ---- */
+    "Explorer": "Folder", "Docs": "Dokumen", "Outline": "Kerangka", "Search": "Cari",
+    "New": "Baru", "Edit": "Edit", "Split": "Terbagi", "Preview": "Pratinjau",
+    "Save": "Simpan", "Settings": "Pengaturan", "Documents": "Dokumen",
+    "Editor": "Editor", "Appearance": "Tampilan", "Language": "Bahasa",
+    "words": "kata", "chars": "karakter", "lines": "baris", "min read": "menit baca",
+    "Ln": "Brs", "Col": "Kol", "selected": "terpilih",
+
+    /* ---- settings ---- */
+    "Soft wrap": "Bungkus baris",
+    "Sync scroll & selection": "Sinkron gulir & seleksi",
+    "Sync scroll and selection": "Sinkron gulir dan seleksi",
+    "Wide layout (use the whole window)": "Tata letak lebar (pakai seluruh jendela)",
+    "Wide layout": "Tata letak lebar",
+    "Editor text size": "Ukuran teks editor",
+    "Preview text size": "Ukuran teks pratinjau",
+    "Dark mode": "Mode gelap",
+    "Change folder…": "Ganti folder…",
+    "Open in Explorer": "Buka di Explorer",
+    "Follow the system": "Ikuti sistem",
+    "Everything in the Docs pane is a real Markdown file in this folder, written as you type. Nothing ever asks where to save it.":
+      "Semua yang ada di panel Dokumen adalah berkas Markdown sungguhan di folder ini, ditulis sambil Anda mengetik. Tidak pernah ada yang menanyakan mau disimpan di mana.",
+    "No folder - documents are kept in this browser only. Run Markdown Studio from its own program to keep them as files.":
+      "Tidak ada folder - dokumen hanya tersimpan di browser ini. Jalankan Markdown Studio dari programnya sendiri agar tersimpan sebagai berkas.",
+    "Setup only asks for this once. Change it here whenever you like.":
+      "Setup hanya menanyakan ini sekali. Ubah di sini kapan saja.",
+
+    /* ---- menu ---- */
+    "Open folder": "Buka folder", "Save all files": "Simpan semua berkas",
+    "Close all tabs": "Tutup semua tab", "Search in folder": "Cari di folder",
+    "Save as Markdown": "Simpan sebagai Markdown", "Export as HTML": "Ekspor sebagai HTML",
+    "Print / Save as PDF": "Cetak / Simpan sebagai PDF",
+    "Copy HTML to clipboard": "Salin HTML ke papan klip",
+    "Duplicate as new document": "Gandakan jadi dokumen baru",
+    "Download backup (all docs)": "Unduh cadangan (semua dokumen)",
+    "Import backup (.json)": "Impor cadangan (.json)",
+    "Find and replace": "Cari dan ganti", "Toggle dark mode": "Mode gelap",
+    "Keyboard shortcuts": "Pintasan papan tik",
+
+    /* ---- find bar ---- */
+    "Find": "Cari", "Replace with": "Ganti dengan", "Replace": "Ganti", "All": "Semua",
+    "preview · read-only": "pratinjau · hanya baca",
+    "Preview is read-only, so replace is off":
+      "Pratinjau hanya bisa dibaca, jadi ganti dimatikan",
+    "Match case": "Cocokkan huruf besar/kecil", "Regular expression": "Ekspresi reguler",
+    "Next (Enter)": "Berikutnya (Enter)", "Previous (Shift+Enter)": "Sebelumnya (Shift+Enter)",
+    "Close (Esc)": "Tutup (Esc)",
+
+    /* ---- tooltips ---- */
+    "Toggle sidebar (Ctrl+\\)": "Buka/tutup panel samping (Ctrl+\\)",
+    "Document title": "Judul dokumen",
+    "Editor only (Ctrl+1)": "Editor saja (Ctrl+1)", "Editor only": "Editor saja",
+    "Split view (Ctrl+2)": "Tampilan terbagi (Ctrl+2)", "Split view": "Tampilan terbagi",
+    "Preview only (Ctrl+3)": "Pratinjau saja (Ctrl+3)", "Preview only": "Pratinjau saja",
+    "View mode": "Mode tampilan",
+    "Find and replace (Ctrl+F)": "Cari dan ganti (Ctrl+F)",
+    "Toggle theme (Ctrl+Shift+L)": "Ganti tema (Ctrl+Shift+L)", "More": "Lainnya",
+    "Save as .md file (Ctrl+S)": "Simpan sebagai berkas .md (Ctrl+S)",
+    "Save changes (Ctrl+S)": "Simpan perubahan (Ctrl+S)",
+    "Already in sync (Ctrl+S)": "Sudah sinkron (Ctrl+S)",
+    "New document (Alt+N)": "Dokumen baru (Alt+N)",
+    "Open folder (Ctrl+Shift+O)": "Buka folder (Ctrl+Shift+O)",
+    "Open .md file (Ctrl+O)": "Buka berkas .md (Ctrl+O)",
+    "Close all tabs (Ctrl+Alt+Shift+W)": "Tutup semua tab (Ctrl+Alt+Shift+W)",
+    "Open files": "Berkas yang terbuka",
+    "Search documents...": "Cari dokumen...",
+    "Search in all files...": "Cari di semua berkas...",
+    "Search in folder (Ctrl+Shift+F)": "Cari di folder (Ctrl+Shift+F)",
+    "Collapse / expand all": "Tutup / buka semua",
+    "Re-read files from disk and search again": "Baca ulang berkas dari disk lalu cari lagi",
+    "Smaller": "Perkecil", "Larger": "Perbesar", "Show me where": "Tunjukkan di mana",
+    "Delete": "Hapus", "Markdown source": "Sumber Markdown",
+    "New file": "Berkas baru", "Refresh": "Muat ulang", "Close folder": "Tutup folder",
+    "Keep your documents somewhere else": "Simpan dokumen Anda di tempat lain",
+    "Drop Markdown files to open": "Lepas berkas Markdown untuk membuka",
+
+    /* ---- toolbar ---- */
+    "Heading 1": "Judul 1", "Heading 2": "Judul 2", "Heading 3": "Judul 3",
+    "Bold (Ctrl+B)": "Tebal (Ctrl+B)", "Italic (Ctrl+I)": "Miring (Ctrl+I)",
+    "Strikethrough": "Coret", "Inline code (Ctrl+`)": "Kode sebaris (Ctrl+`)",
+    "Highlight": "Sorot", "Link (Ctrl+K)": "Tautan (Ctrl+K)",
+    "Image (Ctrl+Shift+K)": "Gambar (Ctrl+Shift+K)",
+    "Bullet list": "Daftar poin", "Numbered list": "Daftar bernomor",
+    "Task list": "Daftar tugas", "Blockquote": "Kutipan", "Table": "Tabel",
+    "Code block": "Blok kode", "Horizontal rule": "Garis pemisah", "Footnote": "Catatan kaki",
+
+    /* ---- shortcuts sheet ---- */
+    "Formatting": "Format", "Editing": "Mengedit", "Files": "Berkas", "Tabs": "Tab",
+    "View": "Tampilan",
+    "Bold": "Tebal", "Italic": "Miring", "Inline code": "Kode sebaris", "Link": "Tautan",
+    "Image": "Gambar", "Heading 1 / 2 / 3": "Judul 1 / 2 / 3",
+    "Indent / outdent": "Menjorok masuk / keluar", "Duplicate line": "Gandakan baris",
+    "Move line up / down": "Pindah baris naik / turun", "Delete line": "Hapus baris",
+    "Continue list": "Lanjutkan daftar", "Undo / redo": "Urungkan / ulangi",
+    "Select all": "Pilih semua", "Open .md file": "Buka berkas .md",
+    "New document": "Dokumen baru", "Print / PDF": "Cetak / PDF",
+    "Next tab": "Tab berikutnya", "Previous tab": "Tab sebelumnya",
+    "Go to tab 1-9": "Ke tab 1-9", "Close tab": "Tutup tab", "Close panel": "Tutup panel",
+    "Toggle sidebar": "Buka/tutup panel samping", "Toggle theme": "Ganti tema",
+    "Shortcuts": "Pintasan",
+
+    /* ---- the folder tree ---- */
+    "No folder open.": "Belum ada folder yang terbuka.",
+    "Open one to browse and edit": "Buka satu untuk menjelajah dan mengedit",
+    "all its Markdown files.": "semua berkas Markdown di dalamnya.",
+    "Open Folder": "Buka Folder",
+    "No Markdown files here.": "Tidak ada berkas Markdown di sini.",
+    "Reopen ": "Buka lagi ", " (read-only)": " (hanya baca)",
+    "Opened straight from a file, so folders here are read-only.":
+      "Dibuka langsung dari berkas, jadi folder di sini hanya bisa dibaca.",
+
+    /* ---- documents ---- */
+    "No documents match.": "Tidak ada dokumen yang cocok.",
+    "just now": "baru saja", "m ago": "m lalu", "h ago": "j lalu", "d ago": "h lalu",
+    "Each of these is a file": "Setiap dokumen ini adalah berkas",
+    "in here": "di folder ini",
+    "Untitled": "Tanpa judul",
+
+    /* ---- the save state ---- */
+    "Saved": "Tersimpan", "Unsaved changes": "Ada perubahan belum tersimpan",
+    "Read-only copy": "Salinan hanya baca", "Not saved": "Tidak tersimpan",
+    "Browser only": "Hanya di browser", "Not written": "Gagal ditulis",
+    "In sync with ": "Sinkron dengan ",
+    "Written as you type to ": "Ditulis sambil mengetik ke ",
+    "Could not write ": "Gagal menulis ",
+    "Autosaved in this browser. Ctrl+S saves it as a real .md file on disk":
+      "Tersimpan otomatis di browser ini. Ctrl+S menyimpannya sebagai berkas .md di disk",
+    "Opened without write access - Ctrl+S saves a copy instead":
+      "Dibuka tanpa izin tulis - Ctrl+S menyimpan salinannya",
+    "Browser storage is unavailable here - use Ctrl+S to save a real file":
+      "Penyimpanan browser tidak tersedia di sini - pakai Ctrl+S untuk menyimpan berkas sungguhan",
+
+    /* ---- diagrams ---- */
+    "Code": "Kode", "Copy": "Salin", "Diagram": "Diagram",
+    "Show the Mermaid source": "Tampilkan sumber Mermaid",
+    "Copy the Mermaid source": "Salin sumber Mermaid",
+    "Save the diagram as a picture": "Simpan diagram sebagai gambar",
+    "Save the diagram as SVG": "Simpan diagram sebagai SVG",
+    "the first line should be \"flowchart TD\" (or graph LR, and TB, BT, RL work too) - only flowcharts are drawn here":
+      "baris pertama harus \"flowchart TD\" (atau graph LR; TB, BT, RL juga bisa) - hanya flowchart yang digambar di sini",
+    "there is nothing here to draw": "tidak ada yang bisa digambar di sini",
+    "no nodes were defined": "tidak ada node yang didefinisikan",
+    "could not read ": "tidak bisa membaca ",
+    "this diagram has more than ": "diagram ini punya lebih dari ",
+    " nodes": " node",
+    "this diagram could not be drawn": "diagram ini tidak bisa digambar",
+
+    /* ---- messages ---- */
+    "Saved ": "Tersimpan ", "Opened ": "Dibuka ", "Imported ": "Diimpor ",
+    "Closed ": "Ditutup ", "Replaced ": "Diganti ",
+    "Could not save ": "Gagal menyimpan ", "Could not save: ": "Gagal menyimpan: ",
+    "Could not read ": "Gagal membaca ", "Could not find ": "Gagal menemukan ",
+    "Could not create file: ": "Gagal membuat berkas: ",
+    "Could not use that folder: ": "Gagal memakai folder itu: ",
+    "Deleted ": "Dihapus ",
+    "Copied": "Disalin", "Copy failed": "Gagal menyalin",
+    "Code copied": "Kode disalin", "HTML copied": "HTML disalin",
+    "Mermaid source copied": "Sumber Mermaid disalin",
+    "Duplicated": "Digandakan", "Refreshed": "Dimuat ulang",
+    "Exported HTML": "HTML diekspor", "Backup downloaded": "Cadangan diunduh",
+    "Folder closed": "Folder ditutup", "Document deleted": "Dokumen dihapus",
+    "No matches": "Tidak ada yang cocok", "Nothing to save": "Tidak ada yang perlu disimpan",
+    "No Markdown files found in that folder": "Tidak ada berkas Markdown di folder itu",
+    "No Markdown or text files found": "Tidak ada berkas Markdown atau teks",
+    "That file is not a valid backup": "Berkas itu bukan cadangan yang sah",
+    "Could not read that folder": "Gagal membaca folder itu",
+    "Could not reopen that folder": "Gagal membuka ulang folder itu",
+    "Could not open that folder": "Gagal membuka folder itu",
+    "Could not open the folder picker": "Gagal membuka pemilih folder",
+    "Could not rename the file on disk": "Gagal mengganti nama berkas di disk",
+    "Could not make a PNG": "Gagal membuat PNG",
+    "Open a folder first to follow links between files":
+      "Buka folder dulu agar tautan antar berkas bisa diikuti",
+    "Browser storage unavailable - use Ctrl+S to save files":
+      "Penyimpanan browser tidak tersedia - pakai Ctrl+S untuk menyimpan berkas",
+    " is not in the opened folder": " tidak ada di folder yang terbuka",
+    "Moving your documents...": "Memindahkan dokumen Anda...",
+    "Documents are now in ": "Dokumen sekarang ada di ",
+    " file moved": " berkas dipindahkan", " files moved": " berkas dipindahkan",
+    "Nothing to save.": "Tidak ada yang perlu disimpan.",
+    " (in the Recycle Bin)": " (ada di Recycle Bin)",
+
+    /* ---- questions ---- */
+    "New file name:": "Nama berkas baru:", "Link URL:": "URL tautan:",
+    "Link text:": "Teks tautan:", "Image URL or path:": "URL atau lokasi gambar:",
+    "Alt text:": "Teks alternatif:",
+    "Delete": "Hapus",
+    "has unsaved changes. Close it anyway?":
+      "punya perubahan yang belum tersimpan. Tetap ditutup?",
+    "%n open files have unsaved changes. Close all tabs anyway?":
+      "%n berkas terbuka punya perubahan yang belum tersimpan. Tetap tutup semua tab?",
+    "Import %n document(s) from this backup?":
+      "Impor %n dokumen dari cadangan ini?",
+    "Ctrl+S writes them to ": "Ctrl+S menulisnya ke ",
+    " goes to the Recycle Bin.": " akan masuk ke Recycle Bin.",
+    "This cannot be undone.": "Tindakan ini tidak bisa dibatalkan.",
+    "Some open files have unsaved changes. Close the folder anyway?":
+      "Ada berkas terbuka yang belum tersimpan. Tetap tutup foldernya?"
+  };
+
+  let lang = "en";
+
+  /* "auto" follows whatever the window was opened in - which on a machine set to
+     Indonesian is Indonesian, without anybody having to find the setting. */
+  function resolve(want) {
+    if (want === "id" || want === "en") return want;
+    let nav = "";
+    try { nav = (navigator.language || navigator.userLanguage || "").toLowerCase(); }
+    catch (e) { }
+    return nav.indexOf("id") === 0 || nav.indexOf("in") === 0 ? "id" : "en";
+  }
+
+  function set(want) { lang = resolve(want); return lang; }
+  function tr(s) {
+    if (lang !== "id") return s;
+    const v = ID[s];
+    return v === undefined ? s : v;
+  }
+  return { tr: tr, set: set, cur: () => lang, resolve: resolve };
+})();
+const tr = I18N.tr;
+
+/* =========================================================
+   3. Mermaid flowcharts
    ========================================================= */
 /* Enough of Mermaid to draw the diagrams people actually put in a README:
    flowchart / graph in all four directions, the usual node shapes, the usual link
@@ -1480,8 +1776,8 @@ const MMD = (function () {
       if (!started) {
         const m = /^(?:flowchart|graph)[ \t]*(TB|TD|BT|LR|RL)?\b/i.exec(line);
         if (!m) {
-          return { error: 'the first line should be "flowchart TD" (or graph LR, ' +
-                          'and TB, BT, RL work too) - only flowcharts are drawn here' };
+          return { error: tr('the first line should be "flowchart TD" (or graph LR, ' +
+                             'and TB, BT, RL work too) - only flowcharts are drawn here') };
         }
         g.dir = (m[1] || "TB").toUpperCase();
         if (g.dir === "TD") g.dir = "TB";
@@ -1495,17 +1791,17 @@ const MMD = (function () {
         const err = statement(sts[k], g, open, i + 1);
         if (err) return { error: err };
         if (g.nodes.size > MAX_NODES) {
-          return { error: "this diagram has more than " + MAX_NODES + " nodes" };
+          return { error: tr("this diagram has more than ") + MAX_NODES + tr(" nodes") };
         }
       }
     }
-    if (!started) return { error: "there is nothing here to draw" };
-    if (!g.nodes.size) return { error: "no nodes were defined" };
+    if (!started) return { error: tr("there is nothing here to draw") };
+    if (!g.nodes.size) return { error: tr("no nodes were defined") };
     return { graph: g };
   }
 
   function statement(st, g, open, ln) {
-    const where = " (line " + ln + ")";
+    const where = " (" + tr("line") + " " + ln + ")";
 
     let m = /^subgraph\b\s*(.*)$/i.exec(st);
     if (m) {
@@ -1550,7 +1846,7 @@ const MMD = (function () {
       const ids = [];
       for (;;) {
         const n = readNode(s, p);
-        if (!n) return 'could not read "' + s.slice(p, p + 26) + '"' + where;
+        if (!n) return tr("could not read ") + '"' + s.slice(p, p + 26) + '"' + where;
         p = n.end;
         const nd = node(g, n.id);
         if (n.text !== null) { nd.lines = textLines(n.text); nd.shape = n.shape; }
@@ -1582,7 +1878,7 @@ const MMD = (function () {
       skip();
       if (p >= s.length) break;
       link = readLink(s, p);
-      if (!link) return 'could not read "' + s.slice(p, p + 26) + '"' + where;
+      if (!link) return tr("could not read ") + '"' + s.slice(p, p + 26) + '"' + where;
       p = link.end;
     }
     return null;
@@ -2077,7 +2373,7 @@ const MMD = (function () {
     if (cache.has(key)) return cache.get(key);
     let res;
     try { res = build_(key); }
-    catch (e) { res = { error: "this diagram could not be drawn (" + (e.message || e) + ")" }; }
+    catch (e) { res = { error: tr("this diagram could not be drawn") + " (" + (e.message || e) + ")" }; }
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
     cache.set(key, res);
     return res;
@@ -2101,7 +2397,7 @@ const MMD = (function () {
 })();
 
 /* =========================================================
-   3. Markdown parser
+   4. Markdown parser
    ========================================================= */
 const MD = (function () {
   const E = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -2126,11 +2422,13 @@ const MD = (function () {
     return '<figure class="mmd"' + A + '><div class="mmd-view">' + r.svg + "</div>" +
       '<pre class="mmd-src" hidden><code>' + esc(code) + "</code></pre>" +
       '<div class="mmd-bar">' +
-      '<button type="button" data-mmd="code" title="Show the Mermaid source">Code</button>' +
-      '<button type="button" data-mmd="copy" title="Copy the Mermaid source">Copy</button>' +
+      '<button type="button" data-mmd="code" title="' + esc(tr("Show the Mermaid source")) +
+      '">' + esc(tr("Code")) + "</button>" +
+      '<button type="button" data-mmd="copy" title="' + esc(tr("Copy the Mermaid source")) +
+      '">' + esc(tr("Copy")) + "</button>" +
       '<span class="grow"></span>' +
-      '<button type="button" data-mmd="png" title="Save the diagram as a picture">PNG</button>' +
-      '<button type="button" data-mmd="svg" title="Save the diagram as SVG">SVG</button>' +
+      '<button type="button" data-mmd="png" title="' + esc(tr("Save the diagram as a picture")) + '">PNG</button>' +
+      '<button type="button" data-mmd="svg" title="' + esc(tr("Save the diagram as SVG")) + '">SVG</button>' +
       "</div></figure>";
   }
 
@@ -2666,7 +2964,7 @@ const MD = (function () {
 })();
 
 /* =========================================================
-   4. Application
+   5. Application
    ========================================================= */
 (function () {
   const $ = s => document.querySelector(s);
@@ -2674,7 +2972,8 @@ const MD = (function () {
     mirror = $("#mirror"), panes = $("#panes"), body = document.body;
 
   const KEY = "md-studio-v1";
-  const DEFAULTS = { theme: "light", view: "split", split: 50, edSize: 14, pvSize: 16, wrap: true, sync: true, wide: false, sidebar: true };
+  const DEFAULTS = { theme: "light", view: "split", split: 50, edSize: 14, pvSize: 16,
+    wrap: true, sync: true, wide: false, sidebar: true, lang: "auto" };
   let state = { docs: [], active: null, settings: Object.assign({}, DEFAULTS) };
   let saveTimer = null, renderTimer = null, lineMap = [], mirrorStale = true, mirrorStyleStale = true, mirrorW = -1, storageWarned = false;
 
@@ -2720,7 +3019,7 @@ const MD = (function () {
       /* warn once, not on every debounced save */
       if (!storageWarned) {
         storageWarned = true;
-        toast("Browser storage unavailable - use Ctrl+S to save files");
+        toast(tr("Browser storage unavailable - use Ctrl+S to save files"));
       }
     }
   }
@@ -2736,30 +3035,30 @@ const MD = (function () {
 
     if (dirty) {
       kind = "dirty";
-      text = "Unsaved changes";
-      tip = "Ctrl+S writes them to " + (t.path || t.name);
+      text = tr("Unsaved changes");
+      tip = tr("Ctrl+S writes them to ") + (t.path || t.name);
     } else if (writable(t)) {
       kind = "ok";
-      text = "Saved";
-      tip = "In sync with " + (t.path || t.name);
+      text = tr("Saved");
+      tip = tr("In sync with ") + (t.path || t.name);
     } else if (t && t.kind === "file") {
       kind = "warn";
-      text = "Read-only copy";
-      tip = "Opened without write access - Ctrl+S saves a copy instead";
+      text = tr("Read-only copy");
+      tip = tr("Opened without write access - Ctrl+S saves a copy instead");
     } else if (t && t.kind === "local" && LIB.ok && libDocOf(t) && libDocOf(t).file) {
       const d = libDocOf(t);
       kind = d.err ? "warn" : "ok";
-      text = d.err ? "Not written" : "Saved";
-      tip = (d.err ? "Could not write " : "Written as you type to ") +
+      text = tr(d.err ? "Not written" : "Saved");
+      tip = tr(d.err ? "Could not write " : "Written as you type to ") +
         LIB.path + "\\" + String(d.file).replace(/\//g, "\\");
     } else if (storageWarned) {
       kind = "warn";
-      text = "Not saved";
-      tip = "Browser storage is unavailable here - use Ctrl+S to save a real file";
+      text = tr("Not saved");
+      tip = tr("Browser storage is unavailable here - use Ctrl+S to save a real file");
     } else {
       kind = "browser";
-      text = "Browser only";
-      tip = "Autosaved in this browser. Ctrl+S saves it as a real .md file on disk";
+      text = tr("Browser only");
+      tip = tr("Autosaved in this browser. Ctrl+S saves it as a real .md file on disk");
     }
 
     const el = $("#saveState");
@@ -2767,8 +3066,8 @@ const MD = (function () {
     el.title = tip;
     el.innerHTML = '<span class="dot ' + kind + '"></span>' + MD.escape(text);
     $("#btnSave").classList.toggle("pending", dirty);
-    $("#btnSave").title = dirty ? "Save changes (Ctrl+S)"
-      : writable(t) ? "Already in sync (Ctrl+S)" : "Save as .md file (Ctrl+S)";
+    $("#btnSave").title = tr(dirty ? "Save changes (Ctrl+S)"
+      : writable(t) ? "Already in sync (Ctrl+S)" : "Save as .md file (Ctrl+S)");
     document.title = (dirty ? "● " : "") + (t ? t.name : "Markdown Studio") + " - Markdown Studio";
   }
   /* Deliberately no doc() helper taking no argument: that resolved via state.active,
@@ -2790,9 +3089,7 @@ const MD = (function () {
     document.documentElement.style.setProperty("--ed-size", s.edSize + "px");
     document.documentElement.style.setProperty("--pv-size", s.pvSize + "px");
     document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === s.view));
-    $("#kWrap").textContent = s.wrap ? "on" : "off";
-    $("#kSync").textContent = s.sync ? "on" : "off";
-    $("#kWide").textContent = s.wide ? "on" : "off";
+    settingsUI();
     mirrorStale = true; mirrorStyleStale = true;
     if (s.view !== "split" || !s.sync) clearHl();
     if (findHL && !previewMode()) paintHits();
@@ -2845,17 +3142,18 @@ const MD = (function () {
     const pos = ed.selectionStart;
     const start = ed.value.lastIndexOf("\n", pos - 1) + 1;
     const sel = ed.selectionEnd - pos;
-    $("#stCursor").textContent = "Ln " + (lineOf(pos) + 1) + ", Col " + (pos - start + 1) +
-      (sel > 0 ? "  (" + sel + " selected)" : "");
+    $("#stCursor").textContent = tr("Ln") + " " + (lineOf(pos) + 1) + ", " +
+      tr("Col") + " " + (pos - start + 1) +
+      (sel > 0 ? "  (" + sel + " " + tr("selected") + ")" : "");
   }
 
   /* ---------- sidebar ---------- */
   function timeAgo(t) {
     const s = Math.floor((Date.now() - t) / 1000);
-    if (s < 60) return "just now";
-    if (s < 3600) return Math.floor(s / 60) + "m ago";
-    if (s < 86400) return Math.floor(s / 3600) + "h ago";
-    if (s < 604800) return Math.floor(s / 86400) + "d ago";
+    if (s < 60) return tr("just now");
+    if (s < 3600) return Math.floor(s / 60) + tr("m ago");
+    if (s < 86400) return Math.floor(s / 3600) + tr("h ago");
+    if (s < 604800) return Math.floor(s / 86400) + tr("d ago");
     return new Date(t).toLocaleDateString();
   }
   function renderDocs() {
@@ -2865,15 +3163,18 @@ const MD = (function () {
       .slice()
       .sort((a, b) => b.updated - a.updated)
       .filter(d => !q || d.name.toLowerCase().includes(q) || (d.content || "").toLowerCase().includes(q));
-    if (!items.length) { list.innerHTML = '<div class="empty">No documents match.</div>'; return; }
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">' + MD.escape(tr("No documents match.")) + "</div>";
+      return;
+    }
     list.innerHTML = items.map(d => {
       const words = ((d.content || "").trim().match(/\S+/g) || []).length;
       return '<div class="doc' + (d.id === state.active ? " active" : "") + '" data-id="' + d.id + '"' +
         (d.file && LIB.ok ? ' title="' + MD.escape(LIB.path + "\\" + d.file) + '"' : "") + ">" +
         '<div class="doc-main"><div class="doc-name">' + MD.escape(d.name || "Untitled") + "</div>" +
-        '<div class="doc-meta">' + timeAgo(d.updated) + " &middot; " + words + " words" +
+        '<div class="doc-meta">' + timeAgo(d.updated) + " &middot; " + words + " " + MD.escape(tr("words")) +
         (d.file && LIB.ok ? " &middot; " + MD.escape(d.file) : "") + "</div></div>" +
-        '<button class="doc-del" data-del="' + d.id + '" title="Delete">' +
+        '<button class="doc-del" data-del="' + d.id + '" title="' + MD.escape(tr("Delete")) + '">' +
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>';
     }).join("");
   }
@@ -2968,7 +3269,7 @@ const MD = (function () {
     await loadDir(tree);
     showSideTab("files");
     renderTree();
-    toast("Opened " + handle.name + (root.readonly ? " (read-only)" : ""));
+    toast(tr("Opened ") + handle.name + (root.readonly ? " (read-only)" : ""));
   }
 
   async function loadDir(node) {
@@ -2982,7 +3283,7 @@ const MD = (function () {
           files.push({ name: h.name, path: node.path ? node.path + "/" + h.name : h.name, kind: "file", handle: h });
         }
       }
-    } catch (e) { toast("Could not read that folder"); }
+    } catch (e) { toast(tr("Could not read that folder")); }
     const by = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
     dirs.sort(by); files.sort(by);
     node.kids = dirs.concat(files);
@@ -3029,7 +3330,7 @@ const MD = (function () {
       count++;
     });
 
-    if (!count) { toast("No Markdown files found in that folder"); return; }
+    if (!count) { toast(tr("No Markdown files found in that folder")); return; }
     const by = (a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }) : a.kind === "dir" ? -1 : 1);
     (function sortAll(n) { if (!n.kids) return; n.kids.sort(by); n.kids.forEach(sortAll); })(rootNode);
 
@@ -3038,7 +3339,7 @@ const MD = (function () {
     tree = rootNode;
     showSideTab("files");
     renderTree();
-    toast("Opened " + rootName + " (" + count + " files, read-only)");
+    toast(tr("Opened ") + rootName + " (" + count + " files, read-only)");
   }
 
   /* ---------- a folder served by MarkdownStudio.exe ---------- */
@@ -3190,12 +3491,24 @@ const MD = (function () {
     persist();
     libHome();
   }
+  /* The path itself belongs in Settings, not under the search box: it is long, it is
+     read far less often than it was written, and it is a setting. */
   function libHome() {
     const el = $("#docHome");
     el.hidden = !LIB.ok;
     if (!LIB.ok) return;
-    el.innerHTML = "Each of these is a file in <b>" + esc(LIB.path) + "</b> &middot;" +
-      '<button type="button" id="libPick" title="Keep your documents somewhere else">Change&hellip;</button>';
+    el.innerHTML = MD.escape(tr("Each of these is a file")) +
+      ' <button type="button" id="libWhere" title="' + MD.escape(tr("Show me where")) +
+      '">' + MD.escape(tr("in here")) + "</button>";
+  }
+
+  /* Opening the folder is the exe's to do - a page cannot reach Explorer. */
+  async function libReveal() {
+    if (!LIB.ok) return;
+    try {
+      const r = await fetch(libUrl("/__reveal", null), { method: "POST" });
+      if (!r.ok) throw new Error((await r.text()) || r.status);
+    } catch (e) { toast(tr("Could not open that folder")); }
   }
 
   /* Picking where the documents live. The folder browser belongs to the exe, not to
@@ -3217,10 +3530,10 @@ const MD = (function () {
         const r = await fetch(libUrl("/__libdir", null), { method: "POST" });
         if (!r.ok) throw new Error((await r.text()) || r.status);
         res = await r.json();
-      } catch (e) { toast("Could not open the folder picker"); return; }
+      } catch (e) { toast(tr("Could not open the folder picker")); return; }
 
       if (!res || res.cancelled) return;
-      if (res.error) { toast("Could not use that folder: " + res.error); return; }
+      if (res.error) { toast(tr("Could not use that folder: ") + res.error); return; }
 
       /* a note whose name was taken in the new folder arrived under another one */
       Object.keys(res.renamed || {}).forEach(old => {
@@ -3233,6 +3546,7 @@ const MD = (function () {
       await libSync();
       renderDocs();
       updateSaveUI();
+      settingsUI();
       toast(res.moved
         ? "Documents are now in " + res.root + " - " + res.moved + " file" +
           (res.moved === 1 ? "" : "s") + " moved"
@@ -3287,7 +3601,7 @@ const MD = (function () {
       await libDelete(old);
       renderDocs();
       updateSaveUI();
-    } catch (e) { toast("Could not rename the file on disk"); }
+    } catch (e) { toast(tr("Could not rename the file on disk")); }
   }
 
   /* A reload or a closed window must not lose the last few hundred milliseconds of
@@ -3363,7 +3677,7 @@ const MD = (function () {
       for (const p of (ws.open || [])) {
         const n = await findFileNode(p);
         if (n) await openFileNode(n);
-        else toast("Could not find " + p);
+        else toast(tr("Could not find ") + p);
       }
     }
     return true;
@@ -3371,7 +3685,7 @@ const MD = (function () {
 
   function closeFolder() {
     if (tabs.some(t => t.kind === "file" && isDirty(t)) &&
-      !confirm("Some open files have unsaved changes. Close the folder anyway?")) return;
+      !confirm(tr("Some open files have unsaved changes. Close the folder anyway?"))) return;
     tabs.filter(t => t.kind === "file").forEach(t => { tabs = tabs.filter(x => x.id !== t.id); });
     root = null; tree = null; reopen = null;
     dropSearchCache();
@@ -3379,12 +3693,12 @@ const MD = (function () {
     if (!$("#paneSearch").hidden) runFolderSearch();
     if (!tabs.length) ensureTab(); else activateTab(tabs[0].id, true);
     renderTree();
-    toast("Folder closed");
+    toast(tr("Folder closed"));
   }
 
   async function newFileInFolder() {
     if (!root || root.readonly || (root.mode !== "fs" && root.mode !== "server")) return;
-    let name = prompt("New file name:", "untitled.md");
+    let name = prompt(tr("New file name:"), "untitled.md");
     if (!name) return;
     name = name.trim().replace(/[\\/:*?"<>|]/g, "-");
     if (!MD_EXT.test(name)) name += ".md";
@@ -3395,7 +3709,7 @@ const MD = (function () {
         await loadServerWorkspace(false);
         const n = await findFileNode(name);
         if (n) openFileNode(n);
-      } catch (e) { toast("Could not create file: " + (e.message || e.name)); }
+      } catch (e) { toast(tr("Could not create file: ") + (e.message || e.name)); }
       return;
     }
 
@@ -3407,7 +3721,7 @@ const MD = (function () {
       await loadDir(tree);
       renderTree();
       openFileNode({ name: name, path: name, kind: "file", handle: h });
-    } catch (e) { toast("Could not create file: " + (e.message || e.name)); }
+    } catch (e) { toast(tr("Could not create file: ") + (e.message || e.name)); }
   }
 
   /* ---------- tree rendering ---------- */
@@ -3415,9 +3729,12 @@ const MD = (function () {
     const el = $("#treeBody");
     if (!root) {
       el.innerHTML =
-        '<div class="empty" style="padding:18px 6px">No folder open.<br>Open one to browse and edit<br>all its Markdown files.</div>' +
-        '<button class="btn btn-pri" data-fs="open" style="width:100%">Open Folder</button>' +
-        (reopen ? '<button class="btn btn-out" data-fs="reopen" style="width:100%;margin-top:6px">Reopen ' + esc(reopen.name) + "</button>" : "") +
+        '<div class="empty" style="padding:18px 6px">' + esc(tr("No folder open.")) +
+        "<br>" + esc(tr("Open one to browse and edit")) + "<br>" +
+        esc(tr("all its Markdown files.")) + "</div>" +
+        '<button class="btn btn-pri" data-fs="open" style="width:100%">' + esc(tr("Open Folder")) + "</button>" +
+        (reopen ? '<button class="btn btn-out" data-fs="reopen" style="width:100%;margin-top:6px">' +
+          esc(tr("Reopen ")) + esc(reopen.name) + "</button>" : "") +
         (location.protocol === "file:"
           ? '<div class="hint">Opened straight from a file, so folders here are <b>read-only</b>. To edit files in place, serve this app with laragon at <code>http://localhost/MDpreviewer/</code>.</div>'
           : "");
@@ -3426,16 +3743,16 @@ const MD = (function () {
     nodeByPath.clear();
     el.innerHTML =
       '<div class="root-bar"><span class="root-name" title="' + esc(root.disk || root.name) + '">' + esc(root.name) +
-      (root.readonly ? " (read-only)" : "") + "</span>" +
+      (root.readonly ? tr(" (read-only)") : "") + "</span>" +
       ((root.mode === "fs" || root.mode === "server") && !root.readonly
-        ? '<button class="ibtn" data-fs="new" title="New file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>'
+        ? '<button class="ibtn" data-fs="new" title="' + esc(tr("New file")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>'
         : "") +
       (root.mode === "fs" || root.mode === "server"
-        ? '<button class="ibtn" data-fs="refresh" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 3v6h-6"/></svg></button>'
+        ? '<button class="ibtn" data-fs="refresh" title="' + esc(tr("Refresh")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 3v6h-6"/></svg></button>'
         : "") +
-      '<button class="ibtn" data-fs="close" title="Close folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>' +
+      '<button class="ibtn" data-fs="close" title="' + esc(tr("Close folder")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>' +
       (tree.kids && tree.kids.length ? tree.kids.map(renderNode).join("")
-        : '<div class="empty">No Markdown files here.</div>');
+        : '<div class="empty">' + esc(tr("No Markdown files here.")) + "</div>");
   }
 
   function renderNode(n) {
@@ -3504,7 +3821,8 @@ const MD = (function () {
     if (i < 0) return;
     const t = tabs[i];
     if (t.id === activeTab) stashActive();
-    if (isDirty(t) && !confirm('"' + t.name + '" has unsaved changes. Close it anyway?')) return;
+    if (isDirty(t) &&
+      !confirm('"' + t.name + '" ' + tr("has unsaved changes. Close it anyway?"))) return;
     const wasActive = activeTab === id;
     tabs.splice(i, 1);
     if (!wasActive) { renderTabs(); renderTree(); return; }
@@ -3518,11 +3836,14 @@ const MD = (function () {
     stashActive();
     const n = tabs.length;
     const dirty = tabs.filter(isDirty);
-    if (dirty.length && !confirm(dirty.length + " open file" + (dirty.length === 1 ? " has" : "s have") +
-      " unsaved changes. Close all tabs anyway?")) return;
+    /* one sentence with the number in it, rather than English plural machinery that
+       no other language would follow */
+    if (dirty.length && !confirm(
+      tr("%n open files have unsaved changes. Close all tabs anyway?")
+        .replace("%n", dirty.length))) return;
     tabs = []; activeTab = null;
     ensureTab();
-    toast("Closed " + n + " tab" + (n === 1 ? "" : "s"));
+    toast(tr("Closed ") + n + " tab" + (n === 1 ? "" : "s"));
   }
 
   function cycleTab(d) {
@@ -3536,7 +3857,7 @@ const MD = (function () {
     if (open) { activateTab(open.id); return; }
     let text = "";
     try { text = await readNodeText(n); }
-    catch (e) { toast("Could not read " + n.name); return; }
+    catch (e) { toast(tr("Could not read ") + n.name); return; }
     /* Windows editors like to prefix UTF-8 with a BOM; left in, it sits invisibly
        in front of the first "#" and stops it being read as a heading */
     const bom = text.charCodeAt(0) === 0xFEFF;
@@ -3825,7 +4146,7 @@ const MD = (function () {
     try { path = decodeURIComponent(path); } catch (e) { }
 
     if (!path) { scrollToAnchor(hash); return; }           /* plain #anchor */
-    if (!root) { toast("Open a folder first to follow links between files"); return; }
+    if (!root) { toast(tr("Open a folder first to follow links between files")); return; }
 
     const t = active();
     const target = resolveRel(t && t.kind === "file" ? t.path : "", path);
@@ -3864,9 +4185,9 @@ const MD = (function () {
   function deleteDoc(id) {
     const d = state.docs.find(x => x.id === id);
     if (!d) return;
-    if (!confirm('Delete "' + (d.name || "Untitled") + '"? ' +
-      (d.file && LIB.ok ? d.file + " goes to the Recycle Bin."
-        : "This cannot be undone."))) return;
+    if (!confirm(tr("Delete") + ' "' + (d.name || tr("Untitled")) + '"? ' +
+      (d.file && LIB.ok ? d.file + tr(" goes to the Recycle Bin.")
+        : tr("This cannot be undone.")))) return;
     state.docs = state.docs.filter(x => x.id !== id);
     if (d.file && LIB.ok) libDelete(d.file).catch(() => { });
     const tab = tabs.find(t => t.kind === "local" && t.docId === id);
@@ -4036,21 +4357,22 @@ const MD = (function () {
   function buildToolbar() {
     $("#toolbar").innerHTML = TOOLS.map((t, k) =>
       t.sep ? '<span class="sep"></span>'
-        : '<button class="tb' + (t.txt ? " txt" : "") + '" data-tool="' + k + '" title="' + t.label +
-        '" aria-label="' + t.label + '" type="button">' + (t.txt ? t.t : I(t.i)) + "</button>").join("");
+        : '<button class="tb' + (t.txt ? " txt" : "") + '" data-tool="' + k +
+        '" title="' + esc(tr(t.label)) + '" aria-label="' + esc(tr(t.label)) +
+        '" type="button">' + (t.txt ? t.t : I(t.i)) + "</button>").join("");
   }
   function insertLink() {
     const sel = ed.value.slice(ed.selectionStart, ed.selectionEnd);
-    const url = prompt("Link URL:", /^https?:|^\//.test(sel) ? sel : "https://");
+    const url = prompt(tr("Link URL:"), /^https?:|^\//.test(sel) ? sel : "https://");
     if (url === null) return;
     if (/^https?:|^\//.test(sel)) { wrap("[", "](" + url + ")", "link text"); return; }
-    const label = sel || prompt("Link text:", "link text") || "link";
+    const label = sel || prompt(tr("Link text:"), "link text") || "link";
     insert("[" + label + "](" + url + ")");
   }
   function insertImage() {
-    const url = prompt("Image URL or path:", "https://");
+    const url = prompt(tr("Image URL or path:"), "https://");
     if (url === null) return;
-    const alt = ed.value.slice(ed.selectionStart, ed.selectionEnd) || prompt("Alt text:", "image") || "image";
+    const alt = ed.value.slice(ed.selectionStart, ed.selectionEnd) || prompt(tr("Alt text:"), "image") || "image";
     insert("![" + alt + "](" + url + ")");
   }
   function insertFootnote() {
@@ -4471,13 +4793,13 @@ const MD = (function () {
       ? $("#replInput").value
       : $("#replInput").value.replace(/\$/g, "$$$$");   /* keep $ literal */
     const after = before.replace(rx, repl);
-    if (after === before) { toast("No matches"); return; }
+    if (after === before) { toast(tr("No matches")); return; }
     const n = matches.length;
     ed.setSelectionRange(0, before.length);
     insert(after);
     runFind();
     setTimeout(() => $("#replInput").focus(), 0);
-    toast("Replaced " + n + " occurrence" + (n === 1 ? "" : "s"));
+    toast(tr("Replaced ") + n + " occurrence" + (n === 1 ? "" : "s"));
   }
   function showFind(show) {
     $("#findbar").hidden = !show;
@@ -4529,9 +4851,9 @@ const MD = (function () {
 
   function mmdSaveSvg(fig) {
     const text = mmdSvgText(fig);
-    if (!text) { toast("Nothing to save"); return; }
+    if (!text) { toast(tr("Nothing to save")); return; }
     download(mmdName() + ".svg", '<?xml version="1.0" encoding="UTF-8"?>\n' + text, "image/svg+xml");
-    toast("Saved " + mmdName() + ".svg");
+    toast(tr("Saved ") + mmdName() + ".svg");
   }
 
   /* Straight to a canvas, at twice the size so it still looks sharp pasted into a
@@ -4539,7 +4861,7 @@ const MD = (function () {
   function mmdSavePng(fig) {
     const text = mmdSvgText(fig);
     const svg = fig.querySelector("svg");
-    if (!text || !svg) { toast("Nothing to save"); return; }
+    if (!text || !svg) { toast(tr("Nothing to save")); return; }
     const box = svg.viewBox.baseVal;
     const w = box && box.width ? box.width : svg.clientWidth;
     const h = box && box.height ? box.height : svg.clientHeight;
@@ -4554,7 +4876,7 @@ const MD = (function () {
       g.drawImage(img, 0, 0, c.width, c.height);
       try {
         c.toBlob(bl => {
-          if (!bl) { toast("Could not make a PNG"); return; }
+          if (!bl) { toast(tr("Could not make a PNG")); return; }
           const url = URL.createObjectURL(bl);
           const a = document.createElement("a");
           a.href = url;
@@ -4563,11 +4885,11 @@ const MD = (function () {
           a.click();
           a.remove();
           setTimeout(() => URL.revokeObjectURL(url), 1500);
-          toast("Saved " + mmdName() + ".png");
+          toast(tr("Saved ") + mmdName() + ".png");
         }, "image/png");
-      } catch (e) { toast("Could not make a PNG"); }
+      } catch (e) { toast(tr("Could not make a PNG")); }
     };
-    img.onerror = () => toast("Could not make a PNG");
+    img.onerror = () => toast(tr("Could not make a PNG"));
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(text);
   }
 
@@ -4580,7 +4902,7 @@ const MD = (function () {
       const showing = !src.hidden;
       src.hidden = showing;
       if (view) view.hidden = !showing;
-      btn.textContent = showing ? "Code" : "Diagram";
+      btn.textContent = tr(showing ? "Code" : "Diagram");
       return;
     }
     if (act === "copy") { copyText(src.textContent, "Mermaid source copied"); return; }
@@ -4633,8 +4955,8 @@ const MD = (function () {
         t.saved = t.content;
         if (t.kind === "file") fileCache.set(t.path, t.content);
         renderTabs(); renderTree(); updateSaveUI();
-        toast("Saved " + t.name);
-      } catch (e) { toast("Could not save: " + (e.message || e.name)); }
+        toast(tr("Saved ") + t.name);
+      } catch (e) { toast(tr("Could not save: ") + (e.message || e.name)); }
       return;
     }
 
@@ -4663,7 +4985,7 @@ const MD = (function () {
         });
         await writeHandle(h, ed.value);
         bindTabToFile(t, h);
-        toast("Saved " + h.name + " - Ctrl+S now updates it directly");
+        toast(tr("Saved ") + h.name + " - Ctrl+S now updates it directly");
         return;
       } catch (e) {
         if (e && e.name === "AbortError") return;   /* user cancelled the picker */
@@ -4700,18 +5022,18 @@ const MD = (function () {
   async function saveAll() {
     stashActive();
     const list = tabs.filter(t => t.kind === "file" && writable(t) && isDirty(t));
-    if (!list.length) { toast("Nothing to save"); return; }
+    if (!list.length) { toast(tr("Nothing to save")); return; }
     let ok = 0;
     for (const t of list) {
       try {
         if (t.srv) await srvWrite(t.path, outText(t));
         else await writeHandle(t.handle, outText(t));
         t.saved = t.content; fileCache.set(t.path, t.content); ok++;
-      } catch (e) { toast("Could not save " + t.name); }
+      } catch (e) { toast(tr("Could not save ") + t.name); }
     }
     renderTabs(); renderTree();
     updateSaveUI();
-    toast("Saved " + ok + " file" + (ok === 1 ? "" : "s"));
+    toast(tr("Saved ") + ok + " file" + (ok === 1 ? "" : "s"));
   }
 
   function exportCss() {
@@ -4747,7 +5069,7 @@ const MD = (function () {
       exportCss() +
       "\n</style>\n</head>\n<body>\n<article class=\"md\">\n" + r.html + "\n</article>\n</body>\n</html>";
     download(safeName(activeName()).replace(MD_EXT, "") + ".html", html, "text/html");
-    toast("Exported HTML");
+    toast(tr("Exported HTML"));
   }
   async function copyText(text, msg) {
     try {
@@ -4760,14 +5082,14 @@ const MD = (function () {
     ta.style.cssText = "position:fixed;left:-9999px;top:0";
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand("copy"); toast(msg); } catch (e2) { toast("Copy failed"); }
+    try { document.execCommand("copy"); toast(msg); } catch (e2) { toast(tr("Copy failed")); }
     ta.remove();
   }
 
   /* ---------- file input ---------- */
   function readFiles(files) {
     const list = Array.prototype.filter.call(files, f => /\.(md|markdown|mdown|mkd|txt)$/i.test(f.name) || f.type.startsWith("text/"));
-    if (!list.length) { toast("No Markdown or text files found"); return; }
+    if (!list.length) { toast(tr("No Markdown or text files found")); return; }
     let done = 0, last = null;
     list.forEach(f => {
       const fr = new FileReader();
@@ -4775,7 +5097,7 @@ const MD = (function () {
         last = newDoc(f.name.replace(/\.(md|markdown|mdown|mkd|txt)$/i, ""), String(fr.result || ""), true);
         if (++done === list.length) {
           openDoc(last.id);
-          toast("Opened " + done + " file" + (done === 1 ? "" : "s"));
+          toast(tr("Opened ") + done + " file" + (done === 1 ? "" : "s"));
         }
       };
       fr.readAsText(f);
@@ -4818,7 +5140,6 @@ const MD = (function () {
     }, { passive: false });
   }
   function menuAct(a) {
-    const s = state.settings;
     switch (a) {
       case "open-folder": openFolder(); break;
       case "save-all": saveAll(); break;
@@ -4833,20 +5154,14 @@ const MD = (function () {
       case "copy-html": copyText(MD.render(ed.value).html, "HTML copied"); break;
       case "duplicate":
         newDoc(String(activeName()).replace(MD_EXT, "") + " (copy)", ed.value, true);
-        toast("Duplicated");
+        toast(tr("Duplicated"));
         break;
       case "backup":
         download("markdown-studio-backup-" + new Date().toISOString().slice(0, 10) + ".json",
           JSON.stringify(state, null, 2), "application/json");
-        toast("Backup downloaded");
+        toast(tr("Backup downloaded"));
         break;
-      case "wrap": s.wrap = !s.wrap; applySettings(); persist(); return;
-      case "sync": s.sync = !s.sync; applySettings(); persist(); return;
-      case "wide": s.wide = !s.wide; applySettings(); persist(); return;
-      case "font+": s.edSize = Math.min(24, s.edSize + 1); applySettings(); persist(); return;
-      case "font-": s.edSize = Math.max(10, s.edSize - 1); applySettings(); persist(); return;
-      case "pfont+": s.pvSize = Math.min(26, s.pvSize + 1); applySettings(); persist(); return;
-      case "pfont-": s.pvSize = Math.max(12, s.pvSize - 1); applySettings(); persist(); return;
+      case "settings": showMenu(false); showSettings(true); return;
       case "help": $("#help").hidden = false; break;
     }
     showMenu(false);
@@ -4867,12 +5182,13 @@ const MD = (function () {
     ["Go to tab 1-9", "Alt 1-9"], ["Close tab", "Ctrl Alt W"], ["Close all tabs", "Ctrl Alt Shift W"],
     ["Find and replace", "Ctrl F"], ["Search in folder", "Ctrl Shift F"], ["Close panel", "Esc"]]],
     ["View", [["Editor only", "Ctrl 1"], ["Split view", "Ctrl 2"], ["Preview only", "Ctrl 3"],
-    ["Toggle sidebar", "Ctrl \\"], ["Toggle theme", "Ctrl Shift L"], ["Shortcuts", "F1"]]]
+    ["Toggle sidebar", "Ctrl \\"], ["Toggle theme", "Ctrl Shift L"],
+    ["Settings", "Ctrl ,"], ["Shortcuts", "F1"]]]
   ];
   function buildHelp() {
     $("#kbGrid").innerHTML = SHORTCUTS.map(g =>
-      '<div class="kbsec"><h3>' + g[0] + "</h3>" +
-      g[1].map(r => '<div class="kbrow"><span>' + r[0] + "</span>" +
+      '<div class="kbsec"><h3>' + MD.escape(tr(g[0])) + "</h3>" +
+      g[1].map(r => '<div class="kbrow"><span>' + MD.escape(tr(r[0])) + "</span>" +
         r[1].split(" ").map(k => "<kbd>" + MD.escape(k) + "</kbd>").join(" ") + "</div>").join("") +
       "</div>").join("");
   }
@@ -5000,12 +5316,16 @@ const MD = (function () {
     const inField = /^(INPUT|TEXTAREA)$/.test((e.target.tagName || "")) && e.target !== ed;
 
     if (e.key === "Escape") {
+      if (!$("#settings").hidden) { showSettings(false); return; }
       if (!$("#help").hidden) { $("#help").hidden = true; return; }
       if (!$("#menu").hidden) { showMenu(false); return; }
       if (!$("#findbar").hidden) { showFind(false); return; }
       return;
     }
     if (e.key === "F1") { e.preventDefault(); $("#help").hidden = false; return; }
+    if (mod && !e.shiftKey && !e.altKey && e.key === ",") {
+      e.preventDefault(); showSettings($("#settings").hidden); return;
+    }
 
     /* these must be tested before the plain Ctrl+O / Ctrl+S below */
     if (mod && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); openFolder(); return; }
@@ -5106,6 +5426,121 @@ const MD = (function () {
       $("#findInput").focus();
     }
   }
+  /* ---------- language ---------- */
+  /* The chrome is translated where it stands. Its English is the key, so the original
+     is kept beside each node and the same pass can put it back - no second copy of the
+     markup, and a string nobody translated simply stays as it was.
+
+     Only these roots. Never the editor or the preview: those hold the user's own
+     words, and a dictionary has no business anywhere near them. */
+  const LANG_ROOTS = ["#sidebar", "#topbar", "#status", "#menu", "#settings", "#help",
+                      "#findbar", "#tabwrap", "#drop"];
+  /* written by JavaScript, which translates them itself - a sweep would only put its
+     own stale copy back */
+  const LANG_SKIP = "#kbGrid,#toolbar,#treeBody,#docList,#tocList,#fsResults,#tabbar," +
+    "#docHome,#fsSummary,#stCursor,#stWords,#stChars,#stLines,#stRead,#saveState," +
+    "#findCount,#setPath,#setEdSize,#setPvSize";
+  const langWas = new Map();
+
+  function sweepLang() {
+    LANG_ROOTS.forEach(sel => {
+      const root = $(sel);
+      if (!root) return;
+      const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = walk.nextNode())) {
+        const host = n.parentElement;
+        if (!host || host.closest(LANG_SKIP)) continue;
+        let was = langWas.get(n);
+        if (was === undefined) {
+          const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(n.nodeValue);
+          const mid = m[2].replace(/\s+/g, " ");
+          /* the spacing around it is the layout's, not the sentence's */
+          was = /[A-Za-z]/.test(mid) ? { pre: m[1], en: mid, post: m[3] } : null;
+          langWas.set(n, was);
+        }
+        if (!was) continue;
+        const out = was.pre + tr(was.en) + was.post;
+        if (n.nodeValue !== out) n.nodeValue = out;
+      }
+      root.querySelectorAll("[title],[placeholder],[aria-label]").forEach(el => {
+        if (el.closest(LANG_SKIP)) return;
+        ["title", "placeholder", "aria-label"].forEach(a => {
+          if (!el.hasAttribute(a)) return;
+          const slot = "en" + a.replace(/(^|-)(\w)/g, (x, d, c) => c.toUpperCase());
+          if (el.dataset[slot] === undefined) el.dataset[slot] = el.getAttribute(a);
+          el.setAttribute(a, tr(el.dataset[slot]));
+        });
+      });
+    });
+  }
+
+  function initLang() {
+    I18N.set(state.settings.lang);
+    document.documentElement.lang = I18N.cur();
+    sweepLang();
+  }
+  /* Everything drawn from JavaScript has to be drawn again, or half the window would
+     change language and the other half would not. */
+  function applyLang() {
+    initLang();
+    buildToolbar();
+    buildHelp();
+    renderTabs();
+    renderTree();
+    renderDocs();
+    libHome();
+    settingsUI();
+    updateSaveUI();
+    updateCursor();
+    if (!$("#paneSearch").hidden) runFolderSearch();
+  }
+
+  /* ---------- settings panel ---------- */
+  function showSettings(on) {
+    $("#settings").hidden = !on;
+    if (on) { settingsUI(); $("#setClose").focus(); }
+    else if (!previewMode()) ed.focus();
+  }
+  /* Called from applySettings, so the panel is right whichever way a setting was
+     changed - the toolbar, a shortcut, or the panel itself. */
+  function settingsUI() {
+    const s = state.settings;
+    const on = (k, v) => {
+      const el = document.querySelector('.tgl[data-set="' + k + '"]');
+      if (el) { el.classList.toggle("on", !!v); el.setAttribute("aria-checked", v ? "true" : "false"); }
+    };
+    on("wrap", s.wrap);
+    on("sync", s.sync);
+    on("wide", s.wide);
+    on("theme", s.theme === "dark");
+    const a = $("#setEdSize"), b = $("#setPvSize"), l = $("#setLang");
+    if (a) a.textContent = s.edSize;
+    if (b) b.textContent = s.pvSize;
+    if (l) l.value = s.lang || "auto";
+    const p = $("#setPath");
+    if (!p) return;
+    p.textContent = LIB.ok ? LIB.path
+      : tr("No folder - documents are kept in this browser only. Run Markdown Studio " +
+           "from its own program to keep them as files.");
+    p.classList.toggle("off", !LIB.ok);
+    $("#setChange").disabled = !LIB.ok;
+    $("#setOpen").disabled = !LIB.ok;
+  }
+  function setAct(k) {
+    const s = state.settings;
+    if (k === "wrap") s.wrap = !s.wrap;
+    else if (k === "sync") s.sync = !s.sync;
+    else if (k === "wide") s.wide = !s.wide;
+    else if (k === "theme") s.theme = s.theme === "dark" ? "light" : "dark";
+    else if (k === "font+") s.edSize = Math.min(24, s.edSize + 1);
+    else if (k === "font-") s.edSize = Math.max(10, s.edSize - 1);
+    else if (k === "pfont+") s.pvSize = Math.min(26, s.pvSize + 1);
+    else if (k === "pfont-") s.pvSize = Math.max(12, s.pvSize - 1);
+    else return;
+    applySettings();
+    persist();
+  }
   function toggleTheme() {
     state.settings.theme = state.settings.theme === "dark" ? "light" : "dark";
     applySettings();
@@ -5125,6 +5560,7 @@ const MD = (function () {
      ========================================================= */
   async function init() {
     load();
+    initLang();
     buildToolbar();
     buildHelp();
     if (isMobile()) {
@@ -5255,9 +5691,9 @@ const MD = (function () {
         if (a === "open") openFolder();
         else if (a === "reopen" && reopen) {
           try { await useFolder(reopen.handle); idbSet("root", reopen.handle); }
-          catch (err) { toast("Could not reopen that folder"); }
+          catch (err) { toast(tr("Could not reopen that folder")); }
         } else if (a === "new") newFileInFolder();
-        else if (a === "refresh") { if (tree) { dropSearchCache(); await refreshTree(tree); renderTree(); toast("Refreshed"); } }
+        else if (a === "refresh") { if (tree) { dropSearchCache(); await refreshTree(tree); renderTree(); toast(tr("Refreshed")); } }
         else if (a === "close") closeFolder();
         return;
       }
@@ -5282,6 +5718,19 @@ const MD = (function () {
     document.addEventListener("click", e => {
       if (!$("#menu").hidden && !e.target.closest("#menu") && !e.target.closest("#btnMenu")) showMenu(false);
     });
+    $("#settings").addEventListener("click", e => {
+      if (e.target.id === "settings") { showSettings(false); return; }
+      const b = e.target.closest("[data-set]");
+      if (b) setAct(b.dataset.set);
+    });
+    $("#setClose").addEventListener("click", () => showSettings(false));
+    $("#setLang").addEventListener("change", e => {
+      state.settings.lang = e.target.value;
+      applyLang();
+      persist();
+    });
+    $("#setChange").addEventListener("click", libChooseFolder);
+    $("#setOpen").addEventListener("click", libReveal);
     $("#helpClose").addEventListener("click", () => { $("#help").hidden = true; });
     $("#help").addEventListener("click", e => { if (e.target.id === "help") $("#help").hidden = true; });
 
@@ -5319,7 +5768,7 @@ const MD = (function () {
     });
     $("#docSearch").addEventListener("input", renderDocs);
     $("#docHome").addEventListener("click", e => {
-      if (e.target.closest("#libPick")) libChooseFolder();
+      if (e.target.closest("#libWhere")) showSettings(true);
     });
     $("#docList").addEventListener("click", e => {
       const del = e.target.closest("[data-del]");
@@ -5447,7 +5896,8 @@ const MD = (function () {
           if (!data || !Array.isArray(data.docs)) throw new Error("bad");
           const incoming = data.docs.filter(x => x && typeof x.content === "string");
           if (!incoming.length) throw new Error("empty");
-          if (!confirm("Import " + incoming.length + " document(s) from this backup?")) return;
+          if (!confirm(tr("Import %n document(s) from this backup?")
+            .replace("%n", incoming.length))) return;
           incoming.forEach(x => {
             const d = {
               id: uid(), name: String(x.name || "Imported"), content: String(x.content || ""),
@@ -5457,8 +5907,8 @@ const MD = (function () {
             libFlush(d.id);          /* an imported document is a file like any other */
           });
           openDoc(state.docs[0].id);
-          toast("Imported " + incoming.length + " document(s)");
-        } catch (err) { toast("That file is not a valid backup"); }
+          toast(tr("Imported ") + incoming.length + " document(s)");
+        } catch (err) { toast(tr("That file is not a valid backup")); }
       };
       fr.readAsText(f);
     });

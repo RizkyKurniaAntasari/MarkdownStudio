@@ -1,4 +1,4 @@
-﻿// Markdown Studio - desktop launcher
+// Markdown Studio - desktop launcher
 //
 // Serves the bundled index.html from a loopback socket and opens it in Edge (or
 // Chrome) as an app window. Going through http:// rather than file:// is the whole
@@ -35,6 +35,19 @@
 // read inside .md files. All in the current user's registry and profile only.
 // --register does just that, --unregister undoes it.
 //
+// The exe is the whole program - index.html is baked into it - and it is its own
+// installer. A copy that is not the installed one shows setup and nothing else:
+// install, or nothing happens. That is what stops the program living in whatever
+// folder it was downloaded to, where the Start menu entry and the file associations
+// it registers would break the moment that folder is tidied away.
+//
+// Setup asks where to put it - LocalAppData\Programs by default, but anywhere the
+// account can write - and remembers the answer in the Apps & features entry, which is
+// where Windows keeps that anyway. Wherever it lands is what "Open with", the Start
+// menu and the uninstaller then point at. --install and --uninstall do it without
+// asking. --portable runs from where it stands without installing: that is for
+// working on the app itself, where the point is to run the copy you just built.
+//
 // Build:  build-exe.cmd
 
 using System;
@@ -55,8 +68,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.6.0.0")]
-[assembly: AssemblyFileVersion("1.6.0.0")]
+[assembly: AssemblyVersion("1.10.0.0")]
+[assembly: AssemblyFileVersion("1.10.0.0")]
 
 static class MarkdownStudio
 {
@@ -89,11 +102,29 @@ static class MarkdownStudio
     {
         try
         {
-            foreach (string a in args)
+            Application.EnableVisualStyles();
+            bool portable = false;
+            for (int i = 0; i < args.Length; i++)
             {
+                string a = args[i];
                 if (a == "--register") { Register(); return 0; }
                 if (a == "--unregister") { Unregister(); return 0; }
+                if (a == "--install")
+                {
+                    // "--install D:\Apps\Markdown Studio" puts it there without the window,
+                    // which is how it can be rolled out without anyone sitting at the screen
+                    string where = i + 1 < args.Length && !args[i + 1].StartsWith("--")
+                                 ? args[i + 1] : null;
+                    string bad = Install(args, false, where);
+                    if (bad != null)
+                        MessageBox.Show(bad, AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return bad == null ? 0 : 1;
+                }
+                if (a == "--uninstall") { Uninstall(true); return 0; }
+                if (a == "--portable") portable = true;
             }
+            if (!portable && Gate(args)) return 0;   // not installed, so nothing runs
+            Sweep();
             Run(args);
             return 0;
         }
@@ -103,6 +134,23 @@ static class MarkdownStudio
                 "Markdown Studio", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
+    }
+
+    // Installing over a copy whose window is still open has to leave that file behind
+    // under another name, because Windows will not delete a running program. The next
+    // launch is the first moment it can go, and one that is still in use simply
+    // refuses and waits for the launch after that.
+    static void Sweep()
+    {
+        try
+        {
+            if (!IsInstalledCopy()) return;
+            foreach (string old in Directory.GetFiles(InstallDir(), "*.old-*"))
+            {
+                try { File.Delete(old); } catch { }
+            }
+        }
+        catch { }
     }
 
     static void Run(string[] args)
@@ -265,7 +313,7 @@ static class MarkdownStudio
 
     // Null when the dialog was cancelled. Anything else that goes wrong throws, so
     // the caller can fall back rather than read a failure as "no thanks".
-    static string PickModern(string start, IntPtr owner)
+    static string PickModern(string start, IntPtr owner, string title)
     {
         IFileDialog dlg = (IFileDialog)(new FileOpenDialog());
         try
@@ -273,7 +321,7 @@ static class MarkdownStudio
             uint opts;
             dlg.GetOptions(out opts);
             dlg.SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
-            dlg.SetTitle("Where should Markdown Studio keep your documents?");
+            dlg.SetTitle(title);
             dlg.SetOkButtonLabel("Use this folder");
 
             if (!string.IsNullOrEmpty(start))
@@ -305,16 +353,24 @@ static class MarkdownStudio
 
     // The old tree dialog, for a Windows where the shell interfaces above are not
     // there. Cramped, but a picker that works beats a button that does nothing.
-    static string PickClassic(string start, Form owner)
+    static string PickClassic(string start, IWin32Window owner, string title)
     {
         using (FolderBrowserDialog d = new FolderBrowserDialog())
         {
-            d.Description = "Where should Markdown Studio keep your documents?";
+            d.Description = title;
             d.ShowNewFolderButton = true;
             d.RootFolder = Environment.SpecialFolder.MyComputer;
             try { d.SelectedPath = start; } catch { }
             return d.ShowDialog(owner) == DialogResult.OK ? d.SelectedPath : null;
         }
+    }
+
+    // The modern picker, falling back to the tree. Call it from a thread that is
+    // already STA and owns a window - setup does; the library endpoint does not.
+    static string FolderDialog(string start, IWin32Window owner, IntPtr handle, string title)
+    {
+        try { return PickModern(start, handle, title); }
+        catch { return PickClassic(start, owner, title); }
     }
 
     // Asks for a folder on a thread of its own: the file dialogs need an STA thread,
@@ -336,11 +392,7 @@ static class MarkdownStudio
                 owner.TopMost = true;
                 owner.Show();
                 owner.Activate();
-
-                bool shown = false;
-                try { picked = PickModern(start, owner.Handle); shown = true; }
-                catch { }
-                if (!shown) picked = PickClassic(start, owner);
+                picked = FolderDialog(start, owner, owner.Handle, LIB_TITLE);
             }
         });
         t.SetApartmentState(ApartmentState.STA);
@@ -609,6 +661,315 @@ static class MarkdownStudio
         catch { return null; }
     }
 
+    // ---------------------------------------------------------------- installing
+
+    const string AppName = "Markdown Studio";
+    const string UninstallKey =
+        @"Software\Microsoft\Windows\CurrentVersion\Uninstall\MarkdownStudio";
+
+    // Per user, so no administrator is needed and nothing is put where another
+    // account could be surprised by it. This is where Windows itself puts the
+    // programs a user installs for themselves, so it is what setup suggests.
+    static string DefaultInstallDir()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs", AppName);
+    }
+
+    // Where it actually went. Read back from the Apps & features entry rather than
+    // kept somewhere of our own: that is where Windows records an install location,
+    // it is written at install time anyway, and it disappears with the uninstall.
+    static string InstallDir()
+    {
+        try
+        {
+            using (RegistryKey k = Registry.CurrentUser.OpenSubKey(UninstallKey))
+            {
+                if (k != null)
+                {
+                    object v = k.GetValue("InstallLocation");
+                    if (v != null && v.ToString().Trim().Length > 0) return v.ToString();
+                }
+            }
+        }
+        catch { }
+        return DefaultInstallDir();
+    }
+    static string ExeIn(string dir) { return Path.Combine(dir, "MarkdownStudio.exe"); }
+    static string InstalledExe() { return ExeIn(InstallDir()); }
+
+    static bool IsInstalledCopy()
+    {
+        try
+        {
+            return string.Equals(Assembly.GetExecutingAssembly().Location, InstalledExe(),
+                                 StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    // The gate. A copy that is not the installed one does not open the editor: it runs
+    // setup, and the editor opens from the copy setup puts in place. Returns true when
+    // this process is finished - either because it was cancelled, or because the
+    // installed copy has taken over. A folder that will not take it sends the user
+    // back to setup rather than quietly starting the app from the wrong place.
+    static bool Gate(string[] args)
+    {
+        try
+        {
+            if (IsInstalledCopy()) return false;
+            string dir = InstallDir();
+            for (;;)
+            {
+                dir = Setup(dir);
+                if (dir == null) return true;             // cancelled, so nothing opens
+                string bad = Install(args, true, dir);
+                if (bad == null) return true;
+                MessageBox.Show(bad, AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        catch { return false; }
+    }
+
+    // A window rather than a message box: this is the first thing anyone sees of the
+    // program, and where it is about to put itself is not just worth showing - it is
+    // worth being able to change. Returns the folder, or null if cancelled.
+    static string Setup(string suggest)
+    {
+        using (Form f = new Form())
+        {
+            f.Text = "Set up " + AppName;
+            f.FormBorderStyle = FormBorderStyle.FixedDialog;
+            f.MaximizeBox = false;
+            f.MinimizeBox = false;
+            f.ShowInTaskbar = true;
+            f.StartPosition = FormStartPosition.CenterScreen;
+            f.ClientSize = new System.Drawing.Size(478, 254);
+            f.BackColor = System.Drawing.Color.White;
+            f.Font = new System.Drawing.Font("Segoe UI", 9F);
+            try { f.Icon = System.Drawing.Icon.ExtractAssociatedIcon(
+                      Assembly.GetExecutingAssembly().Location); }
+            catch { }
+
+            Label name = new Label();
+            name.Text = AppName;
+            name.Font = new System.Drawing.Font("Segoe UI", 16F);
+            name.SetBounds(26, 22, 430, 32);
+            Label what = new Label();
+            what.Text = "Offline Markdown editor with live preview";
+            what.ForeColor = System.Drawing.Color.FromArgb(105, 112, 122);
+            what.SetBounds(28, 56, 430, 20);
+
+            Label lead = new Label();
+            lead.Text = "It will be installed for your account only - no administrator, " +
+                        "and nothing written outside your own profile.";
+            lead.SetBounds(26, 92, 428, 36);
+
+            Label at = new Label();
+            at.Text = "Install to";
+            at.ForeColor = System.Drawing.Color.FromArgb(105, 112, 122);
+            at.SetBounds(26, 132, 430, 18);
+
+            TextBox path = new TextBox();
+            path.Text = string.IsNullOrEmpty(suggest) ? DefaultInstallDir() : suggest;
+            path.BorderStyle = BorderStyle.FixedSingle;
+            path.SetBounds(26, 152, 336, 24);
+
+            Button browse = new Button();
+            browse.Text = "Browse\u2026";
+            browse.SetBounds(370, 151, 82, 27);
+            browse.Click += delegate
+            {
+                string start = path.Text.Trim();
+                try { while (start.Length > 3 && !Directory.Exists(start))
+                          start = Path.GetDirectoryName(start); }
+                catch { start = DefaultInstallDir(); }
+                string picked = FolderDialog(start, f, f.Handle, SETUP_TITLE);
+                if (picked == null) return;
+                // a folder of their own things should not have the exe dropped into it,
+                // and picking the app's own folder again should not nest another one
+                if (!string.Equals(Path.GetFileName(picked.TrimEnd('\\')), AppName,
+                                   StringComparison.OrdinalIgnoreCase))
+                    picked = Path.Combine(picked, AppName);
+                path.Text = picked;
+            };
+
+            Label note = new Label();
+            note.Text = "Wherever it goes, \"Open with\" and the Start menu follow it. Your " +
+                        "documents are not touched, and it can be removed later from " +
+                        "Settings \u203a Apps.";
+            note.ForeColor = System.Drawing.Color.FromArgb(105, 112, 122);
+            note.SetBounds(26, 186, 428, 38);
+
+            Button ok = new Button();
+            ok.Text = "Install";
+            ok.DialogResult = DialogResult.OK;
+            ok.SetBounds(248, 234, 100, 30);
+            Button no = new Button();
+            no.Text = "Cancel";
+            no.DialogResult = DialogResult.Cancel;
+            no.SetBounds(356, 234, 96, 30);
+
+            f.ClientSize = new System.Drawing.Size(478, 278);
+            f.Controls.AddRange(new Control[] { name, what, lead, at, path, browse, note, ok, no });
+            f.AcceptButton = ok;
+            f.CancelButton = no;
+            f.Shown += delegate { f.Activate(); ok.Focus(); };
+            if (f.ShowDialog() != DialogResult.OK) return null;
+            return path.Text.Trim().Trim('"');
+        }
+    }
+
+    // Windows will not delete a file that is running, but it will rename one - which
+    // is how an installed copy can be replaced while its window is still open.
+    static void PlaceExe(string from, string to)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(to));
+        foreach (string old in Directory.GetFiles(Path.GetDirectoryName(to), "*.old-*"))
+        {
+            try { File.Delete(old); } catch { }
+        }
+        if (File.Exists(to))
+        {
+            try { File.Delete(to); }
+            catch
+            {
+                File.Move(to, to + ".old-" + NewKey().Substring(0, 8));
+            }
+        }
+        File.Copy(from, to, true);
+    }
+
+    // Null when it worked, otherwise why it did not - so setup can say so and ask again
+    // instead of starting the program from a folder the user did not choose.
+    static string Install(string[] args, bool launch, string dir)
+    {
+        if (string.IsNullOrEmpty(dir)) dir = InstallDir();
+        try { dir = Path.GetFullPath(dir); }
+        catch { return "That does not look like a folder path."; }
+        if (!Path.IsPathRooted(dir))
+            return "Please give a full path, starting with a drive letter.";
+
+        string here = Assembly.GetExecutingAssembly().Location;
+        string exe = ExeIn(dir);
+        if (string.Equals(here, exe, StringComparison.OrdinalIgnoreCase))
+        {
+            Register();                       // already in place, just make sure it is known
+            try { ListInApps(exe, dir); } catch { }
+            return null;
+        }
+        try
+        {
+            PlaceExe(here, exe);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return "Markdown Studio is not allowed to write to\n\n    " + dir +
+                   "\n\nThat folder needs administrator rights. Pick somewhere inside " +
+                   "your own account instead - the suggested location always works.";
+        }
+        catch (Exception ex)
+        {
+            return "Markdown Studio could not install itself to\n\n    " + dir +
+                   "\n\n" + ex.Message;
+        }
+
+        // the associations and the Start menu entry must point at the copy that stays,
+        // wherever the user put it
+        try { Register(exe); } catch { }
+        try { ListInApps(exe, dir); } catch { }
+
+        if (!launch) return null;
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo(exe);
+            psi.Arguments = Quote(args);
+            psi.UseShellExecute = false;
+            psi.WorkingDirectory = dir;
+            Process.Start(psi);
+        }
+        catch
+        {
+            MessageBox.Show("Markdown Studio is installed. Start it from the Start menu.",
+                AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        return null;
+    }
+
+    static string Quote(string[] args)
+    {
+        StringBuilder b = new StringBuilder();
+        foreach (string a in args)
+        {
+            if (a == "--install" || a == "--portable") continue;
+            if (b.Length > 0) b.Append(' ');
+            b.Append('"').Append(a.Replace("\"", "\\\"")).Append('"');
+        }
+        return b.ToString();
+    }
+
+    // The entry in Settings > Apps & features. Current user only, like everything else.
+    // InstallLocation is written here first and read back by InstallDir(), so this is
+    // also the record of where the user chose to put it.
+    static void ListInApps(string exe, string dir)
+    {
+        long size = 0;
+        try { size = new FileInfo(exe).Length / 1024; } catch { }
+        using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
+        {
+            k.SetValue("DisplayName", AppName);
+            k.SetValue("DisplayVersion", "1.10.0");
+            k.SetValue("Publisher", AppName);
+            k.SetValue("DisplayIcon", exe + ",0");
+            k.SetValue("InstallLocation", dir);
+            k.SetValue("UninstallString", "\"" + exe + "\" --uninstall");
+            k.SetValue("QuietUninstallString", "\"" + exe + "\" --uninstall --quiet");
+            k.SetValue("EstimatedSize", (int)size, RegistryValueKind.DWord);
+            k.SetValue("NoModify", 1, RegistryValueKind.DWord);
+            k.SetValue("NoRepair", 1, RegistryValueKind.DWord);
+        }
+    }
+
+    // A program cannot delete the file it is running from, so the folder goes a few
+    // seconds later, once this process has gone.
+    static void RemoveLater(string dir)
+    {
+        try
+        {
+            ProcessStartInfo psi = new ProcessStartInfo("cmd.exe",
+                "/c ping 127.0.0.1 -n 4 >nul & rd /s /q \"" + dir + "\"");
+            psi.CreateNoWindow = true;
+            psi.UseShellExecute = false;
+            Process.Start(psi);
+        }
+        catch { }
+    }
+
+    static void Uninstall(bool ask)
+    {
+        if (ask)
+        {
+            bool quiet = false;
+            foreach (string a in Environment.GetCommandLineArgs()) if (a == "--quiet") quiet = true;
+            if (!quiet && MessageBox.Show(
+                    "Remove Markdown Studio from this account?\n\n" +
+                    "Your documents stay where they are, and so do your settings - only the " +
+                    "program itself is removed.",
+                    AppName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+        }
+        // where it went is recorded in the key that is about to be deleted
+        string dir = InstallDir();
+        try { Unregister(); } catch { }
+        try { Registry.CurrentUser.DeleteSubKeyTree(UninstallKey, false); } catch { }
+        // Only the program goes. Everything under LocalAppData\MarkdownStudio is the
+        // user's - the settings and open documents in the browser profile, and which
+        // folder they chose for their library - and a window may be reading it this
+        // very moment. Installing again picks up where they left off.
+        if (Directory.Exists(dir)) RemoveLater(dir);
+    }
+
     // ---------------------------------------------------------------- "Open with"
 
     static readonly string[] MdExts = { ".md", ".markdown", ".mdown", ".mkd", ".mdwn" };
@@ -638,9 +999,15 @@ static class MarkdownStudio
     // phrase from a note findable from the Windows search box.
     const string TextHandler = "{5e941d80-bf96-11cd-b579-08002b30bfeb}";
 
-    static void Register()
+    const string LIB_TITLE = "Where should Markdown Studio keep your documents?";
+    const string SETUP_TITLE = "Where should Markdown Studio be installed?";
+
+    static void Register() { Register(Assembly.GetExecutingAssembly().Location); }
+
+    // `exe` is which copy the menu entries should point at - after installing that is
+    // the installed one, not the copy the user happened to double-click.
+    static void Register(string exe)
     {
-        string exe = Assembly.GetExecutingAssembly().Location;
         string file = Path.GetFileName(exe);
         // a copy the build moved aside must not steal the registration
         if (file.StartsWith("MarkdownStudio.old", StringComparison.OrdinalIgnoreCase) ||
@@ -1123,7 +1490,7 @@ static class MarkdownStudio
                 { Send(ns, "200 OK", "text/html; charset=utf-8", page); return; }
 
                 if (path == "/__ws" || path == "/__file" || path == "/__all" ||
-                    path == "/__launch" || path == "/__libdir")
+                    path == "/__launch" || path == "/__libdir" || path == "/__reveal")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
@@ -1140,6 +1507,26 @@ static class MarkdownStudio
                         if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
                         Send(ns, "200 OK", "application/json; charset=utf-8",
                              Encoding.UTF8.GetBytes(ChooseLibrary()));
+                        return;
+                    }
+
+                    // Showing the library in Explorer is the launcher's to do: a page
+                    // cannot open a folder, and the fixed library is the only thing this
+                    // opens, so it cannot be talked into showing anything else.
+                    if (path == "/__reveal")
+                    {
+                        if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+                        try
+                        {
+                            string dir;
+                            lock (workspaces) dir = workspaces[LibId].Root;
+                            Directory.CreateDirectory(dir);
+                            ProcessStartInfo psi = new ProcessStartInfo("explorer.exe", "\"" + dir + "\"");
+                            psi.UseShellExecute = true;
+                            Process.Start(psi);
+                            SendText(ns, "200 OK", "ok");
+                        }
+                        catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
                         return;
                     }
 
