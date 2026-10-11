@@ -405,6 +405,8 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 #preview blockquote>*:last-child{margin-bottom:0}
 #preview hr{border:0;border-top:1px solid var(--bd);margin:2em 0}
 #preview img{max-width:100%;height:auto;border-radius:var(--r);display:block;margin:.4em 0}
+/* a picture the document links to but that is not there: a box, not nothing */
+#preview img.img-missing{min-width:160px;min-height:56px;border:1px dashed var(--bd2);background:var(--bg2)}
 #preview kbd{font-family:var(--f-mono);font-size:.82em;background:var(--bg3);border:1px solid var(--bd2);border-bottom-width:2px;border-radius:4px;padding:.1em .4em}
 #preview code{font-family:var(--f-mono);font-size:.875em;background:var(--code);border:1px solid var(--codebd);border-radius:5px;padding:.12em .36em}
 #preview sup,#preview sub{font-size:.74em;line-height:0}
@@ -782,7 +784,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 
 <div id="backdrop"></div>
 <div id="toast"></div>
-<div id="drop" hidden>Drop Markdown files to open</div>
+<div id="drop" hidden>Drop Markdown files to open, or pictures to insert</div>
 <input type="file" id="filePick" accept=".md,.markdown,.mdown,.mkd,.txt,text/markdown,text/plain" multiple hidden>
 <input type="file" id="jsonPick" accept=".json,application/json" hidden>
 <input type="file" id="dirPick" webkitdirectory directory multiple hidden>
@@ -1561,6 +1563,15 @@ const I18N = (function () {
     "New file name:": "Nama berkas baru:", "Link URL:": "URL tautan:",
     "Link text:": "Teks tautan:", "Image URL or path:": "URL atau lokasi gambar:",
     "Alt text:": "Teks alternatif:",
+    "Image saved as ": "Gambar disimpan sebagai ",
+    "Images saved: ": "Gambar disimpan: ",
+    "Could not save the image: ": "Gambar tidak bisa disimpan: ",
+    "Image not found: ": "Gambar tidak ditemukan: ",
+    "Image embedded in the document - open a folder to keep pictures as files":
+      "Gambar disematkan di dalam dokumen - buka folder agar gambar disimpan sebagai berkas",
+    "Drop Markdown files to open, or pictures to insert":
+      "Lepas berkas Markdown untuk dibuka, atau gambar untuk disisipkan",
+    "Paste image": "Tempel gambar",
     "Delete": "Hapus",
     "has unsaved changes. Close it anyway?":
       "punya perubahan yang belum tersimpan. Tetap ditutup?",
@@ -2409,6 +2420,18 @@ const MD = (function () {
 
   let refs = {}, fnDefs = {}, fnList = [], headings = [], slugs = {};
 
+  /* A relative image path means nothing to the page itself - it is served from
+     127.0.0.1, not from the folder the document sits in - so the app gets to say
+     where "assets/shot.png" really is. It answers null to leave the URL alone, or
+     { src, key }: the address to show now (null while it is still being read) and
+     a key the app uses to fill it in once it has the picture. */
+  let imgHook = null;
+  function imgSrc(url) {
+    const r = imgHook ? imgHook(url) : null;
+    if (!r) return ' src="' + safeUrl(url) + '"';
+    return (r.src ? ' src="' + safeUrl(r.src) + '"' : "") + ' data-img="' + esc(r.key) + '"';
+  }
+
   /* A ```mermaid block is drawn rather than printed, with its source one click
      away. If it cannot be drawn you get the source and the reason, never a broken
      picture and never a lost block. */
@@ -2449,6 +2472,7 @@ const MD = (function () {
       const a = m[1].toLowerCase();
       if (!ATTRS.has(a)) continue;
       let v = m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4] !== undefined ? m[4] : "";
+      if (a === "src" && name === "img") { out += imgSrc(v); continue; }
       v = (a === "href" || a === "src") ? safeUrl(v) : esc(v);
       out += " " + a + '="' + v + '"';
     }
@@ -2551,7 +2575,7 @@ const MD = (function () {
 
   function build(label, url, title, isImg) {
     const ti = title ? ' title="' + esc(title) + '"' : "";
-    if (isImg) return '<img src="' + safeUrl(url) + '" alt="' + esc(strip(label)) + '"' + ti + ' loading="lazy">';
+    if (isImg) return "<img" + imgSrc(url) + ' alt="' + esc(strip(label)) + '"' + ti + ' loading="lazy">';
     const ext = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(url) ? ' target="_blank" rel="noopener noreferrer"' : "";
     return '<a href="' + safeUrl(url) + '"' + ti + ext + ">" + inline(label) + "</a>";
   }
@@ -2960,7 +2984,7 @@ const MD = (function () {
     return { html: html, headings: headings };
   }
 
-  return { render: render, escape: esc };
+  return { render: render, escape: esc, setImageHook: fn => { imgHook = fn; } };
 })();
 
 /* =========================================================
@@ -3132,7 +3156,8 @@ const MD = (function () {
     return { words: words, lines: lines };
   }
   function updateStats(src) {
-    const s = scan(src);
+    /* an embedded picture is one long line of base64, not thousands of words */
+    const s = scan(src.indexOf("data:") < 0 ? src : src.replace(/^ {0,3}\[[^\]]+\]:[ \t]*data:\S*$/gm, ""));
     $("#stWords").textContent = s.words.toLocaleString();
     $("#stChars").textContent = src.length.toLocaleString();
     $("#stLines").textContent = (src ? s.lines : 0).toLocaleString();
@@ -3544,6 +3569,8 @@ const MD = (function () {
       /* re-reading a folder of notes is not instant, so say what is happening */
       toast(res.moved ? "Moving your documents..." : "Reading " + res.root + "...");
       await libSync();
+      dropImages();
+      renderNow();
       renderDocs();
       updateSaveUI();
       settingsUI();
@@ -3895,7 +3922,7 @@ const MD = (function () {
   let fsBulk = null, cacheGen = 0;      /* the exe's one-shot read of the whole folder */
 
   const normText = s => s.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
-  function dropSearchCache() { fileCache.clear(); fsBulk = null; cacheGen++; }
+  function dropSearchCache() { fileCache.clear(); fsBulk = null; cacheGen++; dropImages(); }
 
   /* The exe can send every file in one response; without that, a folder of a
      few hundred notes costs a few hundred requests. Anything it leaves out
@@ -4156,6 +4183,274 @@ const MD = (function () {
     const already = tabs.some(x => x.kind === "file" && x.path === node.path && x.id === activeTab);
     await openFileNode(node);
     if (hash) setTimeout(() => scrollToAnchor(hash), already ? 0 : 140);
+  }
+
+  /* ---------- pictures: pasting, dropping and showing them ---------- */
+  /* A screenshot pasted into the editor becomes a real image file next to the
+     document - "assets/notes-20261011-153012.png" - and a link to it, the way Word
+     drops a picture where the caret is. Files and Docs from the exe go through the
+     launcher, a folder opened in the browser goes through its handle, and anything
+     with no folder behind it (a browser-only document, a read-only folder) gets the
+     picture embedded in the text instead, so a paste never just fails. */
+  const IMG_EXT = /\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i;
+  const IMG_TYPE = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp",
+    "image/bmp": "bmp", "image/svg+xml": "svg", "image/avif": "avif", "image/x-icon": "ico" };
+  const ASSET_DIR = "assets";
+  const isRelUrl = u => !!u && !/^[a-z][a-z0-9+.-]*:/i.test(u) && u.indexOf("//") !== 0 && u.charAt(0) !== "#";
+  const assetUrl = (ws, path) => "/__asset?k=" + encodeURIComponent(SRV_KEY) +
+    "&w=" + encodeURIComponent(ws) + "&p=" + encodeURIComponent(path);
+
+  /* Which folder a tab's pictures are read from: the exe's workspace ("ws"), a
+     folder handle ("fs"), or none. `doc` is the document's own path in it, which
+     relative image paths are resolved against. */
+  function imgBase(t) {
+    if (!t) return null;
+    if (t.kind === "file" && t.srv && root && root.mode === "server")
+      return { ws: SRV_WS, doc: t.path, write: true };
+    if (t.kind === "file" && t.handle && root && root.mode === "fs")
+      return { ws: "fs", doc: t.path, write: !root.readonly };
+    if (t.kind === "local" && LIB.ok) {
+      const d = libDocOf(t);
+      if (d && d.file) return { ws: "lib", doc: d.file, write: !libClash(d.file) };
+    }
+    return null;
+  }
+
+  /* Pictures are read once and kept as blob: URLs. The preview is rebuilt on every
+     pause in typing, and a plain URL would be fetched again each time - with the
+     picture blinking out while it was. Keyed "ws:path". */
+  const imgs = new Map();         /* key -> { url, size } | { failed: true } | { p: Promise } */
+  function dropImages() {
+    imgs.forEach(v => { if (v.url) URL.revokeObjectURL(v.url); });
+    imgs.clear();
+  }
+  async function fsFileAt(path) {
+    const parts = path.split("/");
+    let dir = root.handle;
+    for (let i = 0; i < parts.length - 1; i++) dir = await dir.getDirectoryHandle(parts[i]);
+    return (await dir.getFileHandle(parts[parts.length - 1])).getFile();
+  }
+  async function imgFetch(key) {
+    const i = key.indexOf(":"), ws = key.slice(0, i), path = key.slice(i + 1);
+    if (ws === "fs") {
+      if (!root || root.mode !== "fs") throw new Error("no folder");
+      return fsFileAt(path);
+    }
+    const r = await fetch(assetUrl(ws, path));
+    if (!r.ok) throw new Error(r.status);
+    return r.blob();
+  }
+  function imgPut(key, blob) {
+    const old = imgs.get(key);
+    if (old && old.url) URL.revokeObjectURL(old.url);
+    const v = { url: URL.createObjectURL(blob), size: blob.size };
+    imgs.set(key, v);
+    return v;
+  }
+  /* fills in every picture on screen that was waiting for this one */
+  function imgPaint(key) {
+    const v = imgs.get(key);
+    preview.querySelectorAll("img[data-img]").forEach(el => {
+      if (el.dataset.img !== key) return;
+      if (v && v.url) { el.src = v.url; el.classList.remove("img-missing"); }
+      else { el.classList.add("img-missing"); el.title = tr("Image not found: ") + key.slice(key.indexOf(":") + 1); }
+    });
+  }
+  function imgLoad(key) {
+    const have = imgs.get(key);
+    if (have) return have.p || Promise.resolve(have);
+    const p = imgFetch(key)
+      .then(b => imgPut(key, b))
+      .catch(() => { const v = { failed: true }; imgs.set(key, v); return v; })
+      .then(v => { imgPaint(key); return v; });
+    imgs.set(key, { p: p });
+    return p;
+  }
+  MD.setImageHook(url => {
+    if (!isRelUrl(url)) return null;
+    const base = imgBase(active());
+    if (!base) return null;
+    let rel = url.replace(/[?#].*$/, "");
+    try { rel = decodeURIComponent(rel); } catch (e) { }
+    const path = resolveRel(base.doc, rel);
+    if (!path || !IMG_EXT.test(path)) return null;
+    const key = base.ws + ":" + path;
+    const v = imgs.get(key);
+    if (v && v.url) return { src: v.url, key: key };
+    imgLoad(key);
+    return { src: null, key: key };
+  });
+  /* Coming back to the window is when a picture may have been edited elsewhere -
+     touched up in Paint, say - so re-read the ones on file and swap any that changed. */
+  async function imgRecheck() {
+    for (const [key, v] of Array.from(imgs)) {
+      if (!v.url) { if (v.failed) imgs.delete(key); continue; }
+      try {
+        const b = await imgFetch(key);
+        if (b.size !== v.size) { imgPut(key, b); imgPaint(key); }
+      } catch (e) { }
+    }
+    if (preview.querySelector("img.img-missing")) renderNow();
+  }
+
+  /* "notes-20261011-153012.png": the document's name, so a folder of assets still
+     says what each picture belongs to, and the time, so names never collide. */
+  function imgName(file, docPath) {
+    const ext = IMG_TYPE[file.type] || ((file.name || "").match(/\.([a-z0-9]+)$/i) || [])[1] || "png";
+    const clean = s => String(s).normalize("NFC").replace(/[^\p{L}\p{N}._-]+/gu, "-")
+      .replace(/-+/g, "-").replace(/^[-.]+|[-.]+$/g, "").slice(0, 60);
+    /* a dropped file keeps its own name; a pasted one is always "image.png" */
+    const own = file.name && !/^image\.\w+$/i.test(file.name) ? clean(file.name.replace(/\.[^.]+$/, "")) : "";
+    if (own) return own + "." + ext.toLowerCase();
+    const d = new Date(), p = n => String(n).padStart(2, "0");
+    const stamp = d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" +
+      p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+    const doc = clean((docPath || "").replace(/^.*\//, "").replace(MD_EXT, "")) || "image";
+    return doc + "-" + stamp + "." + ext.toLowerCase();
+  }
+
+  /* Writes the picture beside the document and answers its path from the document,
+     e.g. "assets/notes-20261011-153012.png". Throws if it could not be written. */
+  async function imgWrite(base, file) {
+    const dir = base.doc.split("/").slice(0, -1).join("/");
+    const want = (dir ? dir + "/" : "") + ASSET_DIR + "/" + imgName(file, base.doc);
+    let written;
+    if (base.ws === "fs") {
+      let h = root.handle;
+      const segs = want.split("/");
+      for (let i = 0; i < segs.length - 1; i++) h = await h.getDirectoryHandle(segs[i], { create: true });
+      /* never over another picture: a taken name gets a number */
+      let name = segs[segs.length - 1];
+      const stem = name.replace(/\.[^.]+$/, ""), ext = name.slice(stem.length);
+      for (let n = 2; ; n++) {
+        try { await h.getFileHandle(name); name = stem + "-" + n + ext; } catch (e) { break; }
+      }
+      const fh = await h.getFileHandle(name, { create: true });
+      const w = await fh.createWritable();
+      await w.write(file);
+      await w.close();
+      written = segs.slice(0, -1).concat(name).join("/");
+    } else {
+      const r = await fetch(assetUrl(base.ws, want), { method: "POST", body: file });
+      if (!r.ok) throw new Error((await r.text()) || r.status);
+      written = (await r.json()).path || want;
+    }
+    imgPut(base.ws + ":" + written, file);     /* on screen at once, no round trip */
+    return dir ? written.slice(dir.length + 1) : written;
+  }
+
+  /* With nowhere to put a file, the picture goes in the text itself. As a reference
+     at the very end, so the paragraph it sits in reads "![image][img-1]" and not a
+     hundred thousand characters of base64. Big screenshots are re-encoded as WebP
+     when that is smaller, since all of this lives in browser storage. */
+  async function imgDataUrl(file) {
+    const read = b => new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result));
+      fr.onerror = () => rej(fr.error);
+      fr.readAsDataURL(b);
+    });
+    if (file.size > 150 * 1024 && /^image\/(png|bmp)$/.test(file.type) && window.createImageBitmap) {
+      try {
+        const bmp = await createImageBitmap(file);
+        const c = document.createElement("canvas");
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext("2d").drawImage(bmp, 0, 0);
+        const webp = await new Promise(res => c.toBlob(res, "image/webp", 0.9));
+        if (webp && webp.type === "image/webp" && webp.size < file.size) return read(webp);
+      } catch (e) { }
+    }
+    return read(file);
+  }
+  function embedImage(alt, dataUrl) {
+    const used = (ed.value.match(/^\[img-(\d+)\]:/gm) || []).map(x => parseInt(x.replace(/\D/g, ""), 10));
+    const n = (used.length ? Math.max.apply(null, used) : 0) + 1;
+    insertImageText("![" + alt + "][img-" + n + "]");
+    const at = ed.selectionStart;
+    const tail = (ed.value.endsWith("\n") ? "" : "\n") + "\n[img-" + n + "]: " + dataUrl;
+    ed.setSelectionRange(ed.value.length, ed.value.length);
+    insert(tail);
+    ed.setSelectionRange(at, at);
+    ed.focus();
+  }
+
+  /* an image on a line of its own, whatever the caret was in the middle of */
+  function insertImageText(md) {
+    const v = ed.value, s = ed.selectionStart, e = ed.selectionEnd;
+    const before = s > 0 && v[s - 1] !== "\n" ? "\n" : "";
+    const after = e < v.length && v[e] !== "\n" ? "\n" : "";
+    insert(before + md + after);
+    if (after) ed.setSelectionRange(ed.selectionStart - 1, ed.selectionStart - 1);
+  }
+
+  let imgBusy = false;
+  async function addImages(files) {
+    const t = active();
+    if (!t || !files.length) return;
+    if (imgBusy) return;
+    imgBusy = true;
+    /* the caret may move while a file is written, so put it back where the paste was */
+    const s = ed.selectionStart, e = ed.selectionEnd, tabId = t.id;
+    const base = imgBase(t);
+    let saved = 0, embedded = 0, last = "";
+    try {
+      for (const f of files) {
+        const alt = f.name && !/^image\.\w+$/i.test(f.name) ? f.name.replace(/\.[^.]+$/, "").replace(/[\[\]]/g, "") : "image";
+        let rel = null;
+        if (base && base.write) {
+          try { rel = await imgWrite(base, f); }
+          catch (err) { toast(tr("Could not save the image: ") + (err.message || err.name)); return; }
+        }
+        let data = null;
+        if (!rel) data = await imgDataUrl(f);
+        if (activeTab !== tabId) return;          /* switched documents meanwhile */
+        if (saved + embedded === 0) ed.setSelectionRange(s, e);
+        if (rel) {
+          /* the launcher names a clash "shot 2.png", and a space would end the link */
+          insertImageText("![" + alt + "](" + rel.replace(/ /g, "%20") + ")");
+          saved++; last = rel;
+        } else { embedImage(alt, data); embedded++; }
+      }
+    } finally { imgBusy = false; }
+    if (saved === 1) toast(tr("Image saved as ") + last);
+    else if (saved) toast(tr("Images saved: ") + saved + " → " + ASSET_DIR + "/");
+    if (embedded) toast(tr("Image embedded in the document - open a folder to keep pictures as files"));
+  }
+
+  /* What a paste is carrying, if it is pictures. Copying from Excel or Word puts a
+     picture of the selection on the clipboard alongside the text, and the text is
+     what was meant - so a picture only counts when there is no text with it. */
+  function clipImages(dt) {
+    if (!dt) return [];
+    const text = dt.getData("text/plain");
+    if (text && text.trim()) return [];
+    const out = [];
+    Array.prototype.forEach.call(dt.items || [], it => {
+      if (it.kind !== "file" || !/^image\//.test(it.type)) return;
+      const f = it.getAsFile();
+      if (f) out.push(f);
+    });
+    return out;
+  }
+
+  /* The export is a single file to send to someone, so pictures go inside it. The
+     preview's own addresses would mean nothing on another machine - and the
+     launcher's carry the key. */
+  async function inlineImages(box) {
+    for (const el of Array.from(box.querySelectorAll("img[data-img]"))) {
+      const v = await imgLoad(el.dataset.img);
+      el.removeAttribute("data-img");
+      if (!v || !v.url) continue;
+      try {
+        const b = await (await fetch(v.url)).blob();
+        el.src = await new Promise((res, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res(String(fr.result));
+          fr.onerror = () => rej(fr.error);
+          fr.readAsDataURL(b);
+        });
+      } catch (e) { }
+    }
   }
 
   /* ---------- local (browser-stored) documents ---------- */
@@ -5055,8 +5350,12 @@ const MD = (function () {
     }
     return keep.join("\n");
   }
-  function exportHtml() {
+  async function exportHtml() {
     const r = MD.render(ed.value);
+    const box = document.createElement("div");
+    box.innerHTML = r.html;
+    await inlineImages(box);
+    r.html = box.innerHTML;
     const title = (r.headings[0] && r.headings[0].level === 1 ? r.headings[0].text : activeName()) || "Document";
     const html = "<!DOCTYPE html>\n" +
       '<html lang="en" data-theme="' + state.settings.theme + '">\n<head>\n<meta charset="utf-8">\n' +
@@ -5170,7 +5469,7 @@ const MD = (function () {
   /* ---------- help ---------- */
   const SHORTCUTS = [
     ["Formatting", [["Bold", "Ctrl B"], ["Italic", "Ctrl I"], ["Inline code", "Ctrl `"],
-    ["Link", "Ctrl K"], ["Image", "Ctrl Shift K"], ["Strikethrough", "Ctrl Shift X"],
+    ["Link", "Ctrl K"], ["Image", "Ctrl Shift K"], ["Paste image", "Ctrl V"], ["Strikethrough", "Ctrl Shift X"],
     ["Heading 1 / 2 / 3", "Ctrl Alt 1-3"], ["Bullet list", "Ctrl Shift 8"],
     ["Numbered list", "Ctrl Shift 7"], ["Blockquote", "Ctrl Shift ."]]],
     ["Editing", [["Indent / outdent", "Tab / Shift Tab"], ["Duplicate line", "Ctrl D"],
@@ -5612,6 +5911,13 @@ const MD = (function () {
       if (findHL) { clearTimeout(ed._fh); ed._fh = setTimeout(() => runFind(true), 120); }
     });
     ed.addEventListener("keydown", onEditorKey);
+    /* a screenshot pasted straight in, the way Word takes one */
+    ed.addEventListener("paste", e => {
+      const files = clipImages(e.clipboardData);
+      if (!files.length) return;
+      e.preventDefault();
+      addImages(files);
+    });
     ed.addEventListener("keyup", updateCursor);
     ed.addEventListener("click", updateCursor);
     ed.addEventListener("select", updateCursor);
@@ -5926,8 +6232,15 @@ const MD = (function () {
       e.preventDefault();
       dragDepth = 0;
       $("#drop").hidden = true;
-      if (e.dataTransfer && e.dataTransfer.files.length) readFiles(e.dataTransfer.files);
+      if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+      /* pictures go into the document at the caret; Markdown files open as before */
+      const all = Array.prototype.slice.call(e.dataTransfer.files);
+      const pics = all.filter(f => /^image\//.test(f.type) || IMG_EXT.test(f.name));
+      const rest = all.filter(f => pics.indexOf(f) < 0);
+      if (pics.length) addImages(pics);
+      if (rest.length || !pics.length) readFiles(rest);
     });
+    window.addEventListener("focus", () => { if (imgs.size) imgRecheck(); });
 
     /* misc */
     document.addEventListener("keydown", onGlobalKey);

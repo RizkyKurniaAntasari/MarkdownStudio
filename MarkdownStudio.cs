@@ -11,7 +11,8 @@
 // so the app opens that file immediately and can still browse and save its
 // siblings. The browser cannot reach a path on its own, so those reads and writes
 // go through /__ws and /__file here, and /__all hands "Search in folder" every
-// file at once.
+// file at once. /__asset reads and writes the pictures a document links to, so a
+// screenshot pasted into the editor lands as a file beside it.
 //
 // The port is fixed, because the browser keys everything it stores (the Docs,
 // settings, the remembered folder) to the origin, and the origin includes the
@@ -68,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.10.0.0")]
-[assembly: AssemblyFileVersion("1.10.0.0")]
+[assembly: AssemblyVersion("1.11.0.0")]
+[assembly: AssemblyFileVersion("1.11.0.0")]
 
 static class MarkdownStudio
 {
@@ -426,8 +427,9 @@ static class MarkdownStudio
         moved = 0; kept = 0;
         StringBuilder renamed = new StringBuilder("{");
         bool first = true;
+        // the pictures go too, or every note that shows one would lose it
         List<string> files = new List<string>();
-        Walk(from, "", 0, files);
+        Walk(from, "", 0, files, delegate(string f) { return IsMd(f) || IsImage(f); });
         foreach (string rel in files)
         {
             string src, dstRel = rel;
@@ -919,7 +921,7 @@ static class MarkdownStudio
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             k.SetValue("DisplayName", AppName);
-            k.SetValue("DisplayVersion", "1.10.0");
+            k.SetValue("DisplayVersion", "1.11.0");
             k.SetValue("Publisher", AppName);
             k.SetValue("DisplayIcon", exe + ",0");
             k.SetValue("InstallLocation", dir);
@@ -1117,6 +1119,26 @@ static class MarkdownStudio
                e == ".mdwn" || e == ".mdx" || e == ".txt";
     }
 
+    // Pictures a document can show. Only these go through /__asset, so it cannot be
+    // used to read or plant anything else in the folder.
+    static string ImageType(string path)
+    {
+        switch (Path.GetExtension(path).ToLowerInvariant())
+        {
+            case ".png": return "image/png";
+            case ".jpg": case ".jpeg": return "image/jpeg";
+            case ".gif": return "image/gif";
+            case ".webp": return "image/webp";
+            case ".bmp": return "image/bmp";
+            case ".svg": return "image/svg+xml";
+            case ".avif": return "image/avif";
+            case ".ico": return "image/x-icon";
+        }
+        return null;
+    }
+
+    static bool IsImage(string path) { return ImageType(path) != null; }
+
     static bool SkipDir(string name)
     {
         switch (name.ToLowerInvariant())
@@ -1200,13 +1222,18 @@ static class MarkdownStudio
 
     static void Walk(string dir, string prefix, int depth, List<string> into)
     {
+        Walk(dir, prefix, depth, into, IsMd);
+    }
+
+    static void Walk(string dir, string prefix, int depth, List<string> into, Func<string, bool> keep)
+    {
         if (depth > MaxDepth || into.Count >= MaxFiles) return;
         string[] entries;
         try { entries = Directory.GetFiles(dir); } catch { return; }
         foreach (string f in entries)
         {
             if (into.Count >= MaxFiles) return;
-            if (IsMd(f)) into.Add(prefix + Path.GetFileName(f));
+            if (keep(f)) into.Add(prefix + Path.GetFileName(f));
         }
         string[] subs;
         try { subs = Directory.GetDirectories(dir); } catch { return; }
@@ -1214,7 +1241,7 @@ static class MarkdownStudio
         {
             string name = Path.GetFileName(s);
             if (name.StartsWith(".") || SkipDir(name)) continue;
-            Walk(s, prefix + name + "/", depth + 1, into);
+            Walk(s, prefix + name + "/", depth + 1, into, keep);
         }
     }
 
@@ -1222,12 +1249,17 @@ static class MarkdownStudio
     // anything that escapes it or is not a text file we handle.
     static string Resolve(Workspace ws, string rel)
     {
+        return Resolve(ws, rel, IsMd);
+    }
+
+    static string Resolve(Workspace ws, string rel, Func<string, bool> allowed)
+    {
         if (ws == null || string.IsNullOrEmpty(rel)) return null;
         rel = rel.Replace('\\', '/');
         if (rel.StartsWith("/") || rel.Contains(":")) return null;
         // a ".." segment climbs out; "notes..md" is just a name and is fine
         foreach (string seg in rel.Split('/')) if (seg == "..") return null;
-        if (!IsMd(rel)) return null;
+        if (!allowed(rel)) return null;
 
         string full;
         try { full = Path.GetFullPath(Path.Combine(ws.Root, rel.Replace('/', '\\'))); }
@@ -1490,7 +1522,8 @@ static class MarkdownStudio
                 { Send(ns, "200 OK", "text/html; charset=utf-8", page); return; }
 
                 if (path == "/__ws" || path == "/__file" || path == "/__all" ||
-                    path == "/__launch" || path == "/__libdir" || path == "/__reveal")
+                    path == "/__launch" || path == "/__libdir" || path == "/__reveal" ||
+                    path == "/__asset")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
@@ -1540,6 +1573,8 @@ static class MarkdownStudio
                     { Send(ns, "200 OK", "application/json; charset=utf-8",
                            Encoding.UTF8.GetBytes(AllFiles(ws))); return; }
 
+                    if (path == "/__asset") { Asset(ns, method, ws, QueryValue(query, "p"), body); return; }
+
                     string full = Resolve(ws, QueryValue(query, "p"));
                     if (full == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
 
@@ -1588,6 +1623,50 @@ static class MarkdownStudio
         catch { }
     }
 
+    // A picture beside a document. GET shows it in the preview; POST is a pasted or
+    // dropped one being saved, and answers where it actually went - a name that is
+    // already taken is never overwritten, the new picture gets a free one instead.
+    static void Asset(NetworkStream ns, string method, Workspace ws, string rel, byte[] body)
+    {
+        string full = Resolve(ws, rel, IsImage);
+        if (full == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
+
+        if (method == "GET")
+        {
+            if (!File.Exists(full)) { SendText(ns, "404 Not Found", "no such file"); return; }
+            // An SVG opened on its own would run any script inside it with this
+            // page's origin; as a picture in the preview it never does. So it is
+            // only ever let out as a picture.
+            string extra = "X-Content-Type-Options: nosniff\r\n";
+            if (full.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                extra += "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox\r\n";
+            try { Send(ns, "200 OK", ImageType(full), File.ReadAllBytes(full), extra); }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+        if (method == "POST" || method == "PUT")
+        {
+            if (body.Length == 0) { SendText(ns, "400 Bad Request", "empty"); return; }
+            try
+            {
+                string relOut = RelOf(ws, full);
+                if (File.Exists(full))
+                {
+                    relOut = Free(ws.Root, relOut);
+                    if (relOut == null) { SendText(ns, "409 Conflict", "no free name"); return; }
+                    full = Path.Combine(ws.Root, relOut.Replace('/', '\\'));
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(full));
+                File.WriteAllBytes(full, body);
+                Send(ns, "200 OK", "application/json; charset=utf-8",
+                     Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(relOut) + "}"));
+            }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+        SendText(ns, "405 Method Not Allowed", "no");
+    }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
     struct SHFILEOPSTRUCT
     {
@@ -1623,11 +1702,16 @@ static class MarkdownStudio
 
     static void Send(NetworkStream ns, string status, string type, byte[] body)
     {
+        Send(ns, status, type, body, "");
+    }
+
+    static void Send(NetworkStream ns, string status, string type, byte[] body, string extra)
+    {
         string head =
             "HTTP/1.1 " + status + "\r\n" +
             "Content-Type: " + type + "\r\n" +
             "Content-Length: " + body.Length + "\r\n" +
-            "Cache-Control: no-store\r\n" +
+            "Cache-Control: no-store\r\n" + extra +
             "Connection: close\r\n\r\n";
         byte[] hb = Encoding.ASCII.GetBytes(head);
         ns.Write(hb, 0, hb.Length);

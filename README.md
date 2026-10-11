@@ -185,6 +185,19 @@ drop it on any machine with a browser — it keeps working.
   block, select one item and only that item lights up. Toggle it with
   **Menu → Sync scroll & selection**
 - Formatting toolbar plus keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+K`, ...)
+- **Paste a screenshot straight in**, the way Word takes one: `Win+Shift+S`, then
+  `Ctrl+V` in the editor. The picture is saved as a real file in an `assets` folder
+  next to the document — `assets/notes-20261011-153012.png` — and
+  `![image](assets/notes-20261011-153012.png)` goes in on its own line where the caret
+  was. Dragging image files onto the window does the same, keeping their own names.
+  It works for files from an opened folder and for Docs (their pictures go in the
+  library's `assets` folder, and move with it when you change folders). A name that is
+  already taken is never overwritten. Copying cells from Excel or text from Word still
+  pastes the text, even though those also put a picture on the clipboard.
+  With no folder to write to — a browser-only document, or a read-only folder — the
+  picture is embedded in the document instead, as a reference at the very end, so the
+  text where you pasted it stays a short `![image][img-1]`.
+  **Export HTML** puts every picture inside the file, so it opens anywhere
 - Smart Enter: continues bullet, numbered, task and quote lists; empty item ends the list
 - `Tab` / `Shift+Tab` to indent, `Alt+Up/Down` to move lines, `Ctrl+D` to duplicate
 - Find and replace (`Ctrl+F`) with case-sensitive and regex modes. Every hit is
