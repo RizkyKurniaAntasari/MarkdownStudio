@@ -231,8 +231,9 @@ drop it on any machine with a browser — it keeps working.
   from Settings, and **Follow the system** picks the one the machine is already set to.
   English is the source text and Indonesian is a translation table keyed by it, so a
   string nobody has translated yet reads as English rather than as a missing label.
-  Only the interface: your documents are your own words and are never touched, and the
-  Welcome guide stays in English
+  Only the interface: your documents are your own words and are never touched. The
+  Welcome guide is written out in full in both languages, and you get the one your
+  interface is in — on the first run, and from **⋮ menu → Welcome guide**
 - **Unsaved changes are hard to miss**: an orange dot and italic name on the tab, a dot
   in the file tree, a badge on the Save button, an orange "Unsaved changes" in the
   status bar, and a ● in the browser tab title. Hover the status bar to see exactly
@@ -253,8 +254,13 @@ drop it on any machine with a browser — it keeps working.
 - Hard line breaks with a trailing `\` or two trailing spaces; escape any special
   character with a backslash, and `<!-- comments -->` never render
 
-**The Welcome document is a guide to writing a README.** It opens on first run and is
-a live reference in three parts — the basics (headings, emphasis, lists, links, code,
+**The Welcome document is a tour of the app and a guide to writing a README.** It
+opens on first run. Part 0 walks through what the app does — Docs and folders, tabs,
+saving, pasting pictures and the `assets` folder, finding things, views, sharing and
+settings. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
+version at any time: the existing copy if it is untouched, otherwise a fresh one, so
+your own edits to an old copy are never overwritten. The rest is a
+live reference in three parts — the basics (headings, emphasis, lists, links, code,
 quotes, tables), going further (callouts, task lists, footnotes, collapsible sections,
 reference links, anchors and a table of contents, inline HTML, escaping), and a README
 skeleton you can copy straight out, with notes on what separates a good one. Every

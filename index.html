@@ -761,6 +761,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007.9 19a1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 003.6 8a1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H8a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V8a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
     Settings<kbd>Ctrl ,</kbd></button>
   <button class="mi" data-act="help" role="menuitem">Keyboard shortcuts<kbd>F1</kbd></button>
+  <button class="mi" data-act="guide" role="menuitem">Welcome guide</button>
 </div>
 
 <!-- ================= help ================= -->
@@ -841,25 +842,177 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 <script type="text/markdown" id="seed">
 # Welcome to Markdown Studio
 
-A complete **Markdown editor with live preview** that runs entirely offline. No server, no internet, no install — everything lives in this single HTML file.
+A complete **Markdown editor with live preview** that works entirely offline. No
+internet, no account — you write on the left and see the finished page on the right.
 
 > [!TIP]
-> Press <kbd>F1</kbd> at any time to see every keyboard shortcut. Your work saves automatically to this browser.
+> Press <kbd>F1</kbd> at any time to see every keyboard shortcut, and
+> <kbd>Ctrl</kbd>+<kbd>,</kbd> for Settings. Lost this page? **⋮ menu → Welcome guide**
+> opens the latest version of it.
 
 ## Quick start
 
 1. Type in the left pane — the preview updates as you write
 2. Use the toolbar or shortcuts like <kbd>Ctrl</kbd>+<kbd>B</kbd> for **bold**
-3. Hit <kbd>Ctrl</kbd>+<kbd>S</kbd> to save a real `.md` file
-4. Drag a `.md` file onto the window, or open a whole folder with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>
+3. Take a screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) and press
+   <kbd>Ctrl</kbd>+<kbd>V</kbd> in the editor — the picture goes in where the caret is
+4. Open a whole folder with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, or
+   right-click a `.md` file in Windows → **Open with** → **Markdown Studio**
+5. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save
 
-**The rest of this page is a working guide to writing a README.** Every example is
-live: read the result on the right, and look at the same place on the left to see
-exactly how it was typed. Delete any of it once you are done.
+**This page has four parts.** The first is a tour of what the app does. The other
+three are a working guide to writing a README: every example is live, so read the
+result on the right and look at the same place on the left to see exactly how it was
+typed. Delete any of it once you are done.
 
+- [Part 0: Using Markdown Studio](#part-0-using-markdown-studio)
 - [Part 1: The basics](#part-1-the-basics)
 - [Part 2: Going further](#part-2-going-further)
 - [Part 3: A README worth reading](#part-3-a-readme-worth-reading)
+
+---
+
+# Part 0: Using Markdown Studio
+
+## Two kinds of document
+
+The sidebar on the left has four panes, switched by the icons at its top.
+
+| Pane | What is in it |
+| ---- | ------------- |
+| **Explorer** | A folder you opened, as a tree — every Markdown file in it, plus everything inside its `assets` folders |
+| **Docs** | Your own documents, each one a real `.md` file in your documents folder |
+| **Outline** | The headings of the file you are in; click one to jump there |
+| **Search** | Search every file in the opened folder at once |
+
+**Docs save themselves.** Run from `MarkdownStudio.exe`, each document in the Docs pane
+is a file in `Documents\Markdown Studio`, written as you type. Rename it with the title
+box at the top and its file is renamed too; delete it and the file goes to the Recycle
+Bin. **Settings → Change folder…** moves them all somewhere else.
+
+**Files from a folder are saved by you**, like in VS Code. An edited file shows an
+orange dot on its tab and in the tree, and the status bar says *Unsaved changes*
+until you press <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>
+saves every open file). Closing a tab with unsaved changes asks first.
+
+> [!NOTE]
+> Opened as a plain web page instead of through the exe, Docs live in that browser
+> only, and the first <kbd>Ctrl</kbd>+<kbd>S</kbd> asks where to save a real file.
+
+## Tabs
+
+Every file you open gets a tab across the top. <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd>
+jumps to a tab, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> steps through
+them, a middle-click or <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> closes one, and the
+button at the right end of the tab bar closes them all.
+
+## Pictures
+
+**Paste a screenshot straight in**, the way Word takes one:
+
+1. Press <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> and select part of the screen
+   (or copy any image)
+2. Click in the editor where the picture should go
+3. Press <kbd>Ctrl</kbd>+<kbd>V</kbd>
+
+The picture is saved as a real file in an **`assets` folder next to the document**,
+named after the document and the time, and a line like this goes in on its own:
+
+````markdown
+![image](assets/Meeting-notes-20261011-153012.png)
+````
+
+Then replace the word `image` with what the picture actually shows — see
+[Links and images](#links-and-images) for why.
+
+- **Drag image files** onto the window to do the same; they keep their own names
+- A name that is already taken is **never overwritten** — the new picture gets a number
+- Copying cells from Excel or text from Word still pastes the **text**, even though
+  those programs put a picture on the clipboard too
+- With no folder to save into (a document that lives only in the browser, or a
+  read-only folder) the picture is **embedded** in the document instead: the place you
+  pasted reads `![image][img-1]` and the picture data sits at the very end of the file
+- **Export HTML** puts every picture inside the exported file, so it opens anywhere
+
+| Where the document is | Where its pictures go |
+| --------------------- | --------------------- |
+| `D:\Project\notes.md` | `D:\Project\assets\` |
+| `D:\Project\docs\api.md` | `D:\Project\docs\assets\` |
+| A document in the Docs pane | `Documents\Markdown Studio\assets\` |
+
+> [!IMPORTANT]
+> The link is relative, so a document and its `assets` folder belong together. Copy or
+> move them as a pair and the pictures keep showing — in this app, in VS Code, and on
+> GitHub.
+
+## What is in `assets`
+
+The Explorer lists **only Markdown files** — except inside a folder named `assets`,
+where it shows **everything**, so you can see what is really in there.
+
+| File | In the tree | Click it |
+| ---- | ----------- | -------- |
+| `.png` `.jpg` `.jpeg` `.gif` `.webp` `.bmp` `.svg` `.avif` `.ico` | picture icon | the picture, its size in pixels and on disk, and where it is |
+| anything else (`.pdf`, `.docx`, `.zip`, ...) | file icon | its name and where it is |
+
+From that window, **Copy path** copies where the file is, and **Insert into document**
+writes the right link into the document you are editing — `![flow](../assets/flow.png)`
+from a subfolder, or `[spec.pdf](assets/spec.pdf)` for a file that is not a picture.
+It is only offered when the document is in the same folder, because only then would
+the link work.
+
+The **Docs** pane lists the library's own `assets` under your documents. Each one says
+which document uses it, and one that **no document uses** is marked in orange — a
+good sign it can be deleted.
+
+Clicking a picture's link in the preview opens the same window.
+
+## Finding things
+
+| To | Press |
+| -- | ----- |
+| Find and replace in this file | <kbd>Ctrl</kbd>+<kbd>F</kbd> |
+| Search every file in the folder | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
+| Jump to a heading | the **Outline** pane |
+
+Find highlights every hit, outlines the current one and scrolls to it; <kbd>Enter</kbd>
+steps through them. It has case-sensitive and regex modes, and works in the preview
+too, against the text as it reads rather than the Markdown. Search in folder groups
+the hits by file — click one to open the file at that exact line.
+
+## Views
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd> editor only, <kbd>Ctrl</kbd>+<kbd>2</kbd> side by side,
+<kbd>Ctrl</kbd>+<kbd>3</kbd> preview only. Switching keeps your place. Drag the bar
+between the panes to resize them, double-click it to centre it again.
+
+Side by side, the two panes scroll together, and **selecting text in the editor
+highlights the matching block in the preview** — handy for finding which part of a long
+document you are in. Both can be turned off in Settings.
+
+## Links between files
+
+Click a link to another Markdown file in the preview — `[notes](notes.md)`,
+`[up](../README.md)`, `[setup](guide.md#install)` — and it opens as a tab instead of
+leaving the page. That works once the folder is open.
+
+## Sharing what you wrote
+
+Everything is in the **⋮ menu** at the top right:
+
+| Menu item | What you get |
+| --------- | ------------ |
+| Export HTML | One `.html` file with the styling and pictures inside, to send to anyone |
+| Print / PDF | The preview, printed or saved as a PDF (<kbd>Ctrl</kbd>+<kbd>P</kbd>) |
+| Copy HTML | The rendered HTML on the clipboard, for pasting into a web page |
+| Download backup | Every document in the Docs pane as one `.json` file |
+| Import backup | Brings those documents back |
+
+## Settings
+
+<kbd>Ctrl</kbd>+<kbd>,</kbd> opens them: where your documents live, soft wrap, scroll
+sync, wide layout, both text sizes, dark mode (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>),
+and the language — English or **Bahasa Indonesia**.
 
 ---
 
@@ -962,11 +1115,33 @@ the item's text:
 <https://example.com>
 ````
 
-An image is a link with a `!` in front. Always write real alt text — it is what
-someone hears when the image cannot be seen, and what shows if the file goes missing.
+[link text](https://example.com)
+[with a tooltip](https://example.com "Shown on hover")
+<https://example.com>
+
+| You type | What it does |
+| -------- | ------------ |
+| `[link text](https://example.com)` | Shows **link text**; clicking it opens the address in `( )` |
+| `[text](https://example.com "Shown on hover")` | The same, with a tooltip when the mouse is over it |
+| `<https://example.com>` | The address itself, made clickable |
+| `![alt text](path/to/image.png)` | **Shows the picture** at that path |
+
+**An image is a link with a `!` in front.** The text in `[ ]` is its *alt text*: what a
+screen reader says to someone who cannot see it, and what shows if the file goes
+missing. So say what the picture shows, not that it is one:
+
+````markdown
+![image](assets/shot.png)                              <- says nothing
+![Login form with the error message](assets/shot.png)  <- says what it shows
+````
+
+The path is **relative to the document**: `assets/shot.png` is the `assets` folder next
+to this file, `../assets/shot.png` is one folder up. You rarely type it yourself —
+paste a screenshot and the line is written for you (see [Pictures](#pictures)).
 
 Links to **other Markdown files work here**: `[the guide](docs/guide.md)` opens that
-file as a tab instead of leaving the page, as long as you opened the folder.
+file as a tab instead of leaving the page, as long as you opened the folder. Add a
+heading's id to land on it: `[install](docs/guide.md#install)`.
 
 ## Code
 
@@ -1247,6 +1422,609 @@ MIT — see LICENSE.
 ---
 
 Everything here is yours to delete. Start writing.
+</script>
+
+<script type="text/markdown" id="seed-id">
+# Selamat datang di Markdown Studio
+
+**Editor Markdown dengan pratinjau langsung** yang sepenuhnya bekerja offline. Tanpa
+internet, tanpa akun — Anda menulis di sebelah kiri dan melihat hasil jadinya di kanan.
+
+> [!TIP]
+> Tekan <kbd>F1</kbd> kapan saja untuk melihat semua pintasan keyboard, dan
+> <kbd>Ctrl</kbd>+<kbd>,</kbd> untuk Pengaturan. Halaman ini hilang? **Menu ⋮ → Panduan
+> selamat datang** membuka versi terbarunya.
+
+## Mulai cepat
+
+1. Ketik di panel kiri — pratinjau berubah seiring Anda menulis
+2. Pakai toolbar atau pintasan seperti <kbd>Ctrl</kbd>+<kbd>B</kbd> untuk **tebal**
+3. Ambil screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) lalu tekan
+   <kbd>Ctrl</kbd>+<kbd>V</kbd> di editor — gambarnya masuk di posisi kursor
+4. Buka satu folder utuh dengan <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, atau
+   klik kanan file `.md` di Windows → **Open with** → **Markdown Studio**
+5. Tekan <kbd>Ctrl</kbd>+<kbd>S</kbd> untuk menyimpan
+
+**Halaman ini terdiri dari empat bagian.** Yang pertama adalah tur fitur aplikasi. Tiga
+lainnya adalah panduan praktis menulis README: setiap contoh hidup, jadi baca hasilnya
+di kanan dan lihat tempat yang sama di kiri untuk tahu persis cara mengetiknya. Hapus
+bagian mana pun kalau sudah tidak perlu.
+
+- [Bagian 0: Menggunakan Markdown Studio](#bagian-0-menggunakan-markdown-studio)
+- [Bagian 1: Dasar-dasar](#bagian-1-dasar-dasar)
+- [Bagian 2: Lebih jauh](#bagian-2-lebih-jauh)
+- [Bagian 3: README yang layak dibaca](#bagian-3-readme-yang-layak-dibaca)
+
+---
+
+# Bagian 0: Menggunakan Markdown Studio
+
+## Dua jenis dokumen
+
+Sidebar di kiri punya empat panel, dipilih lewat ikon di bagian atasnya.
+
+| Panel | Isinya |
+| ----- | ------ |
+| **Explorer** | Folder yang Anda buka, dalam bentuk pohon — semua file Markdown di dalamnya, ditambah seluruh isi folder `assets` |
+| **Docs** | Dokumen Anda sendiri, masing-masing berupa file `.md` sungguhan di folder dokumen Anda |
+| **Outline** | Judul-judul di file yang sedang dibuka; klik salah satu untuk melompat ke sana |
+| **Search** | Mencari di semua file dalam folder yang dibuka sekaligus |
+
+**Docs tersimpan sendiri.** Dijalankan dari `MarkdownStudio.exe`, setiap dokumen di panel
+Docs adalah file di `Documents\Markdown Studio`, ditulis seiring Anda mengetik. Ganti
+namanya lewat kotak judul di atas dan nama file-nya ikut berganti; hapus dokumennya dan
+file-nya masuk ke Recycle Bin. **Pengaturan → Change folder…** memindahkan semuanya ke
+tempat lain.
+
+**File dari folder Anda simpan sendiri**, seperti di VS Code. File yang diubah ditandai
+titik oranye di tab dan di pohon, dan status bar menulis *Unsaved changes* sampai Anda
+menekan <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>
+menyimpan semua file yang terbuka). Menutup tab yang belum disimpan akan ditanyakan
+dulu.
+
+> [!NOTE]
+> Kalau dibuka sebagai halaman web biasa, bukan lewat exe, Docs hanya tersimpan di
+> browser itu, dan <kbd>Ctrl</kbd>+<kbd>S</kbd> pertama akan menanyakan di mana file
+> sungguhannya disimpan.
+
+## Tab
+
+Setiap file yang dibuka mendapat tab di bagian atas. <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd>
+melompat ke sebuah tab, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> berpindah
+satu per satu, klik tengah atau <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> menutup satu
+tab, dan tombol di ujung kanan bar tab menutup semuanya.
+
+## Gambar
+
+**Tempel screenshot langsung**, seperti di Word:
+
+1. Tekan <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> lalu pilih bagian layar
+   (atau salin gambar apa saja)
+2. Klik di editor, di tempat gambar akan diletakkan
+3. Tekan <kbd>Ctrl</kbd>+<kbd>V</kbd>
+
+Gambarnya disimpan sebagai file sungguhan di **folder `assets` di sebelah dokumen**,
+dinamai sesuai nama dokumen dan waktunya, dan baris seperti ini dimasukkan di barisnya
+sendiri:
+
+````markdown
+![image](assets/Catatan-rapat-20261011-153012.png)
+````
+
+Lalu ganti kata `image` dengan apa yang sebenarnya ditunjukkan gambar itu — lihat
+[Tautan dan gambar](#tautan-dan-gambar) untuk alasannya.
+
+- **Seret file gambar** ke jendela untuk hasil yang sama; namanya tetap seperti aslinya
+- Nama yang sudah dipakai **tidak pernah ditimpa** — gambar baru diberi nomor
+- Menyalin sel dari Excel atau teks dari Word tetap menempelkan **teksnya**, walaupun
+  program itu juga menaruh gambar di clipboard
+- Kalau tidak ada folder untuk menyimpan (dokumen yang hanya ada di browser, atau folder
+  read-only), gambarnya **disematkan** ke dalam dokumen: di tempat Anda menempel tertulis
+  `![image][img-1]` dan data gambarnya ada di paling bawah file
+- **Export HTML** memasukkan semua gambar ke dalam file hasil export, jadi bisa dibuka
+  di mana saja
+
+| Lokasi dokumen | Lokasi gambarnya |
+| -------------- | ---------------- |
+| `D:\Proyek\catatan.md` | `D:\Proyek\assets\` |
+| `D:\Proyek\docs\api.md` | `D:\Proyek\docs\assets\` |
+| Dokumen di panel Docs | `Documents\Markdown Studio\assets\` |
+
+> [!IMPORTANT]
+> Tautannya relatif, jadi dokumen dan folder `assets`-nya satu paket. Salin atau pindahkan
+> keduanya bersama-sama dan gambarnya tetap tampil — di aplikasi ini, di VS Code, dan di
+> GitHub.
+
+## Isi folder `assets`
+
+Explorer **hanya menampilkan file Markdown** — kecuali di dalam folder bernama `assets`,
+yang menampilkan **semuanya**, supaya Anda tahu apa saja isinya.
+
+| File | Di pohon | Kalau diklik |
+| ---- | -------- | ------------ |
+| `.png` `.jpg` `.jpeg` `.gif` `.webp` `.bmp` `.svg` `.avif` `.ico` | ikon gambar | gambarnya, ukurannya dalam piksel dan di disk, serta lokasinya |
+| jenis lain (`.pdf`, `.docx`, `.zip`, ...) | ikon file | nama dan lokasinya |
+
+Dari jendela itu, **Salin lokasi** menyalin letak file-nya, dan **Sisipkan ke dokumen**
+menulis tautan yang benar ke dokumen yang sedang Anda edit — `![flow](../assets/flow.png)`
+dari subfolder, atau `[spec.pdf](assets/spec.pdf)` untuk file yang bukan gambar. Tombol
+ini hanya aktif kalau dokumennya ada di folder yang sama, karena hanya dengan begitu
+tautannya akan berfungsi.
+
+Panel **Docs** menampilkan isi folder `assets` milik library di bawah daftar dokumen.
+Masing-masing menyebut dokumen yang memakainya, dan yang **tidak dipakai dokumen mana
+pun** ditandai oranye — tanda bahwa file itu mungkin sudah bisa dihapus.
+
+Mengklik tautan gambar di pratinjau membuka jendela yang sama.
+
+## Mencari sesuatu
+
+| Untuk | Tekan |
+| ----- | ----- |
+| Cari dan ganti di file ini | <kbd>Ctrl</kbd>+<kbd>F</kbd> |
+| Cari di semua file dalam folder | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
+| Melompat ke sebuah judul | panel **Outline** |
+
+Pencarian menyorot semua hasil, membingkai hasil yang aktif dan menggulir ke sana;
+<kbd>Enter</kbd> berpindah ke hasil berikutnya. Ada mode peka huruf besar-kecil dan
+regex, dan bisa dipakai di pratinjau juga — mencocokkan teks seperti yang terbaca, bukan
+Markdown-nya. Cari di folder mengelompokkan hasil per file — klik salah satu untuk
+membuka file itu tepat di barisnya.
+
+## Tampilan
+
+<kbd>Ctrl</kbd>+<kbd>1</kbd> editor saja, <kbd>Ctrl</kbd>+<kbd>2</kbd> berdampingan,
+<kbd>Ctrl</kbd>+<kbd>3</kbd> pratinjau saja. Berpindah tampilan tidak menghilangkan
+posisi Anda. Seret garis di antara kedua panel untuk mengubah ukurannya, klik dua kali
+untuk mengembalikannya ke tengah.
+
+Saat berdampingan, kedua panel menggulir bersama, dan **memilih teks di editor menyorot
+blok yang sama di pratinjau** — berguna untuk tahu sedang di bagian mana dari dokumen
+yang panjang. Keduanya bisa dimatikan di Pengaturan.
+
+## Tautan antar-file
+
+Klik tautan ke file Markdown lain di pratinjau — `[catatan](catatan.md)`,
+`[naik](../README.md)`, `[pemasangan](panduan.md#instalasi)` — dan file itu terbuka
+sebagai tab, bukan meninggalkan halaman. Ini berlaku setelah foldernya dibuka.
+
+## Membagikan tulisan
+
+Semuanya ada di **menu ⋮** di kanan atas:
+
+| Menu | Hasilnya |
+| ---- | -------- |
+| Export HTML | Satu file `.html` berisi gaya tampilan dan gambarnya, untuk dikirim ke siapa saja |
+| Print / PDF | Pratinjau dicetak atau disimpan sebagai PDF (<kbd>Ctrl</kbd>+<kbd>P</kbd>) |
+| Copy HTML | HTML hasil render di clipboard, untuk ditempel di halaman web |
+| Download backup | Semua dokumen di panel Docs dalam satu file `.json` |
+| Import backup | Mengembalikan dokumen-dokumen itu |
+
+## Pengaturan
+
+<kbd>Ctrl</kbd>+<kbd>,</kbd> membukanya: lokasi dokumen Anda, soft wrap, sinkronisasi
+gulir, tata letak lebar, kedua ukuran teks, mode gelap
+(<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>), dan bahasa — **Bahasa Indonesia** atau
+English.
+
+---
+
+# Bagian 1: Dasar-dasar
+
+## Judul
+
+Satu `#` per tingkat, lalu spasi setelah tanda pagar. Beri setiap file **satu** judul `#`
+dan letakkan yang lain di bawahnya.
+
+````markdown
+# Judul proyek      (satu per file)
+## Sebuah bagian
+### Sub-bagian
+````
+
+Setiap judul diam-diam menjadi target tautan, dan itulah yang membuat daftar isi
+mungkin dibuat — dijelaskan di Bagian 2.
+
+## Paragraf dan baris baru
+
+Baris kosong memulai paragraf baru. Enter biasa **tidak** memutus baris — teksnya tetap
+mengalir, dan biasanya memang itu yang diinginkan. Untuk memaksa baris baru di dalam satu
+paragraf, akhiri barisnya dengan garis miring terbalik. (Dua spasi di akhir baris juga
+bisa dan sering terlihat di file orang lain, tapi sintaks yang tak terlihat mudah hilang
+oleh editor yang memangkas spasi.)
+
+````markdown
+Dua baris ini
+menjadi satu baris.
+
+Yang ini putus \
+tepat di sini.
+````
+
+Dua baris ini
+menjadi satu baris.
+
+Yang ini putus \
+tepat di sini.
+
+## Penekanan dan tanda dalam teks
+
+| Anda ketik | Hasilnya |
+| ---------- | -------- |
+| `**tebal**` | **tebal** |
+| `*miring*` | *miring* |
+| `***keduanya***` | ***keduanya*** |
+| `~~dicoret~~` | ~~dicoret~~ |
+| `` `kode` `` | `kode` |
+| `==disorot==` | ==disorot== |
+| `H~2~O` | H~2~O |
+| `x^2^` | x^2^ |
+
+Pakai `` ` `` untuk apa pun yang mungkin salah diketik pembaca: nama file, opsi, perintah,
+nilai. Di README, itu lebih penting daripada huruf tebal.
+
+## Daftar
+
+Menjorok dua spasi untuk membuat sub-daftar. Daftar bernomor menomori dirinya sendiri,
+jadi Anda bisa menulis `1.` di setiap baris selama menyusun draf dan hasilnya tetap
+berurutan.
+
+````markdown
+- Daftar tanpa nomor
+- Struktur bertingkat
+  - Satu tingkat lebih dalam
+  - Dan satu lagi
+
+1. Daftar bernomor
+2. Menghitung sendiri
+3. Secara otomatis
+````
+
+- Daftar tanpa nomor
+- Struktur bertingkat
+  - Satu tingkat lebih dalam
+  - Dan satu lagi
+
+1. Daftar bernomor
+2. Menghitung sendiri
+3. Secara otomatis
+
+Untuk menaruh blok kode atau paragraf **di dalam** butir daftar, buat menjorok sejajar
+dengan teks butirnya:
+
+1. Pasang dulu:
+
+   ```shell
+   npm install my-package
+   ```
+
+2. Lalu jalankan. Jorokan itulah yang membuat langkah ini tetap menempel di butir 2.
+
+## Tautan dan gambar
+
+````markdown
+[teks tautan](https://example.com)
+[dengan tooltip](https://example.com "Muncul saat kursor di atasnya")
+![teks alt](lokasi/ke/gambar.png)
+<https://example.com>
+````
+
+[teks tautan](https://example.com)
+[dengan tooltip](https://example.com "Muncul saat kursor di atasnya")
+<https://example.com>
+
+| Anda ketik | Fungsinya |
+| ---------- | --------- |
+| `[teks tautan](https://example.com)` | Menampilkan **teks tautan**; kalau diklik membuka alamat di dalam `( )` |
+| `[teks](https://example.com "Muncul saat kursor di atasnya")` | Sama, ditambah tooltip saat kursor di atasnya |
+| `<https://example.com>` | Alamatnya sendiri, dijadikan bisa diklik |
+| `![teks alt](lokasi/ke/gambar.png)` | **Menampilkan gambar** di lokasi itu |
+
+**Gambar adalah tautan dengan `!` di depannya.** Teks di dalam `[ ]` adalah *teks alt*:
+yang dibacakan pembaca layar untuk orang yang tidak bisa melihatnya, dan yang tampil
+kalau file-nya hilang. Jadi tulis apa yang ditunjukkan gambar, bukan bahwa itu gambar:
+
+````markdown
+![image](assets/shot.png)                              <- tidak menjelaskan apa-apa
+![Form login dengan pesan error](assets/shot.png)      <- menjelaskan isinya
+````
+
+Lokasinya **relatif terhadap dokumen**: `assets/shot.png` adalah folder `assets` di
+sebelah file ini, `../assets/shot.png` adalah satu folder di atasnya. Anda jarang perlu
+mengetiknya sendiri — tempel screenshot dan barisnya ditulis otomatis (lihat
+[Gambar](#gambar)).
+
+Tautan ke **file Markdown lain bisa dipakai di sini**: `[panduan](docs/panduan.md)`
+membuka file itu sebagai tab, bukan meninggalkan halaman, selama foldernya sudah dibuka.
+Tambahkan id judul untuk langsung menuju ke sana: `[instalasi](docs/panduan.md#instalasi)`.
+
+## Kode
+
+Kode dalam baris untuk hal pendek. Blok berpagar untuk apa pun yang akan disalin orang —
+dan selalu sebutkan bahasanya, karena itulah yang menyalakan pewarnaan sintaks.
+
+````markdown
+```js
+const sapa = (nama = "dunia") => `Halo, ${nama}!`;
+```
+````
+
+```js
+// Sekitar 25 bahasa dikenali
+const sapa = (nama = "dunia") => {
+  const waktu = Date.now();
+  return `Halo, ${nama}! (${waktu})`;
+};
+console.log(sapa("Markdown"));
+```
+
+```python
+def fib(n: int) -> list[int]:
+    """Deret klasik, iteratif."""
+    out, a, b = [], 0, 1
+    for _ in range(n):
+        out.append(a)
+        a, b = b, a + b
+    return out
+```
+
+```shell
+# shell, sql, json, yaml, html, css, go, rust, java dan lainnya juga bisa
+git clone https://example.com/project.git && cd project
+```
+
+## Kutipan
+
+> Kutipan biasa untuk catatan sampingan.
+> Bisa lebih dari satu baris.
+>
+> > Dan bisa bertingkat, kalau memang perlu.
+
+## Tabel
+
+Baris judul dan baris garis-garis wajib ada. Titik dua di baris garis menentukan
+perataan: kiri, `:-:` tengah, `-:` kanan.
+
+````markdown
+| Fitur | Pintasan | Bisa offline |
+| ----- | :------: | -----------: |
+| Tebal | `Ctrl+B` |           Ya |
+````
+
+| Fitur             | Pintasan       | Bisa offline |
+| ----------------- | :------------: | -----------: |
+| Tebal             | `Ctrl+B`       |           Ya |
+| Tautan            | `Ctrl+K`       |           Ya |
+| Cari dan ganti    | `Ctrl+F`       |           Ya |
+| Export HTML       | menu           |           Ya |
+
+Garis tegaknya tidak harus sejajar — itu hanya supaya nyaman dibaca saat mengedit.
+Untuk menulis `|` di dalam sel, tulis sebagai `\|`.
+
+## Garis pemisah
+
+Tiga tanda hubung atau lebih di barisnya sendiri. Berguna di antara bagian besar README
+yang panjang, tapi mudah berlebihan.
+
+---
+
+# Bagian 2: Lebih jauh
+
+## Callout
+
+Lima jenis, tampil sebagai panel berwarna. Pakai ini daripada menulis **Catatan:** dengan
+huruf tebal.
+
+````markdown
+> [!NOTE]
+> Konteks berguna yang perlu diketahui pembaca.
+````
+
+> [!NOTE]
+> Konteks berguna yang perlu diketahui pembaca.
+
+> [!TIP]
+> Jalan pintas atau cara yang lebih baik.
+
+> [!IMPORTANT]
+> Sesuatu yang tidak boleh dilewati.
+
+> [!WARNING]
+> Sesuatu yang bisa salah.
+
+> [!CAUTION]
+> Sesuatu yang akibatnya sulit dibatalkan.
+
+## Daftar tugas
+
+- [x] Kotak centangnya bisa diklik
+- [x] Mengkliknya mengubah sumbernya untuk Anda
+- [ ] Berguna untuk bagian roadmap
+
+## Diagram
+
+Blok kode bertanda `mermaid` digambar, bukan dicetak sebagai teks. Khusus flowchart —
+`flowchart` atau `graph`, dengan arah `TD` (ke bawah), `LR`, `RL` atau `BT`.
+
+```mermaid
+flowchart TD
+    A([Buka file]) --> B{Sudah pernah diedit?}
+    B -- belum --> C[Tulis draft]
+    B -- sudah --> D[Perbaiki]
+    C --> E[Simpan]
+    D --> E
+    E --> F([Selesai])
+```
+
+Bar di bawah diagram punya **Code** untuk membaca sumbernya, **Copy** untuk menyalinnya,
+serta **PNG** / **SVG** untuk menyimpan gambarnya.
+
+Bentuk kotak ditentukan oleh kurung di sekitar label, garis penghubung oleh tanda hubung
+di antaranya:
+
+| Anda tulis | Hasilnya |
+| ---------- | -------- |
+| `A[Teks]` `A(Teks)` `A([Teks])` | kotak, sudut bulat, kapsul |
+| `A[[Teks]]` `A[(Teks)]` `A((Teks))` | subrutin, database, lingkaran |
+| `A{Teks}` `A{{Teks}}` `A[/Teks/]` | keputusan, segi enam, jajaran genjang |
+| `A --> B` `A --- B` | panah, garis polos |
+| `A -.-> B` `A ==> B` | putus-putus, tebal |
+| `A -- ya --> B` `A -->|ya| B` | label pada garis |
+| `A --> B & C` | keduanya, dari satu baris |
+
+`subgraph Nama` ... `end` menggambar kotak di sekitar sekelompok node, `%%` memulai
+komentar, dan `classDef`/`style` memberi warna. Diagram yang berputar kembali ke dirinya
+sendiri juga tidak masalah.
+
+## Catatan kaki
+
+Pindahkan keterangan yang berat keluar dari kalimat[^kenapa] dan biarkan terkumpul di
+bawah.
+
+[^kenapa]: Seperti ini. Penandanya boleh label apa saja — `[^kenapa]`, `[^1]` — dan
+urutannya di hasil mengikuti urutan dirujuk, bukan urutan ditulis.
+
+## Bagian yang bisa dilipat
+
+Output panjang, log lengkap, dan detail yang jarang dibutuhkan sebaiknya dilipat.
+
+<details>
+<summary>Klik untuk membuka</summary>
+
+Sebagian HTML yang aman didukung, jadi <b>details</b>, <kbd>kbd</kbd> dan
+<mark>mark</mark> semuanya bisa. Beri satu baris kosong setelah summary dan Anda bisa
+memakai Markdown biasa di sini:
+
+- termasuk daftar
+- dan `kode`
+
+</details>
+
+## Tautan gaya referensi
+
+Kalau tautan yang sama muncul berkali-kali, atau URL-nya terlalu panjang sampai merusak
+kalimat, definisikan sekali di bawah. Tulisannya tetap enak dibaca, dan URL yang pindah
+cukup diperbaiki di satu tempat.
+
+````markdown
+Lihat [dokumentasi][d] dan [catatan perubahan][c].
+
+[d]: https://example.com/docs
+[c]: https://example.com/changelog
+````
+
+Badge hanyalah tautan referensi dengan gambar di dalamnya — deretan badge ala shields.io
+di bagian atas kebanyakan README tidak lebih dari ini.
+
+## Anchor dan daftar isi
+
+Setiap judul mendapat id dari teksnya: huruf kecil semua, tanda baca dibuang, spasi
+diganti tanda hubung. `## Mulai cepat` menjadi `#mulai-cepat`. Judul yang berulang
+diberi tambahan `-1`, `-2`.
+
+````markdown
+- [Mulai cepat](#mulai-cepat)
+- [Lebih jauh](#bagian-2-lebih-jauh)
+````
+
+Hanya itu daftar isi. Layak ditambahkan begitu README melewati kira-kira dua layar.
+
+> [!NOTE]
+> Karakter di luar ASCII biasa tetap ikut ke dalam id — judul yang memakai tanda pisah
+> panjang akan mempertahankannya. Klik sendiri tautan Anda di pratinjau sekali sebelum
+> di-commit.
+
+## Tombol, sorotan dan teks kecil
+
+Tekan <kbd>Ctrl</kbd>+<kbd>S</kbd> untuk menyimpan. Tulis tombol sebagai
+`<kbd>Ctrl</kbd>`, tonjolkan sesuatu dengan `==sorotan==`, dan pakai `H~2~O` serta
+`x^2^` untuk subskrip dan superskrip.
+
+## HTML di dalam Markdown
+
+Berguna untuk satu hal yang tidak bisa dilakukan Markdown — biasanya blok judul di
+tengah:
+
+<div align="center">
+  <b>Markdown Studio</b><br>
+  <i>editor offline dalam satu file</i>
+</div>
+
+Skrip dan event handler dibuang, jadi README yang ditempel tidak bisa menjalankan apa
+pun di sini.
+
+## Escape dan komentar
+
+Taruh garis miring terbalik di depan karakter untuk menampilkannya apa adanya:
+`\*bukan miring\*` menghasilkan \*bukan miring\*. Hal yang sama berlaku untuk `` \` ``,
+`\_`, `\#` dan `\|`.
+
+Untuk meninggalkan catatan bagi diri sendiri yang tidak pernah dilihat pembaca, pakai
+komentar HTML. Ada satu di baris berikut, dan hasilnya tidak tampil sama sekali.
+
+<!-- TODO: jelaskan langkah deployment begitu sudah pasti -->
+
+---
+
+# Bagian 3: README yang layak dibaca
+
+Orang yang membuka proyek Anda menanyakan tiga hal, berurutan: **ini apa, apakah ini
+menyelesaikan masalah saya, dan bagaimana cara mulainya?** Jawab ketiganya di layar
+pertama, dan sisanya boleh sepanjang yang diperlukan.
+
+## Kerangka untuk memulai
+
+````markdown
+# Nama proyek
+
+Satu kalimat tentang apa fungsinya dan untuk siapa.
+
+## Instalasi
+
+```shell
+npm install nama-proyek
+```
+
+## Penggunaan
+
+Contoh terkecil yang benar-benar bisa dijalankan.
+
+## Konfigurasi
+
+Tabel opsi, nilai bawaan, dan apa yang diubah masing-masing.
+
+## Kontribusi
+
+Cara menyiapkan lingkungan pengembangan dan apa yang Anda harapkan di pull request.
+
+## Lisensi
+
+MIT — lihat LICENSE.
+````
+
+## Yang membedakan README yang baik
+
+- **Mulai dengan kalimat, bukan badge.** Orang harus tahu apakah perlu lanjut membaca
+  sebelum menggulir.
+- **Contoh pertama harus bisa dijalankan apa adanya.** Tanpa placeholder, tanpa import
+  yang hilang, tanpa langkah yang "jelas" harus dilakukan duluan.
+- **Sebutkan apa yang tidak bisa dilakukannya.** Batasan dan keterbatasan yang diketahui
+  menghemat lebih banyak waktu daripada daftar fitur apa pun.
+- **Tunjukkan output, bukan hanya perintah.** Blok berisi apa yang seharusnya mereka lihat
+  lebih baik daripada paragraf yang menjelaskannya.
+- **Pilih tabel** untuk apa pun yang punya lebih dari tiga opsi.
+- **Lipat bagian yang panjang** dengan `<details>` daripada menghapusnya.
+- **Tulis bagian instalasi paling akhir**, setelah Anda mengikuti langkah-langkah Anda
+  sendiri di komputer yang bersih.
+
+> [!TIP]
+> Tekan <kbd>Ctrl</kbd>+<kbd>3</kbd> untuk pratinjau saja dan baca dari atas ke bawah
+> seperti orang asing membacanya. Kebanyakan masalah README sudah terlihat dalam sepuluh
+> detik.
+
+---
+
+Semua yang ada di sini boleh Anda hapus. Mulailah menulis.
 </script>
 
 <script>
@@ -1623,6 +2401,9 @@ const I18N = (function () {
     "Paste image": "Tempel gambar",
     "Pictures": "Gambar",
     "No preview for this kind of file": "Tidak ada pratinjau untuk jenis file ini",
+    "Welcome guide": "Panduan selamat datang",
+    "Something went wrong: ": "Terjadi kesalahan: ",
+    "Opened the latest Welcome guide": "Panduan selamat datang terbaru dibuka",
     "in ": "di ",
     "not used in any document": "tidak dipakai di dokumen mana pun",
     "Loading...": "Memuat...",
@@ -3064,12 +3845,26 @@ const MD = (function () {
 
   /* ---------- toast ---------- */
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, ms) {
     const t = $("#toast");
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 2100);
+    /* an error has to stay up long enough to be read out to someone */
+    toastTimer = setTimeout(() => t.classList.remove("show"), ms || 2100);
+  }
+
+  /* The guide comes in the interface's language. Resolved from the setting rather
+     than the current language, because the first run writes it before the language
+     has been applied. */
+  function guideText() {
+    const id = I18N.resolve(state.settings.lang) === "id";
+    const el = document.getElementById(id ? "seed-id" : "seed");
+    return {
+      text: (el.textContent || "").replace(/^\n/, ""),
+      name: id ? "Selamat datang" : "Welcome",
+      guide: id ? "Panduan selamat datang" : "Welcome guide"
+    };
   }
 
   /* ---------- persistence ---------- */
@@ -3087,8 +3882,8 @@ const MD = (function () {
       } catch (e) { }
     }
     if (!state.docs.length) {
-      const seed = (document.getElementById("seed").textContent || "").replace(/^\n/, "");
-      state.docs = [{ id: uid(), name: "Welcome", content: seed, created: Date.now(), updated: Date.now() }];
+      const g = guideText();
+      state.docs = [{ id: uid(), name: g.name, content: g.text, created: Date.now(), updated: Date.now() }];
       state.active = state.docs[0].id;
     }
     if (!state.docs.some(d => d.id === state.active)) state.active = state.docs[0].id;
@@ -5677,8 +6472,22 @@ const MD = (function () {
         break;
       case "settings": showMenu(false); showSettings(true); return;
       case "help": $("#help").hidden = false; break;
+      case "guide": showMenu(false); openGuide(); return;
     }
     showMenu(false);
+  }
+
+  /* The Welcome document is only written on the very first run, so an older copy
+     never learns about anything added since. This opens the guide as this version
+     has it - the copy already made if it is untouched, a fresh one otherwise, so
+     your own edits to an old one are never overwritten. */
+  function openGuide() {
+    const g = guideText();
+    const same = state.docs.find(d => (d.content || "") === g.text);
+    if (same) { openDoc(same.id); return; }
+    newDoc(g.guide, g.text, true);
+    renderDocs();
+    toast(tr("Opened the latest Welcome guide"));
   }
 
   /* ---------- help ---------- */
@@ -6073,6 +6882,22 @@ const MD = (function () {
   /* =========================================================
      wire everything up
      ========================================================= */
+  /* A startup step that fails is reported and skipped, so the steps after it - and
+     above all the event wiring at the end of init - still happen. */
+  function report(where, e) {
+    const msg = (e && (e.message || e.reason)) || String(e || "");
+    /* the browser's own harmless layout notice, not ours to worry anyone with */
+    if (/ResizeObserver loop/.test(msg)) return;
+    try { console.error("Markdown Studio" + (where ? " (" + where + ")" : "") + ":", e); } catch (x) { }
+    toast(tr("Something went wrong: ") + msg + (where ? " [" + where + "]" : ""), 9000);
+  }
+  function step(where, fn) {
+    try {
+      const r = fn();
+      return r && typeof r.then === "function" ? r.catch(e => report(where, e)) : r;
+    } catch (e) { report(where, e); }
+  }
+
   async function init() {
     load();
     initLang();
@@ -6084,14 +6909,20 @@ const MD = (function () {
       if (state.settings.view === "split") state.settings.view = "edit";
     }
     applySettings();
+    /* Anything that goes wrong from here on is said on screen. Before this, an error
+       thrown by some document's contents stopped startup on the spot - and with it
+       every button wired up further down, so Settings, the menu and the rest simply
+       did nothing, with no sign of why. */
+    window.addEventListener("error", e => report("", e.error || e.message));
+    window.addEventListener("unhandledrejection", e => report("", e.reason));
     /* before the first tab is opened, so it opens the document as disk has it */
-    await libSync();
-    ensureTab();
-    renderDocs();
-    renderLibAssets();
-    renderTree();
-    updateSaveUI();
-    updateCursor();
+    await step("libSync", libSync);
+    step("ensureTab", ensureTab);
+    step("renderDocs", renderDocs);
+    step("renderLibAssets", renderLibAssets);
+    step("renderTree", renderTree);
+    step("updateSaveUI", updateSaveUI);
+    step("updateCursor", updateCursor);
     idbGet("root").then(h => {
       if (h && !root) { reopen = { name: h.name, handle: h }; renderTree(); }
     });
