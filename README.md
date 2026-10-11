@@ -145,6 +145,12 @@ difference is only what saving does:
 The app tells you which mode you are in — a read-only folder is labelled as such in
 the Explorer, and the status bar always names the current state.
 
+Features that only the exe can provide are **left out** of the page opened on its own
+rather than shown and not working: Settings has no Documents section (there is no
+documents folder to show, change or open), and the Welcome guide leaves out Docs as
+files, the library's `assets`, Open with and the documents folder, describing what the
+page does instead — Docs kept in this browser, and read-only folders on `file://`.
+
 **Saving anywhere you like.** A file opened from a folder is written back where it
 came from. For anything else — a page served by laragon, or a browser-only document —
 the first `Ctrl+S` opens the system save dialog so you can put the file on the Desktop

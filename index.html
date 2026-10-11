@@ -361,6 +361,8 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 
 /* ---------------- settings ---------------- */
 .setsec+.setsec{margin-top:24px}
+.setsec[hidden]{display:none}
+.setsec[hidden]+.setsec{margin-top:0}
 .setsec h3{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fg3)}
 .sethint{margin:0 0 11px;font-size:12.5px;line-height:1.65;color:var(--fg2)}
 .setpath{font-family:var(--f-mono);font-size:12px;line-height:1.5;color:var(--fg);background:var(--bg2);
@@ -794,7 +796,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
     <div class="sheet-h"><h2>Settings</h2><span class="grow"></span>
       <button class="btn btn-ico" id="setClose">&#10005;</button></div>
     <div class="sheet-b">
-      <section class="setsec">
+      <section class="setsec" id="setDocs">
         <h3>Documents</h3>
         <p class="sethint">Everything in the Docs pane is a real Markdown file in this folder,
           written as you type. Nothing ever asks where to save it.</p>
@@ -856,8 +858,8 @@ internet, no account — you write on the left and see the finished page on the 
 2. Use the toolbar or shortcuts like <kbd>Ctrl</kbd>+<kbd>B</kbd> for **bold**
 3. Take a screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) and press
    <kbd>Ctrl</kbd>+<kbd>V</kbd> in the editor — the picture goes in where the caret is
-4. Open a whole folder with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, or
-   right-click a `.md` file in Windows → **Open with** → **Markdown Studio**
+4. Open a whole folder with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd><!-- exe -->, or
+   right-click a `.md` file in Windows → **Open with** → **Markdown Studio**<!-- /exe -->
 5. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save
 
 **This page has four parts.** The first is a tour of what the app does. The other
@@ -881,23 +883,39 @@ The sidebar on the left has four panes, switched by the icons at its top.
 | Pane | What is in it |
 | ---- | ------------- |
 | **Explorer** | A folder you opened, as a tree — every Markdown file in it, plus everything inside its `assets` folders |
+<!-- exe -->
 | **Docs** | Your own documents, each one a real `.md` file in your documents folder |
+<!-- /exe -->
+<!-- web -->
+| **Docs** | Your own documents, kept in this browser |
+<!-- /web -->
 | **Outline** | The headings of the file you are in; click one to jump there |
 | **Search** | Search every file in the opened folder at once |
 
-**Docs save themselves.** Run from `MarkdownStudio.exe`, each document in the Docs pane
-is a file in `Documents\Markdown Studio`, written as you type. Rename it with the title
-box at the top and its file is renamed too; delete it and the file goes to the Recycle
-Bin. **Settings → Change folder…** moves them all somewhere else.
+<!-- exe -->
+**Docs save themselves.** Each document in the Docs pane is a file in
+`Documents\Markdown Studio`, written as you type. Rename it with the title box at the
+top and its file is renamed too; delete it and the file goes to the Recycle Bin.
+**Settings → Change folder…** moves them all somewhere else.
+<!-- /exe -->
+<!-- web -->
+**Docs save themselves, in this browser.** They stay here between visits, but only in
+this browser on this computer, and clearing its site data erases them. Press
+<kbd>Ctrl</kbd>+<kbd>S</kbd> to save one as a real `.md` file, or **⋮ → Download
+backup** to keep a copy of them all.
+<!-- /web -->
 
 **Files from a folder are saved by you**, like in VS Code. An edited file shows an
 orange dot on its tab and in the tree, and the status bar says *Unsaved changes*
 until you press <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>
 saves every open file). Closing a tab with unsaved changes asks first.
 
+<!-- web -->
 > [!NOTE]
-> Opened as a plain web page instead of through the exe, Docs live in that browser
-> only, and the first <kbd>Ctrl</kbd>+<kbd>S</kbd> asks where to save a real file.
+> A folder opened from a page loaded straight off the disk (an address starting with
+> `file://`) is **read-only**, and <kbd>Ctrl</kbd>+<kbd>S</kbd> downloads a copy instead.
+> Serve the page from a local web server, such as laragon, to edit files in place.
+<!-- /web -->
 
 ## Tabs
 
@@ -938,7 +956,9 @@ Then replace the word `image` with what the picture actually shows — see
 | --------------------- | --------------------- |
 | `D:\Project\notes.md` | `D:\Project\assets\` |
 | `D:\Project\docs\api.md` | `D:\Project\docs\assets\` |
+<!-- exe -->
 | A document in the Docs pane | `Documents\Markdown Studio\assets\` |
+<!-- /exe -->
 
 > [!IMPORTANT]
 > The link is relative, so a document and its `assets` folder belong together. Copy or
@@ -961,9 +981,11 @@ from a subfolder, or `[spec.pdf](assets/spec.pdf)` for a file that is not a pict
 It is only offered when the document is in the same folder, because only then would
 the link work.
 
+<!-- exe -->
 The **Docs** pane lists the library's own `assets` under your documents. Each one says
 which document uses it, and one that **no document uses** is marked in orange — a
 good sign it can be deleted.
+<!-- /exe -->
 
 Clicking a picture's link in the preview opens the same window.
 
@@ -1010,7 +1032,7 @@ Everything is in the **⋮ menu** at the top right:
 
 ## Settings
 
-<kbd>Ctrl</kbd>+<kbd>,</kbd> opens them: where your documents live, soft wrap, scroll
+<kbd>Ctrl</kbd>+<kbd>,</kbd> opens them: <!-- exe -->where your documents live, <!-- /exe -->soft wrap, scroll
 sync, wide layout, both text sizes, dark mode (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>),
 and the language — English or **Bahasa Indonesia**.
 
@@ -1441,8 +1463,8 @@ internet, tanpa akun — Anda menulis di sebelah kiri dan melihat hasil jadinya 
 2. Pakai toolbar atau pintasan seperti <kbd>Ctrl</kbd>+<kbd>B</kbd> untuk **tebal**
 3. Ambil screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) lalu tekan
    <kbd>Ctrl</kbd>+<kbd>V</kbd> di editor — gambarnya masuk di posisi kursor
-4. Buka satu folder utuh dengan <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, atau
-   klik kanan file `.md` di Windows → **Open with** → **Markdown Studio**
+4. Buka satu folder utuh dengan <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd><!-- exe -->, atau
+   klik kanan file `.md` di Windows → **Open with** → **Markdown Studio**<!-- /exe -->
 5. Tekan <kbd>Ctrl</kbd>+<kbd>S</kbd> untuk menyimpan
 
 **Halaman ini terdiri dari empat bagian.** Yang pertama adalah tur fitur aplikasi. Tiga
@@ -1466,15 +1488,27 @@ Sidebar di kiri punya empat panel, dipilih lewat ikon di bagian atasnya.
 | Panel | Isinya |
 | ----- | ------ |
 | **Explorer** | Folder yang Anda buka, dalam bentuk pohon — semua file Markdown di dalamnya, ditambah seluruh isi folder `assets` |
+<!-- exe -->
 | **Docs** | Dokumen Anda sendiri, masing-masing berupa file `.md` sungguhan di folder dokumen Anda |
+<!-- /exe -->
+<!-- web -->
+| **Docs** | Dokumen Anda sendiri, disimpan di browser ini |
+<!-- /web -->
 | **Outline** | Judul-judul di file yang sedang dibuka; klik salah satu untuk melompat ke sana |
 | **Search** | Mencari di semua file dalam folder yang dibuka sekaligus |
 
-**Docs tersimpan sendiri.** Dijalankan dari `MarkdownStudio.exe`, setiap dokumen di panel
-Docs adalah file di `Documents\Markdown Studio`, ditulis seiring Anda mengetik. Ganti
-namanya lewat kotak judul di atas dan nama file-nya ikut berganti; hapus dokumennya dan
-file-nya masuk ke Recycle Bin. **Pengaturan → Change folder…** memindahkan semuanya ke
-tempat lain.
+<!-- exe -->
+**Docs tersimpan sendiri.** Setiap dokumen di panel Docs adalah file di
+`Documents\Markdown Studio`, ditulis seiring Anda mengetik. Ganti namanya lewat kotak
+judul di atas dan nama file-nya ikut berganti; hapus dokumennya dan file-nya masuk ke
+Recycle Bin. **Pengaturan → Change folder…** memindahkan semuanya ke tempat lain.
+<!-- /exe -->
+<!-- web -->
+**Docs tersimpan sendiri, di browser ini.** Dokumen tetap ada saat Anda kembali, tapi
+hanya di browser ini di komputer ini, dan ikut terhapus kalau data situsnya dibersihkan.
+Tekan <kbd>Ctrl</kbd>+<kbd>S</kbd> untuk menyimpannya sebagai file `.md` sungguhan, atau
+**⋮ → Download backup** untuk menyimpan salinan semuanya.
+<!-- /web -->
 
 **File dari folder Anda simpan sendiri**, seperti di VS Code. File yang diubah ditandai
 titik oranye di tab dan di pohon, dan status bar menulis *Unsaved changes* sampai Anda
@@ -1482,10 +1516,13 @@ menekan <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd
 menyimpan semua file yang terbuka). Menutup tab yang belum disimpan akan ditanyakan
 dulu.
 
+<!-- web -->
 > [!NOTE]
-> Kalau dibuka sebagai halaman web biasa, bukan lewat exe, Docs hanya tersimpan di
-> browser itu, dan <kbd>Ctrl</kbd>+<kbd>S</kbd> pertama akan menanyakan di mana file
-> sungguhannya disimpan.
+> Folder yang dibuka dari halaman yang dimuat langsung dari disk (alamatnya diawali
+> `file://`) bersifat **read-only**, dan <kbd>Ctrl</kbd>+<kbd>S</kbd> akan mengunduh
+> salinannya. Jalankan halaman ini lewat web server lokal, seperti laragon, supaya file
+> bisa diedit di tempatnya.
+<!-- /web -->
 
 ## Tab
 
@@ -1528,7 +1565,9 @@ Lalu ganti kata `image` dengan apa yang sebenarnya ditunjukkan gambar itu — li
 | -------------- | ---------------- |
 | `D:\Proyek\catatan.md` | `D:\Proyek\assets\` |
 | `D:\Proyek\docs\api.md` | `D:\Proyek\docs\assets\` |
+<!-- exe -->
 | Dokumen di panel Docs | `Documents\Markdown Studio\assets\` |
+<!-- /exe -->
 
 > [!IMPORTANT]
 > Tautannya relatif, jadi dokumen dan folder `assets`-nya satu paket. Salin atau pindahkan
@@ -1551,9 +1590,11 @@ dari subfolder, atau `[spec.pdf](assets/spec.pdf)` untuk file yang bukan gambar.
 ini hanya aktif kalau dokumennya ada di folder yang sama, karena hanya dengan begitu
 tautannya akan berfungsi.
 
+<!-- exe -->
 Panel **Docs** menampilkan isi folder `assets` milik library di bawah daftar dokumen.
 Masing-masing menyebut dokumen yang memakainya, dan yang **tidak dipakai dokumen mana
 pun** ditandai oranye — tanda bahwa file itu mungkin sudah bisa dihapus.
+<!-- /exe -->
 
 Mengklik tautan gambar di pratinjau membuka jendela yang sama.
 
@@ -1602,7 +1643,7 @@ Semuanya ada di **menu ⋮** di kanan atas:
 
 ## Pengaturan
 
-<kbd>Ctrl</kbd>+<kbd>,</kbd> membukanya: lokasi dokumen Anda, soft wrap, sinkronisasi
+<kbd>Ctrl</kbd>+<kbd>,</kbd> membukanya: <!-- exe -->lokasi dokumen Anda, <!-- /exe -->soft wrap, sinkronisasi
 gulir, tata letak lebar, kedua ukuran teks, mode gelap
 (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>), dan bahasa — **Bahasa Indonesia** atau
 English.
@@ -3860,8 +3901,25 @@ const MD = (function () {
   function guideText() {
     const id = I18N.resolve(state.settings.lang) === "id";
     const el = document.getElementById(id ? "seed-id" : "seed");
+    /* Parts of the guide only hold for the exe - Docs as files, Open with, the
+       documents folder - and sit between "exe" comment markers; what the page opened
+       on its own does instead sits between "web" ones. Only the half that is true
+       here is kept, so the guide never describes something you cannot do. The
+       markers are spelt out at run time: the comment opener written literally in a
+       script can change how the HTML around it is parsed. */
+    const C = "<" + "!-- ", E = " --" + ">";
+    const drop = SRV_KEY ? "web" : "exe";
+    const any = C + "/?(?:exe|web)" + E, open = C + drop + E, shut = C + "/" + drop + E;
+    const text = (el.textContent || "").replace(/^\n/, "")
+      /* a block on lines of its own goes with its line breaks, so a table row taken
+         out of the middle of a table does not leave a blank line splitting it... */
+      .replace(new RegExp("^" + open + /\n[\s\S]*?\n/.source + shut + /\n/.source, "gm"), "")
+      /* ...while one inside a sentence leaves the line it is on alone */
+      .replace(new RegExp(open + /[\s\S]*?/.source + shut, "g"), "")
+      .replace(new RegExp("^" + any + /\n/.source, "gm"), "")
+      .replace(new RegExp(any, "g"), "");
     return {
-      text: (el.textContent || "").replace(/^\n/, ""),
+      text: text,
       name: id ? "Selamat datang" : "Welcome",
       guide: id ? "Panduan selamat datang" : "Welcome guide"
     };
@@ -6842,14 +6900,12 @@ const MD = (function () {
     if (a) a.textContent = s.edSize;
     if (b) b.textContent = s.pvSize;
     if (l) l.value = s.lang || "auto";
+    /* Without the exe there is no documents folder to show, move or open, so the
+       section is not there at all rather than two buttons that never work. */
+    $("#setDocs").hidden = !LIB.ok;
     const p = $("#setPath");
-    if (!p) return;
-    p.textContent = LIB.ok ? LIB.path
-      : tr("No folder - documents are kept in this browser only. Run Markdown Studio " +
-           "from its own program to keep them as files.");
-    p.classList.toggle("off", !LIB.ok);
-    $("#setChange").disabled = !LIB.ok;
-    $("#setOpen").disabled = !LIB.ok;
+    if (!p || !LIB.ok) return;
+    p.textContent = LIB.path;
   }
   function setAct(k) {
     const s = state.settings;
