@@ -427,9 +427,9 @@ static class MarkdownStudio
         moved = 0; kept = 0;
         StringBuilder renamed = new StringBuilder("{");
         bool first = true;
-        // the pictures go too, or every note that shows one would lose it
+        // the assets go too, or every note that shows a picture would lose it
         List<string> files = new List<string>();
-        Walk(from, "", 0, files, delegate(string f) { return IsMd(f) || IsImage(f); });
+        Walk(from, "", 0, files, delegate(string f) { return IsMd(f) || InAssets(f); });
         foreach (string rel in files)
         {
             string src, dstRel = rel;
@@ -1139,6 +1139,18 @@ static class MarkdownStudio
 
     static bool IsImage(string path) { return ImageType(path) != null; }
 
+    // Where pasted pictures go: an "assets" folder beside the document. Anything in
+    // one, at any depth, belongs to the documents next to it.
+    const string AssetDir = "assets";
+
+    static bool InAssets(string path)
+    {
+        string[] segs = path.Replace('/', '\\').Split('\\');
+        for (int i = 0; i < segs.Length - 1; i++)
+            if (string.Equals(segs[i], AssetDir, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
     static bool SkipDir(string name)
     {
         switch (name.ToLowerInvariant())
@@ -1233,7 +1245,10 @@ static class MarkdownStudio
         foreach (string f in entries)
         {
             if (into.Count >= MaxFiles) return;
-            if (keep(f)) into.Add(prefix + Path.GetFileName(f));
+            // judged on the path inside the workspace, so where the workspace itself
+            // sits on disk can never make a file count as something it is not
+            string rel = prefix + Path.GetFileName(f);
+            if (keep(rel)) into.Add(rel);
         }
         string[] subs;
         try { subs = Directory.GetDirectories(dir); } catch { return; }
@@ -1299,6 +1314,19 @@ static class MarkdownStudio
         {
             if (i > 0) b.Append(',');
             b.Append(JsonStr(files[i]));
+        }
+        // Everything inside an assets folder, listed apart so the Explorer can show what
+        // is in there without anything that reads documents mistaking it for text.
+        // Outside one, only documents are listed - a folder full of other pictures is
+        // not what the tree is for.
+        List<string> pics = new List<string>();
+        Walk(ws.Root, "", 0, pics, delegate(string f) { return InAssets(f) && !IsMd(f); });
+        pics.Sort(StringComparer.OrdinalIgnoreCase);
+        b.Append("],\"assets\":[");
+        for (int i = 0; i < pics.Count; i++)
+        {
+            if (i > 0) b.Append(',');
+            b.Append(JsonStr(pics[i]));
         }
         b.Append("],\"open\":[");
         for (int i = 0; i < ws.Open.Count; i++)

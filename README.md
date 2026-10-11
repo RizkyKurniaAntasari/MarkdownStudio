@@ -198,6 +198,13 @@ drop it on any machine with a browser — it keeps working.
   picture is embedded in the document instead, as a reference at the very end, so the
   text where you pasted it stays a short `![image][img-1]`.
   **Export HTML** puts every picture inside the file, so it opens anywhere
+- **You can see what is in `assets`.** Outside an `assets` folder the Explorer still
+  lists only Markdown files, but an `assets` folder (at any depth) shows everything in
+  it — pictures, PDFs, subfolders. The Docs pane lists the library's `assets` under
+  the documents, each picture with the document that uses it (or
+  *not used in any document*, in orange). Click one to see it with its size and full
+  path, copy the path, or **Insert into document**, which writes the right relative
+  link from the document you are in (`../assets/...` from a subfolder)
 - Smart Enter: continues bullet, numbered, task and quote lists; empty item ends the list
 - `Tab` / `Shift+Tab` to indent, `Alt+Up/Down` to move lines, `Ctrl+D` to duplicate
 - Find and replace (`Ctrl+F`) with case-sensitive and regex modes. Every hit is
