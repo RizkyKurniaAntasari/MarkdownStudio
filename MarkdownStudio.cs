@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.13.0.0")]
-[assembly: AssemblyFileVersion("1.13.0.0")]
+[assembly: AssemblyVersion("1.13.1.0")]
+[assembly: AssemblyFileVersion("1.13.1.0")]
 
 static class MarkdownStudio
 {
@@ -163,6 +163,7 @@ static class MarkdownStudio
         string profile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MarkdownStudio", "profile");
+        ProfileDir = profile;
 
         // already running: that copy serves this window too, so its origin (and
         // everything stored under it) is the same one you had open before
@@ -921,7 +922,7 @@ static class MarkdownStudio
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             k.SetValue("DisplayName", AppName);
-            k.SetValue("DisplayVersion", "1.13.0");
+            k.SetValue("DisplayVersion", "1.13.1");
             k.SetValue("Publisher", AppName);
             k.SetValue("DisplayIcon", exe + ",0");
             k.SetValue("InstallLocation", dir);
@@ -1396,6 +1397,131 @@ static class MarkdownStudio
         while (CountOurs(profile) > 0) Thread.Sleep(1000);
     }
 
+    // ---------------------------------------------------------------- picture-in-picture
+
+    // The page's picture-in-picture window is a window of its own as far as Windows is
+    // concerned, so Alt+Tab and the taskbar showed Markdown Studio twice - the big one
+    // and the small one. The page cannot change that; we can. When it opens one it tells
+    // us, and we find that window among our own browser's windows and give it the
+    // tool-window style floating palettes have: still on top of everything and still
+    // clickable, but no longer a second entry in Alt+Tab or on the taskbar.
+
+    static string ProfileDir = "";
+
+    delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc cb, IntPtr lParam);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetClassName(IntPtr hWnd, StringBuilder name, int max);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW")] static extern int GetWindowLong32(IntPtr h, int i);
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongW")] static extern int SetWindowLong32(IntPtr h, int i, int v);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr64(IntPtr h, int i);
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr64(IntPtr h, int i, IntPtr v);
+    [DllImport("user32.dll")]
+    static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
+    const int GWL_EXSTYLE = -20;
+    const long WS_EX_TOPMOST = 0x8, WS_EX_TOOLWINDOW = 0x80, WS_EX_APPWINDOW = 0x40000;
+    const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOZORDER = 0x4, SWP_NOACTIVATE = 0x10, SWP_FRAMECHANGED = 0x20;
+
+    static long ExStyle(IntPtr h)
+    {
+        return IntPtr.Size == 8 ? GetWindowLongPtr64(h, GWL_EXSTYLE).ToInt64() : GetWindowLong32(h, GWL_EXSTYLE);
+    }
+    static void SetExStyle(IntPtr h, long v)
+    {
+        if (IntPtr.Size == 8) SetWindowLongPtr64(h, GWL_EXSTYLE, new IntPtr(v));
+        else SetWindowLong32(h, GWL_EXSTYLE, (int)v);
+    }
+
+    // The taskbar keeps a button it has already made until it is told to drop it.
+    [ComImport, Guid("56FDF342-FD6D-11d0-958A-006097C9A090"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface ITaskbarList
+    {
+        void HrInit();
+        void AddTab(IntPtr hwnd);
+        void DeleteTab(IntPtr hwnd);
+        void ActivateTab(IntPtr hwnd);
+        void SetActiveAlt(IntPtr hwnd);
+    }
+    [ComImport, Guid("56FDF344-FD6D-11d0-958A-006097C9A090")]
+    class TaskbarList { }
+
+    // Process ids of the browser running our profile - only its windows are ours to touch.
+    static HashSet<uint> OurBrowserPids()
+    {
+        HashSet<uint> ids = new HashSet<uint>();
+        if (ProfileDir.Length == 0) return ids;
+        try
+        {
+            using (ManagementObjectSearcher s = new ManagementObjectSearcher(
+                "SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='msedge.exe' OR Name='chrome.exe'"))
+            using (ManagementObjectCollection res = s.Get())
+            {
+                foreach (ManagementObject mo in res)
+                {
+                    object cl = mo["CommandLine"];
+                    if (cl != null && cl.ToString().IndexOf(ProfileDir, StringComparison.OrdinalIgnoreCase) >= 0)
+                        ids.Add(Convert.ToUInt32(mo["ProcessId"]));
+                }
+            }
+        }
+        catch { }
+        return ids;
+    }
+
+    // The floating window: visible, a browser frame, always on top - which the app's
+    // main window never is - and not yet a tool window. Returns how many it changed.
+    static int TuckPip(HashSet<uint> pids)
+    {
+        List<IntPtr> found = new List<IntPtr>();
+        StringBuilder cls = new StringBuilder(64);
+        EnumWindows(delegate(IntPtr h, IntPtr l)
+        {
+            if (!IsWindowVisible(h)) return true;
+            uint pid;
+            GetWindowThreadProcessId(h, out pid);
+            if (!pids.Contains(pid)) return true;
+            cls.Length = 0;
+            GetClassName(h, cls, cls.Capacity);
+            if (cls.ToString() != "Chrome_WidgetWin_1") return true;
+            long ex = ExStyle(h);
+            if ((ex & WS_EX_TOPMOST) != 0 && (ex & WS_EX_TOOLWINDOW) == 0) found.Add(h);
+            return true;
+        }, IntPtr.Zero);
+
+        ITaskbarList bar = null;
+        try { bar = (ITaskbarList)new TaskbarList(); bar.HrInit(); } catch { bar = null; }
+        foreach (IntPtr h in found)
+        {
+            SetExStyle(h, (ExStyle(h) | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW);
+            SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            if (bar != null) { try { bar.DeleteTab(h); } catch { } }
+        }
+        if (bar != null) { try { Marshal.ReleaseComObject(bar); } catch { } }
+        return found.Count;
+    }
+
+    // Answers /__pip at once and keeps looking for a few seconds on a thread of its own:
+    // the window appears a moment after the page asks for it.
+    static void PipOpened()
+    {
+        Thread t = new Thread(delegate()
+        {
+            HashSet<uint> pids = OurBrowserPids();
+            for (int i = 0; i < 25; i++)
+            {
+                if (TuckPip(pids) > 0) return;
+                Thread.Sleep(200);
+            }
+        });
+        t.IsBackground = true;
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+    }
+
     static int CountOurs(string profile)
     {
         int n = 0;
@@ -1551,7 +1677,7 @@ static class MarkdownStudio
 
                 if (path == "/__ws" || path == "/__file" || path == "/__all" ||
                     path == "/__launch" || path == "/__libdir" || path == "/__reveal" ||
-                    path == "/__asset" || path == "/__entry")
+                    path == "/__asset" || path == "/__entry" || path == "/__pip")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
@@ -1560,6 +1686,14 @@ static class MarkdownStudio
                     {
                         if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
                         SendText(ns, "200 OK", Launch(body));
+                        return;
+                    }
+
+                    if (path == "/__pip")
+                    {
+                        if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+                        PipOpened();
+                        SendText(ns, "200 OK", "ok");
                         return;
                     }
 

@@ -118,7 +118,8 @@ folder, and they only ever touch what the Explorer tree shows: Markdown and text
 and the contents of `assets` folders. Pictures are read and saved as pictures only
 (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, ...), an SVG is never let out as anything but a
 picture, a rename stays in the same folder and never lands on another file, and a
-delete goes to the Recycle Bin. A later launch finds that key in
+delete goes to the Recycle Bin. The one endpoint that touches windows, `/__pip`, only
+changes the style of the browser windows running this app's own profile. A later launch finds that key in
 `%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
 
 To rebuild it after editing `index.html`, run `build-exe.cmd` (from PowerShell:
@@ -265,6 +266,14 @@ drop it on any machine with a browser — it keeps working.
   (Edge or Chrome 116+, which the desktop app uses). Opening it always takes a click or a
   key: a browser only lets a video call open one by itself, so it cannot pop up on its
   own when you switch away the way Meet's does
+- **One app in Alt+Tab, not two.** To Windows the floating window is a window of its
+  own, so Alt+Tab and the taskbar used to show Markdown Studio twice — the big one and
+  the small one. Run from the exe, the floating window is folded into the app: it stays
+  on top of everything and stays clickable, but has no Alt+Tab entry or taskbar button
+  of its own, and it does not disappear when you minimize the main window. (The page
+  asks; the exe finds that window among its own browser's windows and gives it the
+  tool-window style floating palettes have. Opened from a plain browser page there is no
+  exe to ask, so there it stays a separate window)
 - **Settings** (`Ctrl+,`) holds the documents folder, soft wrap, sync scroll, wide
   layout, both text sizes, dark mode, the language and picture-in-picture — one place per setting, rather
   than the same switch in a menu and a panel
@@ -504,6 +513,17 @@ starting is skipped rather than stopping everything after it, so the menu, Setti
 and the rest of the buttons keep working either way.
 
 ## Fixes
+
+**1.13.1**
+
+- **Alt+Tab showed the app twice while picture-in-picture was open** — the main window
+  and the floating one, each with its own taskbar button. The floating window is now a
+  tool window of the app: on top, clickable, still there when the main window is
+  minimized, but only one Markdown Studio in Alt+Tab and on the taskbar. This needs the
+  exe (it is done by the launcher, through the new `/__pip` endpoint); opened as a plain
+  browser page the floating window stays a window of its own
+- The Welcome guide (both languages) says so in its Picture-in-picture section, in the
+  exe's version of the guide only
 
 **1.13.0**
 

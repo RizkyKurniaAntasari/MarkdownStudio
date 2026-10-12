@@ -1139,6 +1139,10 @@ Picture-in-picture**, then open it with the button that appears in the top bar o
   or a spreadsheet has the screen. It writes into the same document, so saving and
   autosave work as usual, and <kbd>Ctrl</kbd>+<kbd>S</kbd> works inside it
 - Switch documents in the app and it follows; the ↩ button takes you back and closes it
+<!-- exe -->
+- It belongs to the app: one Markdown Studio in Alt+Tab and on the taskbar, not two,
+  and it stays on screen when you minimize the main window
+<!-- /exe -->
 
 It needs Edge or Chrome 116 or newer — the desktop app has that. Opening it always takes
 a click or a key: a browser only lets a video call open one by itself.
@@ -1830,6 +1834,10 @@ Picture-in-picture**, lalu buka lewat tombol yang muncul di bar atas atau
   di dalamnya
 - Ganti dokumen di aplikasi dan jendela ini ikut; tombol ↩ membawa Anda kembali dan
   menutupnya
+<!-- exe -->
+- Jendela ini menyatu dengan aplikasi: hanya satu Markdown Studio di Alt+Tab dan di
+  taskbar, bukan dua, dan tetap tampil saat jendela utama diminimalkan
+<!-- /exe -->
 
 Butuh Edge atau Chrome 116 ke atas — aplikasi desktop sudah memakainya. Membukanya selalu
 butuh klik atau tombol: browser hanya mengizinkan panggilan video membukanya sendiri.
@@ -6900,6 +6908,10 @@ const MD = (function () {
     w.addEventListener("pagehide", () => { pipWin = null; pipUI(); });
     pipSync(true);
     pipUI();
+    /* To Windows the floating window is a second window: Alt+Tab and the taskbar
+       showed the app twice. The exe can fold it into the main one (a tool window,
+       still on top, no entry of its own); the page can only ask. */
+    if (SRV_KEY) fetch("/__pip?k=" + encodeURIComponent(SRV_KEY), { method: "POST" }).catch(() => { });
   }
   function closePip() {
     if (pipWin) { try { pipWin.close(); } catch (e) { } }
