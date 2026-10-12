@@ -114,8 +114,12 @@ Under the hood: a browser cannot read a path just because it was named on a comm
 line, so the launcher serves that folder over the same loopback connection and the app
 reads and writes through it. Those endpoints are guarded by a random key generated
 when the app starts and passed on the app's own URL, they refuse any path outside the
-folder, and they only ever touch Markdown and text files. A later launch finds that key
-in `%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
+folder, and they only ever touch what the Explorer tree shows: Markdown and text files,
+and the contents of `assets` folders. Pictures are read and saved as pictures only
+(`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, ...), an SVG is never let out as anything but a
+picture, a rename stays in the same folder and never lands on another file, and a
+delete goes to the Recycle Bin. A later launch finds that key in
+`%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
 
 To rebuild it after editing `index.html`, run `build-exe.cmd` (from PowerShell:
 `.\build-exe.cmd`). It uses the C# compiler that already ships with Windows, so there
@@ -162,22 +166,37 @@ On a `file://` page browsers refuse the save dialog outright, so saving falls ba
 download. Chrome's **"Ask where to save each file before downloading"** setting is the
 closest you get to choosing a folder there; serving through laragon is the real fix.
 
-The whole app is one file, `index.html` (~340 KB). Copy it to a USB stick, email it,
+The whole app is one file, `index.html` (~390 KB). Copy it to a USB stick, email it,
 drop it on any machine with a browser — it keeps working.
 
 ## What it does
 
 **Workspace (VS Code style)**
-- **Open Folder** (`Ctrl+Shift+O`) loads a whole folder into an Explorer tree
+- **Open Folder** (`Ctrl+K Ctrl+O`) loads a whole folder into an Explorer tree
 - Nested folders expand on click; heavy folders (`node_modules`, `.git`, `vendor`,
   `dist`, ...) are skipped, and only Markdown and text files are listed
 - Open as many files as you like — each gets a **tab** across the top, and the tab
   strip scrolls with a plain mouse wheel once there are more tabs than fit
 - Unsaved tabs show a dot and italic name; closing one asks first
-- `Ctrl+S` saves the current file, `Ctrl+Alt+S` saves every changed file
-- `Alt+1`–`9` jumps to a tab, `Ctrl+Alt+←/→` cycles, `Ctrl+Alt+W` closes
+- `Ctrl+S` saves the current file, `Ctrl+K S` saves every changed file
+- `Alt+1`–`9` jumps to a tab, `Ctrl+PageDown/PageUp` cycles, `Ctrl+W` closes,
+  `Ctrl+Shift+T` reopens the last one closed
 - The folder is remembered, so you can reopen it in one click after a reload
-- **New file** and **Refresh** buttons at the top of the tree
+- **New file** and **Refresh** buttons at the top of the tree. A new file never
+  replaces one that is already there under that name
+- **Right-click, as in VS Code.** Files, folders, the contents of `assets`, Docs and
+  editor tabs each have a menu: **Open**, **Reveal in File Explorer**, **Copy Path**,
+  **Copy Relative Path**, **Rename…** and **Delete**, plus **New File…** on a folder,
+  **Insert into document** on an asset and **Close Others** on a tab
+- **Rename in place**: the row becomes a box with the name selected up to its
+  extension; `Enter` keeps it, `Esc` puts it back. Click a file once and `F2` renames
+  it, `Delete` deletes it. Typing a name without `.md` keeps the extension, a name
+  already in the folder is refused, and a document cannot be renamed into something
+  that is not a document. When other documents link to the file — pictures included —
+  you are asked whether to **update those links**: open files are changed in the
+  editor and left for you to save, closed ones are written with their own line endings
+  and BOM. A delete goes to the **Recycle Bin**; in a folder opened in the browser,
+  where there is no Recycle Bin, it says the file is gone for good before it does it
 - **Links between files work.** Click `[notes](notes.md)` in the preview and it opens
   that file as a tab instead of navigating away. Relative paths resolve from the file
   you are in, so `../notes.md` and `sub/deep.md` both work, an extension-less
@@ -190,7 +209,8 @@ drop it on any machine with a browser — it keeps working.
   scrolls to it if it is off screen — select a whole list and it highlights as one
   block, select one item and only that item lights up. Toggle it with
   **Menu → Sync scroll & selection**
-- Formatting toolbar plus keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+K`, ...)
+- Formatting toolbar plus keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Alt+S`, ...) — see
+  *Keyboard shortcuts* below
 - **Paste a screenshot straight in**, the way Word takes one: `Win+Shift+S`, then
   `Ctrl+V` in the editor. The picture is saved as a real file in an `assets` folder
   next to the document — `assets/notes-20261011-153012.png` — and
@@ -214,7 +234,8 @@ drop it on any machine with a browser — it keeps working.
   have just pasted shows up straight away: the Explorer switches to it, opens the
   `assets` folder — even one the paste has only just created — and flashes the new file
 - Smart Enter: continues bullet, numbered, task and quote lists; empty item ends the list
-- `Tab` / `Shift+Tab` to indent, `Alt+Up/Down` to move lines, `Ctrl+D` to duplicate
+- `Tab` / `Shift+Tab` to indent, `Alt+Up/Down` to move lines, `Shift+Alt+Down` to
+  duplicate, `Ctrl+D` to select the word and then its next match
 - Find and replace (`Ctrl+F`) with case-sensitive and regex modes. Every hit is
   highlighted, the current one is outlined, and the view scrolls to it — focus stays
   in the search box so you can keep typing and press `Enter` to step through matches
@@ -233,7 +254,7 @@ drop it on any machine with a browser — it keeps working.
   quietly drops the mark
 - The ⋮ menu sizes itself to the window and scrolls when it does not fit, so nothing
   hides off the bottom edge on a short screen
-- **Settings** (`Ctrl ,`) holds the documents folder, soft wrap, sync scroll, wide
+- **Settings** (`Ctrl+,`) holds the documents folder, soft wrap, sync scroll, wide
   layout, both text sizes, dark mode and the language — one place per setting, rather
   than the same switch in a menu and a panel
 - **English and Bahasa Indonesia.** The whole interface — menus, panels, tooltips,
@@ -271,9 +292,11 @@ drop it on any machine with a browser — it keeps working.
 **The Welcome document is a tour of the app and a guide to writing a README.** It
 opens on first run — into an empty library only: a fresh browser profile pointed at a
 documents folder that already has notes (after a reinstall, or clearing site data)
-picks those up instead of adding another Welcome beside them. Part 0 walks through what the app does — Docs and folders, tabs,
-saving, pasting pictures and the `assets` folder, finding things, views, sharing and
-settings. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
+picks those up instead of adding another Welcome beside them. It is written out in full
+in English and in Bahasa Indonesia. Part 0 walks through what the app does — Docs and
+folders, tabs, saving, pasting pictures and the `assets` folder, the right-click menu
+with rename and delete, finding things with `Ctrl+P` and `Ctrl+Shift+P`, views, sharing,
+settings, and a table of the VS Code keys. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
 version at any time: the existing copy if it is untouched, otherwise a fresh one, so
 your own edits to an old copy are never overwritten. The rest is a
 live reference in three parts — the basics (headings, emphasis, lists, links, code,
@@ -327,12 +350,63 @@ types (sequence, class, state, gantt, pie) are not.
   with the find bar ready to step through the rest. Open tabs are searched as they are
   in the editor, unsaved edits included; the refresh button re-reads files from disk
 - **Close all tabs** with the button at the right end of the tab bar, **Menu → Close all
-  tabs**, or `Ctrl+Alt+Shift+W` — it asks once if any open file has unsaved changes
+  tabs**, or `Ctrl+K Ctrl+W` — it asks once if any open file has unsaved changes
 - Export to standalone HTML, or print / save as PDF
 - Drag any `.md` file onto the window to open it
 - JSON backup of every scratch document, and import to restore
 
-Press `F1` inside the app for the full shortcut list.
+## Keyboard shortcuts
+
+**The keys are VS Code's.** The editing and navigation keys are VS Code's defaults, and
+the formatting keys are those of its *Markdown All in One* extension, so hands that
+know VS Code know this. One list drives the keyboard, the command palette and the
+shortcut sheet, so the three never disagree.
+
+- `Ctrl+P` — **Go to file**: every file in the folder, your Docs, open tabs and
+  `assets`, matched by the letters you type in order. Start with `>` for commands, `@`
+  for the headings of this document, `:` for a line number
+- `Ctrl+Shift+P` or `F1` — **every command**, searchable
+- `Ctrl+K Ctrl+S` — the **shortcut sheet**
+- `Ctrl+K` starts a two-key chord, as in VS Code; the status bar says so while it waits
+
+| Do | Press | Do | Press |
+| -- | ----- | -- | ----- |
+| Go to file | `Ctrl+P` | Bold / italic | `Ctrl+B` / `Ctrl+I` |
+| All commands | `Ctrl+Shift+P`, `F1` | Strikethrough | `Alt+S` |
+| Go to heading | `Ctrl+Shift+O` | Inline code | ``Ctrl+` `` |
+| Go to line | `Ctrl+G` | Heading bigger / smaller | `Ctrl+Shift+]` / `Ctrl+Shift+[` |
+| Find / replace | `Ctrl+F` / `Ctrl+H` | Heading 1–6 | `Ctrl+Alt+1`–`6` |
+| Next / previous match | `F3` / `Shift+F3` | Toggle a task | `Alt+C` |
+| Search in folder | `Ctrl+Shift+F` | Bullet / numbered list | `Ctrl+Shift+8` / `Ctrl+Shift+7` |
+| Show Explorer | `Ctrl+Shift+E` | Blockquote | `Ctrl+Shift+.` |
+| Toggle sidebar | `Ctrl+B` (outside the editor) | Comment out | `Ctrl+/` |
+| Toggle preview | `Ctrl+Shift+V` | Select word, next match | `Ctrl+D` |
+| Preview to the side | `Ctrl+K V`, `Ctrl+\` | Select line | `Ctrl+L` |
+| Editor / split / preview | `Ctrl+1` / `2` / `3` | Delete line | `Ctrl+Shift+K` |
+| Word wrap | `Alt+Z` | Move line | `Alt+Up` / `Alt+Down` |
+| Dark mode | `Ctrl+K Ctrl+T` | Copy line up / down | `Shift+Alt+Up` / `Down` |
+| Settings | `Ctrl+,` | New line below / above | `Ctrl+Enter` / `Ctrl+Shift+Enter` |
+| New document | `Ctrl+N` | Indent / outdent | `Ctrl+]` / `Ctrl+[` |
+| Open file / folder | `Ctrl+O` / `Ctrl+K Ctrl+O` | Cut / copy the line | `Ctrl+X` / `Ctrl+C`, nothing selected |
+| Save / save as / save all | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+K S` | Paste a URL over words | makes a link |
+| Close / close all | `Ctrl+W` / `Ctrl+K Ctrl+W` | Rename file | `F2` |
+| Reopen closed | `Ctrl+Shift+T` | Copy path / relative path | `Shift+Alt+C` / `Ctrl+Shift+Alt+C` |
+| Next / previous editor | `Ctrl+PageDown` / `Ctrl+PageUp` | Reveal in File Explorer | `Shift+Alt+R` |
+
+`Ctrl+B` is bold while you type in the editor and toggles the sidebar anywhere else,
+exactly as in VS Code with that extension.
+
+A few keys belong to the browser and may never reach the page — `Ctrl+N`, `Ctrl+W`,
+`Ctrl+Tab`, `Ctrl+Shift+T` can open or close a window instead. Each has a second key
+that always works: `Alt+N`, `Ctrl+Alt+W`, `Ctrl+Alt+Right/Left`, and the older
+`Ctrl+Alt+S` (save all) and `Ctrl+Alt+Shift+W` (close all) still work too.
+
+Changed from earlier versions, to match VS Code: `Ctrl+K` is now a chord prefix (insert
+a link from the toolbar, the palette, or by pasting a URL over selected words);
+`Ctrl+Shift+K` deletes a line; `Ctrl+D` selects the next match (`Shift+Alt+Down`
+duplicates); `Ctrl+P` is Go to file (print is in the ⋮ menu); `F1` is the command
+palette; `Ctrl+Shift+O` is Go to heading (open a folder with `Ctrl+K Ctrl+O`); dark mode
+is `Ctrl+K Ctrl+T`; strikethrough is `Alt+S`.
 
 ## Where your work is stored
 
@@ -352,8 +426,12 @@ asks where to put it — it already has a place. Which means:
 - Right-click one in Explorer → **Open with** → **Markdown Studio** and it opens
 - Copy, back up or sync that folder like any other; the app reads it as it finds it
 - Drop a `.md` into the folder from anywhere and it appears in the Docs list next time
-  the app starts. Rename a document and its file is renamed with it. Delete one and the
-  file goes to the **Recycle Bin**, so a misclick is undoable
+  the app starts. Rename a document — in the title box above the editor, or
+  right-click it in the Docs list (or its tab) → **Rename…**, or `F2` — and its file is
+  renamed with it. Delete one and the file goes to the **Recycle Bin**, so a misclick
+  is undoable
+- Right-click a document for **Reveal in File Explorer** and **Copy Path** too, which
+  open or name its actual file in the library folder
 - The Docs list names each document's file, and the status bar names the full path
 
 `Ctrl+S` on a document still works; it just writes the file now instead of half a
@@ -368,7 +446,7 @@ machine, another account, a Documents folder redirected to OneDrive or moved to
 another drive, it lands in the right place by itself.
 
 The Docs pane says only *"Each of these is a file in here"*; clicking **in here** opens
-**Settings** (also `Ctrl ,`, or the ⋮ menu), which names the folder in full and has the
+**Settings** (also `Ctrl+,`, or the ⋮ menu), which names the folder in full and has the
 buttons for it — **Change folder…** and **Open in Explorer**.
 
 To keep them somewhere else, press **Change folder…**. Windows' own folder picker opens — the File Explorer window with
@@ -407,6 +485,21 @@ starting is skipped rather than stopping everything after it, so the menu, Setti
 and the rest of the buttons keep working either way.
 
 ## Fixes
+
+**1.12.0**
+
+- **Right-click had no Rename.** Files can now be renamed, deleted, revealed in File
+  Explorer and have their path copied from a right-click menu, with links to a renamed
+  file updated on request (see *What it does*)
+- **New file overwrote an existing file of the same name** with an empty document,
+  without asking, in both the exe and a folder opened in the browser. It now refuses
+  and says the name is taken
+- Keyboard shortcuts now follow VS Code (see *Keyboard shortcuts*), with **Go to file**
+  (`Ctrl+P`) and a **command palette** (`Ctrl+Shift+P` / `F1`); the shortcut sheet is
+  drawn from the same list as the keys, so it can no longer show a key that does
+  something else. Several older keys changed meaning — listed at the end of that section
+- The Welcome guide (both languages) describes the right-click menu and the new keys,
+  and no longer mentions the old ones
 
 **1.11.1**
 

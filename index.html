@@ -392,6 +392,35 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .setsel:hover{border-color:var(--acc)}
 .kbrow{display:flex;align-items:center;gap:10px;padding:3.5px 0;font-size:13px;color:var(--fg2);border-bottom:1px dashed var(--bd)}
 .kbrow span{flex:1}
+.kbrow kbd+kbd{margin-left:2px}
+.kb-then{display:inline-block;width:6px}
+.kb-or{margin:0 5px;color:var(--fg3);font-size:11px}
+.kb-note{grid-column:1/-1;margin:6px 0 0;font-size:12px;color:var(--fg3)}
+
+/* right-click menu, VS Code style */
+.ctx{position:fixed;z-index:300;min-width:230px;padding:4px;background:var(--bg);border:1px solid var(--bd2);border-radius:var(--r);box-shadow:var(--shadow)}
+.ctx-i{display:flex;align-items:center;gap:18px;width:100%;padding:6px 10px;border:0;background:none;border-radius:var(--r-sm);font:inherit;font-size:13px;color:var(--fg);text-align:left;cursor:pointer}
+.ctx-i:hover:not(:disabled),.ctx-i:focus-visible{background:var(--accsoft);color:var(--acc);outline:none}
+.ctx-i:disabled{color:var(--fg3);cursor:default}
+.ctx-i kbd{margin-left:auto;font-family:var(--f-mono);font-size:10.5px;color:var(--fg3);background:none;border:0;padding:0}
+.ctx-sep{height:1px;margin:4px 6px;background:var(--bd)}
+.tree-row.selected:not(.active){background:var(--bg3);color:var(--fg)}
+#treeBody:focus{outline:none}
+#treeBody:focus .tree-row.selected{box-shadow:inset 0 0 0 1px var(--acc)}
+.tree-rename{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:1px 4px;border:1px solid var(--acc);border-radius:4px;background:var(--bg);color:var(--fg);outline:none}
+#stCursor.chord{color:var(--acc)}
+
+/* Quick Open / command palette */
+#palette{position:fixed;inset:0;z-index:250;background:rgba(15,20,28,.18)}
+#palette[hidden]{display:none}
+.pal{position:absolute;left:50%;top:9%;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));background:var(--bg);border:1px solid var(--bd2);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+#palInput{width:100%;border:0;border-bottom:1px solid var(--bd);padding:12px 14px;font:inherit;font-size:14px;background:var(--bg);color:var(--fg);outline:none}
+#palList{max-height:min(420px,60vh);overflow-y:auto;padding:4px}
+.pal-i{display:flex;align-items:baseline;gap:12px;padding:6px 10px;border-radius:var(--r-sm);font-size:13px;cursor:pointer;color:var(--fg)}
+.pal-i.on{background:var(--accsoft)}
+.pal-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pal-l b{color:var(--acc);font-weight:700}
+.pal-h{margin-left:auto;font-size:11.5px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%;font-family:var(--f-mono)}
 
 #toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,14px);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:500;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.22s ease;z-index:200}
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -610,7 +639,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
       <button class="side-tab" id="tabToc" role="tab" aria-selected="false">Outline</button>
       <button class="side-tab" id="tabSearch" role="tab" aria-selected="false" title="Search in folder (Ctrl+Shift+F)">Search</button>
     </div>
-    <div class="side-body" id="paneFiles"><div id="treeBody"></div></div>
+    <div class="side-body" id="paneFiles"><div id="treeBody" tabindex="-1"></div></div>
     <div class="side-body" id="paneSearch" hidden>
       <div class="fs-box">
         <input type="text" id="fsInput" placeholder="Search in all files..." autocomplete="off" spellcheck="false">
@@ -633,10 +662,10 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
     </div>
     <div class="side-body" id="paneToc" hidden><div id="tocList"></div></div>
     <div class="side-foot">
-      <button class="btn btn-pri" id="btnNew" style="flex:1" title="New document (Alt+N)">
+      <button class="btn btn-pri" id="btnNew" style="flex:1" title="New document (Ctrl+N)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>New
       </button>
-      <button class="btn btn-out btn-ico" id="btnFolder" title="Open folder (Ctrl+Shift+O)">
+      <button class="btn btn-out btn-ico" id="btnFolder" title="Open folder (Ctrl+K Ctrl+O)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
       </button>
       <button class="btn btn-out btn-ico" id="btnOpen" title="Open .md file (Ctrl+O)">
@@ -648,7 +677,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
   <!-- ================= main ================= -->
   <div id="main">
     <header id="topbar">
-      <button class="btn btn-ico" id="btnSide" title="Toggle sidebar (Ctrl+\)">
+      <button class="btn btn-ico" id="btnSide" title="Toggle sidebar (Ctrl+B)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3zM9 5v14"/></svg>
       </button>
       <input type="text" id="docTitle" spellcheck="false" aria-label="Document title">
@@ -665,7 +694,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
       <button class="btn btn-ico hide-sm" id="btnFind" title="Find and replace (Ctrl+F)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </button>
-      <button class="btn btn-ico hide-sm" id="btnTheme" title="Toggle theme (Ctrl+Shift+L)">
+      <button class="btn btn-ico hide-sm" id="btnTheme" title="Toggle theme (Ctrl+K Ctrl+T)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
       </button>
       <button class="btn btn-ico" id="btnMenu" title="More" aria-haspopup="menu">
@@ -679,7 +708,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 
     <div id="tabwrap" hidden>
       <div id="tabbar" role="tablist" aria-label="Open files"></div>
-      <button id="btnCloseAll" title="Close all tabs (Ctrl+Alt+Shift+W)" aria-label="Close all tabs">
+      <button id="btnCloseAll" title="Close all tabs (Ctrl+K Ctrl+W)" aria-label="Close all tabs">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h11a1 1 0 011 1v11"/><rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 12l4 4M12 12l-4 4"/></svg>
       </button>
     </div>
@@ -725,28 +754,35 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 
 <!-- ================= menu ================= -->
 <div class="menu" id="menu" hidden role="menu">
+  <button class="mi" data-act="quick-open" role="menuitem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>
+    Go to file<kbd>Ctrl+P</kbd></button>
+  <button class="mi" data-act="palette" role="menuitem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-5-6-5M12 19h8"/></svg>
+    Command palette<kbd>Ctrl+Shift+P</kbd></button>
+  <div class="mdiv"></div>
   <button class="mi" data-act="open-folder" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-    Open folder<kbd>Ctrl Shift O</kbd></button>
+    Open folder<kbd>Ctrl+K Ctrl+O</kbd></button>
   <button class="mi" data-act="save-all" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-    Save all files<kbd>Ctrl Alt S</kbd></button>
+    Save all files<kbd>Ctrl+K S</kbd></button>
   <button class="mi" data-act="close-all" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h11a1 1 0 011 1v11"/><rect x="4" y="8" width="12" height="12" rx="1.5"/><path d="M8 12l4 4M12 12l-4 4"/></svg>
-    Close all tabs<kbd>Ctrl Alt Shift W</kbd></button>
+    Close all tabs<kbd>Ctrl+K Ctrl+W</kbd></button>
   <button class="mi" data-act="search-folder" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    Search in folder<kbd>Ctrl Shift F</kbd></button>
+    Search in folder<kbd>Ctrl+Shift+F</kbd></button>
   <div class="mdiv"></div>
   <button class="mi" data-act="export-md" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>
-    Save as Markdown<kbd>Ctrl S</kbd></button>
+    Save as Markdown<kbd>Ctrl+S</kbd></button>
   <button class="mi" data-act="export-html" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
     Export as HTML</button>
   <button class="mi" data-act="print" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-4a2 2 0 012-2h16a2 2 0 012 2v4a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>
-    Print / Save as PDF<kbd>Ctrl P</kbd></button>
+    Print / Save as PDF</button>
   <button class="mi" data-act="copy-html" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
     Copy HTML to clipboard</button>
@@ -757,16 +793,25 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
   <div class="mdiv"></div>
   <button class="mi" data-act="find" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    Find and replace<kbd>Ctrl F</kbd></button>
+    Find and replace<kbd>Ctrl+F</kbd></button>
   <button class="mi" data-act="theme" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
-    Toggle dark mode<kbd>Ctrl Shift L</kbd></button>
+    Toggle dark mode<kbd>Ctrl+K Ctrl+T</kbd></button>
   <div class="mdiv"></div>
   <button class="mi" data-act="settings" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007.9 19a1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 003.6 8a1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H8a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V8a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
-    Settings<kbd>Ctrl ,</kbd></button>
-  <button class="mi" data-act="help" role="menuitem">Keyboard shortcuts<kbd>F1</kbd></button>
+    Settings<kbd>Ctrl+,</kbd></button>
+  <button class="mi" data-act="help" role="menuitem">Keyboard shortcuts<kbd>Ctrl+K Ctrl+S</kbd></button>
   <button class="mi" data-act="guide" role="menuitem">Welcome guide</button>
+</div>
+
+<!-- ================= quick open / command palette ================= -->
+<div id="palette" hidden>
+  <div class="pal" role="dialog" aria-label="Go to file or run a command">
+    <input id="palInput" type="text" autocomplete="off" spellcheck="false"
+      placeholder="Search files by name - type &gt; for commands, @ for headings, : for a line">
+    <div id="palList" role="listbox"></div>
+  </div>
 </div>
 
 <!-- ================= help ================= -->
@@ -851,7 +896,8 @@ A complete **Markdown editor with live preview** that works entirely offline. No
 internet, no account — you write on the left and see the finished page on the right.
 
 > [!TIP]
-> Press <kbd>F1</kbd> at any time to see every keyboard shortcut, and
+> The keys are VS Code's. Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> (or <kbd>F1</kbd>)
+> to search every command, <kbd>Ctrl</kbd>+<kbd>P</kbd> to jump to a file, and
 > <kbd>Ctrl</kbd>+<kbd>,</kbd> for Settings. Lost this page? **⋮ menu → Welcome guide**
 > opens the latest version of it.
 
@@ -861,7 +907,7 @@ internet, no account — you write on the left and see the finished page on the 
 2. Use the toolbar or shortcuts like <kbd>Ctrl</kbd>+<kbd>B</kbd> for **bold**
 3. Take a screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) and press
    <kbd>Ctrl</kbd>+<kbd>V</kbd> in the editor — the picture goes in where the caret is
-4. Open a whole folder with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd><!-- exe -->, or
+4. Open a whole folder with <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>O</kbd><!-- exe -->, or
    right-click a `.md` file in Windows → **Open with** → **Markdown Studio**<!-- /exe -->
 5. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save
 
@@ -910,7 +956,7 @@ backup** to keep a copy of them all.
 
 **Files from a folder are saved by you**, like in VS Code. An edited file shows an
 orange dot on its tab and in the tree, and the status bar says *Unsaved changes*
-until you press <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>
+until you press <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>S</kbd>
 saves every open file). Closing a tab with unsaved changes asks first.
 
 <!-- web -->
@@ -923,9 +969,40 @@ saves every open file). Closing a tab with unsaved changes asks first.
 ## Tabs
 
 Every file you open gets a tab across the top. <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd>
-jumps to a tab, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> steps through
-them, a middle-click or <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> closes one, and the
-button at the right end of the tab bar closes them all.
+jumps to a tab, <kbd>Ctrl</kbd>+<kbd>PageDown</kbd>/<kbd>PageUp</kbd> steps through
+them, a middle-click or <kbd>Ctrl</kbd>+<kbd>W</kbd> closes one,
+<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>W</kbd> closes them all and
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> brings back the last one closed.
+Right-click a tab for Close Others, Copy Path and Rename.
+
+> [!NOTE]
+> A few keys belong to the browser and never reach the page: <kbd>Ctrl</kbd>+<kbd>W</kbd>,
+> <kbd>Ctrl</kbd>+<kbd>N</kbd>, <kbd>Ctrl</kbd>+<kbd>Tab</kbd> and
+> <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> may close or open a window instead.
+> Each has a second key that always works — <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd>,
+> <kbd>Alt</kbd>+<kbd>N</kbd>, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>→</kbd> — listed on the
+> shortcut sheet (<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>S</kbd>).
+
+## Right-click, rename and delete
+
+Right-click a file in the Explorer for VS Code's menu: **Open**, **Reveal in File
+Explorer**, **Copy Path**, **Copy Relative Path**, **Rename…** and **Delete**. Pictures
+and other files in an `assets` folder have it too, plus **Insert into document**; a
+folder has **New File…**; a document in the Docs pane and an editor tab have their own.
+
+**Rename** happens right in the tree, the name selected up to its extension, as in
+VS Code: type, then <kbd>Enter</kbd> to keep it or <kbd>Esc</kbd> to put it back. Click a
+file once and <kbd>F2</kbd> renames it, <kbd>Delete</kbd> deletes it. When other
+documents link to the file you renamed, you are asked whether to update those links —
+including pictures, so `![shot](assets/old.png)` follows `old.png` to its new name.
+
+<!-- exe -->
+**Delete** sends the file to the Recycle Bin, so a slip can be undone from there.
+<!-- /exe -->
+<!-- web -->
+**Delete** in a folder opened in the browser removes the file for good — the browser
+has no Recycle Bin to send it to — and says so before it does.
+<!-- /web -->
 
 ## Pictures
 
@@ -996,9 +1073,15 @@ Clicking a picture's link in the preview opens the same window.
 
 | To | Press |
 | -- | ----- |
-| Find and replace in this file | <kbd>Ctrl</kbd>+<kbd>F</kbd> |
+| Jump to a file by name | <kbd>Ctrl</kbd>+<kbd>P</kbd> |
+| Run any command | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or <kbd>F1</kbd> |
+| Jump to a heading | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, or the **Outline** pane |
+| Go to a line | <kbd>Ctrl</kbd>+<kbd>G</kbd> |
+| Find / replace in this file | <kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd> |
 | Search every file in the folder | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
-| Jump to a heading | the **Outline** pane |
+
+<kbd>Ctrl</kbd>+<kbd>P</kbd> takes the same prefixes as VS Code's: start with `>` for
+commands, `@` for headings, `:` for a line number.
 
 Find highlights every hit, outlines the current one and scrolls to it; <kbd>Enter</kbd>
 steps through them. It has case-sensitive and regex modes, and works in the preview
@@ -1028,7 +1111,7 @@ Everything is in the **⋮ menu** at the top right:
 | Menu item | What you get |
 | --------- | ------------ |
 | Export HTML | One `.html` file with the styling and pictures inside, to send to anyone |
-| Print / PDF | The preview, printed or saved as a PDF (<kbd>Ctrl</kbd>+<kbd>P</kbd>) |
+| Print / PDF | The preview, printed or saved as a PDF |
 | Copy HTML | The rendered HTML on the clipboard, for pasting into a web page |
 | Download backup | Every document in the Docs pane as one `.json` file |
 | Import backup | Brings those documents back |
@@ -1036,8 +1119,29 @@ Everything is in the **⋮ menu** at the top right:
 ## Settings
 
 <kbd>Ctrl</kbd>+<kbd>,</kbd> opens them: <!-- exe -->where your documents live, <!-- /exe -->soft wrap, scroll
-sync, wide layout, both text sizes, dark mode (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>),
+sync, wide layout, both text sizes, dark mode (<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>T</kbd>),
 and the language — English or **Bahasa Indonesia**.
+
+## Keys, as in VS Code
+
+If your hands know VS Code they know this app. The editing keys are VS Code's, and
+the formatting keys are those of its *Markdown All in One* extension:
+
+| Editing | Press | Formatting | Press |
+| ------- | ----- | ---------- | ----- |
+| Select word, then next match | <kbd>Ctrl</kbd>+<kbd>D</kbd> | Bold / italic | <kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd> |
+| Select line | <kbd>Ctrl</kbd>+<kbd>L</kbd> | Strikethrough | <kbd>Alt</kbd>+<kbd>S</kbd> |
+| Delete line | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> | Heading bigger / smaller | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Move line | <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> | Toggle a task | <kbd>Alt</kbd>+<kbd>C</kbd> |
+| Copy line up / down | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> | Inline code | <kbd>Ctrl</kbd>+<kbd>`</kbd> |
+| New line below / above | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> | Comment out | <kbd>Ctrl</kbd>+<kbd>/</kbd> |
+| Indent / outdent | <kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | Toggle preview | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
+
+<kbd>Ctrl</kbd>+<kbd>C</kbd> and <kbd>Ctrl</kbd>+<kbd>X</kbd> with nothing selected copy
+or cut the whole line. Paste a URL over selected words and they become a link.
+<kbd>Ctrl</kbd>+<kbd>B</kbd> is bold while you type and toggles the sidebar anywhere
+else. <kbd>Ctrl</kbd>+<kbd>K</kbd> starts a two-key chord, as in VS Code — the status bar
+says so while it waits for the second key.
 
 ---
 
@@ -1456,7 +1560,8 @@ Everything here is yours to delete. Start writing.
 internet, tanpa akun — Anda menulis di sebelah kiri dan melihat hasil jadinya di kanan.
 
 > [!TIP]
-> Tekan <kbd>F1</kbd> kapan saja untuk melihat semua pintasan keyboard, dan
+> Tombolnya sama dengan VS Code. Tekan <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> (atau
+> <kbd>F1</kbd>) untuk mencari semua perintah, <kbd>Ctrl</kbd>+<kbd>P</kbd> untuk melompat ke berkas, dan
 > <kbd>Ctrl</kbd>+<kbd>,</kbd> untuk Pengaturan. Halaman ini hilang? **Menu ⋮ → Panduan
 > selamat datang** membuka versi terbarunya.
 
@@ -1466,7 +1571,7 @@ internet, tanpa akun — Anda menulis di sebelah kiri dan melihat hasil jadinya 
 2. Pakai toolbar atau pintasan seperti <kbd>Ctrl</kbd>+<kbd>B</kbd> untuk **tebal**
 3. Ambil screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) lalu tekan
    <kbd>Ctrl</kbd>+<kbd>V</kbd> di editor — gambarnya masuk di posisi kursor
-4. Buka satu folder utuh dengan <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd><!-- exe -->, atau
+4. Buka satu folder utuh dengan <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>O</kbd><!-- exe -->, atau
    klik kanan file `.md` di Windows → **Open with** → **Markdown Studio**<!-- /exe -->
 5. Tekan <kbd>Ctrl</kbd>+<kbd>S</kbd> untuk menyimpan
 
@@ -1515,7 +1620,7 @@ Tekan <kbd>Ctrl</kbd>+<kbd>S</kbd> untuk menyimpannya sebagai file `.md` sungguh
 
 **File dari folder Anda simpan sendiri**, seperti di VS Code. File yang diubah ditandai
 titik oranye di tab dan di pohon, dan status bar menulis *Unsaved changes* sampai Anda
-menekan <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd>
+menekan <kbd>Ctrl</kbd>+<kbd>S</kbd> (<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>S</kbd>
 menyimpan semua file yang terbuka). Menutup tab yang belum disimpan akan ditanyakan
 dulu.
 
@@ -1530,9 +1635,42 @@ dulu.
 ## Tab
 
 Setiap file yang dibuka mendapat tab di bagian atas. <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd>
-melompat ke sebuah tab, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> berpindah
-satu per satu, klik tengah atau <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> menutup satu
-tab, dan tombol di ujung kanan bar tab menutup semuanya.
+melompat ke sebuah tab, <kbd>Ctrl</kbd>+<kbd>PageDown</kbd>/<kbd>PageUp</kbd> berpindah
+satu per satu, klik tengah atau <kbd>Ctrl</kbd>+<kbd>W</kbd> menutup satu tab,
+<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>W</kbd> menutup semuanya, dan
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> membuka lagi tab yang terakhir ditutup.
+Klik kanan sebuah tab untuk Tutup yang lain, Salin lokasi, dan Ganti nama.
+
+> [!NOTE]
+> Beberapa tombol milik browser dan tidak pernah sampai ke halaman: <kbd>Ctrl</kbd>+<kbd>W</kbd>,
+> <kbd>Ctrl</kbd>+<kbd>N</kbd>, <kbd>Ctrl</kbd>+<kbd>Tab</kbd> dan
+> <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> bisa saja menutup atau membuka jendela.
+> Masing-masing punya tombol kedua yang selalu berfungsi — <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd>,
+> <kbd>Alt</kbd>+<kbd>N</kbd>, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>→</kbd> — tercantum di
+> lembar pintasan (<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>S</kbd>).
+
+## Klik kanan, ganti nama, dan hapus
+
+Klik kanan sebuah berkas di Explorer untuk menu ala VS Code: **Buka**, **Tampilkan di File
+Explorer**, **Salin lokasi**, **Salin lokasi relatif**, **Ganti nama…** dan **Hapus**.
+Gambar dan berkas lain di folder `assets` juga punya menu ini, ditambah **Sisipkan ke
+dokumen**; folder punya **Berkas baru…**; dokumen di panel Docs dan tab editor punya
+menunya sendiri.
+
+**Ganti nama** dilakukan langsung di pohon, dengan nama terpilih sampai sebelum
+ekstensinya, seperti di VS Code: ketik, lalu <kbd>Enter</kbd> untuk menyimpan atau
+<kbd>Esc</kbd> untuk membatalkan. Klik sebuah berkas sekali lalu <kbd>F2</kbd> untuk
+mengganti nama, <kbd>Delete</kbd> untuk menghapus. Kalau dokumen lain menautkan ke berkas
+yang Anda ganti namanya, Anda akan ditanya apakah tautan itu ikut diperbarui — termasuk
+gambar, jadi `![shot](assets/lama.png)` mengikuti `lama.png` ke nama barunya.
+
+<!-- exe -->
+**Hapus** mengirim berkas ke Recycle Bin, jadi salah klik masih bisa dibatalkan dari sana.
+<!-- /exe -->
+<!-- web -->
+**Hapus** di folder yang dibuka lewat browser menghapus berkas selamanya — browser tidak
+punya Recycle Bin — dan hal itu disebutkan sebelum dihapus.
+<!-- /web -->
 
 ## Gambar
 
@@ -1605,9 +1743,15 @@ Mengklik tautan gambar di pratinjau membuka jendela yang sama.
 
 | Untuk | Tekan |
 | ----- | ----- |
-| Cari dan ganti di file ini | <kbd>Ctrl</kbd>+<kbd>F</kbd> |
+| Melompat ke berkas menurut nama | <kbd>Ctrl</kbd>+<kbd>P</kbd> |
+| Menjalankan perintah apa pun | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> atau <kbd>F1</kbd> |
+| Melompat ke sebuah judul | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>, atau panel **Outline** |
+| Ke baris tertentu | <kbd>Ctrl</kbd>+<kbd>G</kbd> |
+| Cari / ganti di file ini | <kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd> |
 | Cari di semua file dalam folder | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
-| Melompat ke sebuah judul | panel **Outline** |
+
+<kbd>Ctrl</kbd>+<kbd>P</kbd> memakai awalan yang sama dengan VS Code: mulai dengan `>`
+untuk perintah, `@` untuk judul, `:` untuk nomor baris.
 
 Pencarian menyorot semua hasil, membingkai hasil yang aktif dan menggulir ke sana;
 <kbd>Enter</kbd> berpindah ke hasil berikutnya. Ada mode peka huruf besar-kecil dan
@@ -1639,7 +1783,7 @@ Semuanya ada di **menu ⋮** di kanan atas:
 | Menu | Hasilnya |
 | ---- | -------- |
 | Export HTML | Satu file `.html` berisi gaya tampilan dan gambarnya, untuk dikirim ke siapa saja |
-| Print / PDF | Pratinjau dicetak atau disimpan sebagai PDF (<kbd>Ctrl</kbd>+<kbd>P</kbd>) |
+| Print / PDF | Pratinjau dicetak atau disimpan sebagai PDF |
 | Copy HTML | HTML hasil render di clipboard, untuk ditempel di halaman web |
 | Download backup | Semua dokumen di panel Docs dalam satu file `.json` |
 | Import backup | Mengembalikan dokumen-dokumen itu |
@@ -1648,8 +1792,29 @@ Semuanya ada di **menu ⋮** di kanan atas:
 
 <kbd>Ctrl</kbd>+<kbd>,</kbd> membukanya: <!-- exe -->lokasi dokumen Anda, <!-- /exe -->soft wrap, sinkronisasi
 gulir, tata letak lebar, kedua ukuran teks, mode gelap
-(<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>), dan bahasa — **Bahasa Indonesia** atau
+(<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>T</kbd>), dan bahasa — **Bahasa Indonesia** atau
 English.
+
+## Tombol, seperti di VS Code
+
+Kalau tangan Anda sudah hafal VS Code, aplikasi ini terasa sama. Tombol menyuntingnya milik
+VS Code, dan tombol formatnya milik ekstensi *Markdown All in One*:
+
+| Menyunting | Tekan | Format | Tekan |
+| ---------- | ----- | ------ | ----- |
+| Pilih kata, lalu kemunculan berikutnya | <kbd>Ctrl</kbd>+<kbd>D</kbd> | Tebal / miring | <kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd> |
+| Pilih baris | <kbd>Ctrl</kbd>+<kbd>L</kbd> | Coret | <kbd>Alt</kbd>+<kbd>S</kbd> |
+| Hapus baris | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> | Judul lebih besar / kecil | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> |
+| Pindahkan baris | <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> | Centang/batal tugas | <kbd>Alt</kbd>+<kbd>C</kbd> |
+| Salin baris ke atas / bawah | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> | Kode sebaris | <kbd>Ctrl</kbd>+<kbd>`</kbd> |
+| Baris baru di bawah / atas | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> | Jadikan komentar | <kbd>Ctrl</kbd>+<kbd>/</kbd> |
+| Jorokkan / kurangi jorokan | <kbd>Ctrl</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | Buka/tutup pratinjau | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> |
+
+<kbd>Ctrl</kbd>+<kbd>C</kbd> dan <kbd>Ctrl</kbd>+<kbd>X</kbd> tanpa pilihan menyalin atau
+memotong seluruh baris. Tempel URL di atas kata yang dipilih dan kata itu menjadi tautan.
+<kbd>Ctrl</kbd>+<kbd>B</kbd> berarti tebal saat mengetik dan membuka/menutup panel samping
+di tempat lain. <kbd>Ctrl</kbd>+<kbd>K</kbd> memulai kombinasi dua tombol, seperti di
+VS Code — status bar memberi tahu saat menunggu tombol kedua.
 
 ---
 
@@ -2297,21 +2462,21 @@ const I18N = (function () {
     "Close (Esc)": "Tutup (Esc)",
 
     /* ---- tooltips ---- */
-    "Toggle sidebar (Ctrl+\\)": "Buka/tutup panel samping (Ctrl+\\)",
+    "Toggle sidebar (Ctrl+B)": "Buka/tutup panel samping (Ctrl+B)",
     "Document title": "Judul dokumen",
     "Editor only (Ctrl+1)": "Editor saja (Ctrl+1)", "Editor only": "Editor saja",
     "Split view (Ctrl+2)": "Tampilan terbagi (Ctrl+2)", "Split view": "Tampilan terbagi",
     "Preview only (Ctrl+3)": "Pratinjau saja (Ctrl+3)", "Preview only": "Pratinjau saja",
     "View mode": "Mode tampilan",
     "Find and replace (Ctrl+F)": "Cari dan ganti (Ctrl+F)",
-    "Toggle theme (Ctrl+Shift+L)": "Ganti tema (Ctrl+Shift+L)", "More": "Lainnya",
+    "Toggle theme (Ctrl+K Ctrl+T)": "Ganti tema (Ctrl+K Ctrl+T)", "More": "Lainnya",
     "Save as .md file (Ctrl+S)": "Simpan sebagai berkas .md (Ctrl+S)",
     "Save changes (Ctrl+S)": "Simpan perubahan (Ctrl+S)",
     "Already in sync (Ctrl+S)": "Sudah sinkron (Ctrl+S)",
-    "New document (Alt+N)": "Dokumen baru (Alt+N)",
-    "Open folder (Ctrl+Shift+O)": "Buka folder (Ctrl+Shift+O)",
+    "New document (Ctrl+N)": "Dokumen baru (Ctrl+N)",
+    "Open folder (Ctrl+K Ctrl+O)": "Buka folder (Ctrl+K Ctrl+O)",
     "Open .md file (Ctrl+O)": "Buka berkas .md (Ctrl+O)",
-    "Close all tabs (Ctrl+Alt+Shift+W)": "Tutup semua tab (Ctrl+Alt+Shift+W)",
+    "Close all tabs (Ctrl+K Ctrl+W)": "Tutup semua tab (Ctrl+K Ctrl+W)",
     "Open files": "Berkas yang terbuka",
     "Search documents...": "Cari dokumen...",
     "Search in all files...": "Cari di semua berkas...",
@@ -2327,9 +2492,13 @@ const I18N = (function () {
     /* ---- toolbar ---- */
     "Heading 1": "Judul 1", "Heading 2": "Judul 2", "Heading 3": "Judul 3",
     "Bold (Ctrl+B)": "Tebal (Ctrl+B)", "Italic (Ctrl+I)": "Miring (Ctrl+I)",
-    "Strikethrough": "Coret", "Inline code (Ctrl+`)": "Kode sebaris (Ctrl+`)",
-    "Highlight": "Sorot", "Link (Ctrl+K)": "Tautan (Ctrl+K)",
-    "Image (Ctrl+Shift+K)": "Gambar (Ctrl+Shift+K)",
+    "Strikethrough": "Coret", "Strikethrough (Alt+S)": "Coret (Alt+S)", "Inline code (Ctrl+`)": "Kode sebaris (Ctrl+`)",
+    "Highlight": "Sorot", "Link (paste a URL over words)": "Tautan (tempel URL di atas kata)",
+    "Image (or paste a screenshot)": "Gambar (atau tempel screenshot)",
+    "Bullet list (Ctrl+Shift+8)": "Daftar butir (Ctrl+Shift+8)",
+    "Numbered list (Ctrl+Shift+7)": "Daftar bernomor (Ctrl+Shift+7)",
+    "Task list (Alt+C)": "Daftar tugas (Alt+C)",
+    "Blockquote (Ctrl+Shift+.)": "Kutipan (Ctrl+Shift+.)",
     "Bullet list": "Daftar poin", "Numbered list": "Daftar bernomor",
     "Task list": "Daftar tugas", "Blockquote": "Kutipan", "Table": "Tabel",
     "Code block": "Blok kode", "Horizontal rule": "Garis pemisah", "Footnote": "Catatan kaki",
@@ -2445,6 +2614,124 @@ const I18N = (function () {
     "Paste image": "Tempel gambar",
     "Pictures": "Gambar",
     "No preview for this kind of file": "Tidak ada pratinjau untuk jenis file ini",
+    "Go to file": "Buka berkas",
+    "Command palette": "Palet perintah",
+    "Search files by name - type > for commands, @ for headings, : for a line": "Cari berkas menurut nama - ketik > untuk perintah, @ untuk judul, : untuk baris",
+    "Open": "Buka",
+    "Reveal in File Explorer": "Tampilkan di File Explorer",
+    "Copy Path": "Salin lokasi",
+    "Copy Relative Path": "Salin lokasi relatif",
+    "Rename…": "Ganti nama…",
+    "New File…": "Berkas baru…",
+    "Close": "Tutup",
+    "Close Others": "Tutup yang lain",
+    "Close All": "Tutup semua",
+    "Copied": "Disalin",
+    "Renamed to ": "Nama diganti menjadi ",
+    "Deleted ": "Dihapus: ",
+    "Could not rename: ": "Tidak bisa mengganti nama: ",
+    "Could not delete: ": "Tidak bisa menghapus: ",
+    "That is not a valid file name.": "Itu bukan nama berkas yang valid.",
+    "A document has to keep a Markdown extension such as .md.": "Dokumen harus tetap berekstensi Markdown seperti .md.",
+    "A file named ": "Berkas bernama ",
+    " is already there.": " sudah ada.",
+    "It goes to the Recycle Bin.": "Berkas akan masuk ke Recycle Bin.",
+    "Update %n links in %m files to the new name?": "Perbarui %n tautan di %m berkas ke nama baru?",
+    "Updated links in ": "Tautan diperbarui di ",
+    "file": "berkas",
+    "files": "berkas",
+    "Line copied": "Baris disalin",
+    "Line cut": "Baris dipotong",
+    "Saved a copy as ": "Salinan disimpan sebagai ",
+    "Downloaded ": "Diunduh: ",
+    "HTML copied": "HTML disalin",
+    "The key combination (%s) is not a command.": "Kombinasi tombol (%s) bukan sebuah perintah.",
+    "was pressed. Waiting for second key of chord...": "ditekan. Menunggu tombol kedua...",
+    "No headings in this document": "Dokumen ini tidak punya judul",
+    "Go to line ": "Ke baris ",
+    "Type a line number between 1 and ": "Ketik nomor baris antara 1 dan ",
+    "No matching files": "Tidak ada berkas yang cocok",
+    "The same keys as VS Code. Press Ctrl+Shift+P to search every command; a key the browser keeps for itself has a second one that always works.": "Tombol yang sama dengan VS Code. Tekan Ctrl+Shift+P untuk mencari semua perintah; tombol yang dipakai browser sendiri punya tombol kedua yang selalu berfungsi.",
+    "File": "Berkas",
+    "Go": "Navigasi",
+    "View": "Tampilan",
+    "Find": "Cari",
+    "Editing": "Menyunting",
+    "Formatting": "Format",
+    "New document": "Dokumen baru",
+    "Open file…": "Buka berkas…",
+    "Open folder…": "Buka folder…",
+    "Save": "Simpan",
+    "Save as…": "Simpan sebagai…",
+    "Save all": "Simpan semua",
+    "Close editor": "Tutup editor",
+    "Close all editors": "Tutup semua editor",
+    "Close other editors": "Tutup editor lain",
+    "Reopen closed editor": "Buka lagi editor yang ditutup",
+    "Rename file": "Ganti nama berkas",
+    "Copy path of active file": "Salin lokasi berkas aktif",
+    "Copy relative path of active file": "Salin lokasi relatif berkas aktif",
+    "Reveal active file in File Explorer": "Tampilkan berkas aktif di File Explorer",
+    "Export as HTML": "Ekspor sebagai HTML",
+    "Copy HTML to clipboard": "Salin HTML ke clipboard",
+    "Duplicate as new document": "Duplikat sebagai dokumen baru",
+    "Download backup (all docs)": "Unduh cadangan (semua dokumen)",
+    "Import backup (.json)": "Impor cadangan (.json)",
+    "New file in folder…": "Berkas baru di folder…",
+    "Go to file…": "Buka berkas…",
+    "Show all commands": "Tampilkan semua perintah",
+    "Go to heading…": "Ke judul…",
+    "Go to line…": "Ke baris…",
+    "Next editor": "Editor berikutnya",
+    "Previous editor": "Editor sebelumnya",
+    "Open editor 1–9": "Buka editor 1–9",
+    "Open last editor": "Buka editor terakhir",
+    "Show Explorer": "Tampilkan Explorer",
+    "Show Docs": "Tampilkan Docs",
+    "Show Outline": "Tampilkan Outline",
+    "Toggle sidebar": "Buka/tutup panel samping",
+    "Preview to the side": "Pratinjau di samping",
+    "Toggle preview": "Buka/tutup pratinjau",
+    "Toggle word wrap": "Buka/tutup soft wrap",
+    "Toggle wide layout": "Buka/tutup tata letak lebar",
+    "Toggle sync scroll & selection": "Buka/tutup sinkronisasi gulir & pilihan",
+    "Replace": "Ganti",
+    "Find next": "Cari berikutnya",
+    "Find previous": "Cari sebelumnya",
+    "Select word / next occurrence": "Pilih kata / kemunculan berikutnya",
+    "Select line": "Pilih baris",
+    "Delete line": "Hapus baris",
+    "Move line up": "Pindahkan baris ke atas",
+    "Move line down": "Pindahkan baris ke bawah",
+    "Copy line up": "Salin baris ke atas",
+    "Copy line down": "Salin baris ke bawah",
+    "Insert line below": "Sisipkan baris di bawah",
+    "Insert line above": "Sisipkan baris di atas",
+    "Indent line": "Jorokkan baris",
+    "Outdent line": "Kurangi jorokan",
+    "Toggle comment": "Buka/tutup komentar",
+    "Cut line (nothing selected)": "Potong baris (tanpa pilihan)",
+    "Copy line (nothing selected)": "Salin baris (tanpa pilihan)",
+    "Undo / redo": "Urungkan / ulangi",
+    "Bold": "Tebal",
+    "Italic": "Miring",
+    "Inline code": "Kode sebaris",
+    "Insert link": "Sisipkan tautan",
+    "Insert image": "Sisipkan gambar",
+    "Paste image / URL as link": "Tempel gambar / URL sebagai tautan",
+    "Heading up (bigger)": "Judul naik (lebih besar)",
+    "Heading down (smaller)": "Judul turun (lebih kecil)",
+    "Heading 1–6": "Judul 1–6",
+    "Bullet list": "Daftar butir",
+    "Numbered list": "Daftar bernomor",
+    "Toggle task": "Centang/batal tugas",
+    "Blockquote": "Kutipan",
+    "Insert table": "Sisipkan tabel",
+    "Insert code block": "Sisipkan blok kode",
+    "Insert horizontal rule": "Sisipkan garis pemisah",
+    "Insert footnote": "Sisipkan catatan kaki",
+    "Continue list": "Lanjutkan daftar",
+    "Close panel": "Tutup panel",
     "Welcome guide": "Panduan selamat datang",
     "Something went wrong: ": "Terjadi kesalahan: ",
     "Opened the latest Welcome guide": "Panduan selamat datang terbaru dibuka",
@@ -4673,31 +4960,42 @@ const MD = (function () {
     toast(tr("Folder closed"));
   }
 
-  async function newFileInFolder() {
+  /* `dir` is the folder it goes in ("" or nothing for the top), from the tree's
+     right-click menu. A name already there is refused, never written over - writing
+     the new file used to replace one of the same name without a word. */
+  async function newFileInFolder(dir) {
     if (!root || root.readonly || (root.mode !== "fs" && root.mode !== "server")) return;
     let name = prompt(tr("New file name:"), "untitled.md");
     if (!name) return;
     name = name.trim().replace(/[\\/:*?"<>|]/g, "-");
     if (!MD_EXT.test(name)) name += ".md";
+    const path = (dir ? dir + "/" : "") + name;
+    const body = "# " + name.replace(MD_EXT, "") + "\n\n";
+    if (await findFileNode(path)) { toast(tr("A file named ") + name + tr(" is already there.")); return; }
 
     if (root.mode === "server") {
       try {
-        await srvWrite(name, "# " + name.replace(MD_EXT, "") + "\n\n");
-        await loadServerWorkspace(false);
-        const n = await findFileNode(name);
+        await srvWrite(path, body);
+        await loadServerWorkspace(false, true);
+        await revealInTree(path);
+        const n = await findFileNode(path);
         if (n) openFileNode(n);
       } catch (e) { toast(tr("Could not create file: ") + (e.message || e.name)); }
       return;
     }
 
     try {
-      const h = await root.handle.getFileHandle(name, { create: true });
+      const parent = dir ? await parentDirHandle(path) : root.handle;
+      let taken = false;
+      try { await parent.getFileHandle(name); taken = true; } catch (e) { }
+      if (taken) { toast(tr("A file named ") + name + tr(" is already there.")); return; }
+      const h = await parent.getFileHandle(name, { create: true });
       const w = await h.createWritable();
-      await w.write("# " + name.replace(MD_EXT, "") + "\n\n");
+      await w.write(body);
       await w.close();
-      await loadDir(tree);
-      renderTree();
-      openFileNode({ name: name, path: name, kind: "file", handle: h });
+      await refreshTree(tree);
+      await revealInTree(path);
+      openFileNode({ name: name, path: path, kind: "file", handle: h });
     } catch (e) { toast(tr("Could not create file: ") + (e.message || e.name)); }
   }
 
@@ -4735,17 +5033,17 @@ const MD = (function () {
   function renderNode(n) {
     nodeByPath.set(n.path, n);
     if (n.kind === "dir") {
-      return '<div class="tree-row' + (n.open ? " open" : "") + '" data-path="' + esc(n.path) + '">' +
+      return '<div class="tree-row' + (n.open ? " open" : "") + (n.path === treeSel ? " selected" : "") + '" data-path="' + esc(n.path) + '">' +
         ICO_CHEV + ICO_DIR + '<span class="tree-name">' + esc(n.name) + "</span></div>" +
         (n.open ? '<div class="tree-kids">' + (n.kids || []).map(renderNode).join("") + "</div>" : "");
     }
     if (n.kind === "img") {
-      return '<div class="tree-row img' + (flashing.has(n.path) ? " flash" : "") +
+      return '<div class="tree-row img' + (flashing.has(n.path) ? " flash" : "") + (n.path === treeSel ? " selected" : "") +
         '" data-path="' + esc(n.path) + '" title="' + esc(n.path) + '">' +
         '<span class="tree-pad"></span>' + (IMG_EXT.test(n.name) ? ICO_IMG : ICO_FILE) + '<span class="tree-name">' + esc(n.name) + "</span></div>";
     }
     const tab = tabs.find(t => t.kind === "file" && t.path === n.path);
-    return '<div class="tree-row' + (tab && tab.id === activeTab ? " active" : "") +
+    return '<div class="tree-row' + (tab && tab.id === activeTab ? " active" : "") + (n.path === treeSel ? " selected" : "") +
       (tab && isDirty(tab) ? " dirty" : "") + '" data-path="' + esc(n.path) + '" title="' + esc(n.path) + '">' +
       '<span class="tree-pad"></span>' + ICO_FILE + '<span class="tree-name">' + esc(n.name) + "</span></div>";
   }
@@ -4806,6 +5104,7 @@ const MD = (function () {
     if (isDirty(t) &&
       !confirm('"' + t.name + '" ' + tr("has unsaved changes. Close it anyway?"))) return;
     const wasActive = activeTab === id;
+    rememberClosed(t);
     tabs.splice(i, 1);
     if (!wasActive) { renderTabs(); renderTree(); return; }
     activeTab = null;
@@ -4823,6 +5122,7 @@ const MD = (function () {
     if (dirty.length && !confirm(
       tr("%n open files have unsaved changes. Close all tabs anyway?")
         .replace("%n", dirty.length))) return;
+    tabs.forEach(rememberClosed);
     tabs = []; activeTab = null;
     ensureTab();
     toast(tr("Closed ") + n + " tab" + (n === 1 ? "" : "s"));
@@ -5607,6 +5907,827 @@ const MD = (function () {
     }
   }
 
+  /* ---------- the right-click menu and what it does to files ---------- */
+  /* VS Code's Explorer menu: Open, Reveal in File Explorer, Copy Path, Copy Relative
+     Path, Rename (F2) and Delete, on files, on what is in an assets folder, on Docs and
+     on editor tabs. Renaming happens in place in the tree, the name selected without
+     its extension; links that pointed at the old name are offered an update, the way
+     VS Code's Markdown support does. Files from the exe go through /__entry (the
+     Recycle Bin for a delete); a folder opened in the browser goes through its handle,
+     where a delete cannot be undone and says so. */
+  const entryUrl = (ws, p, op, to) => "/__entry?k=" + encodeURIComponent(SRV_KEY) +
+    "&w=" + encodeURIComponent(ws) + "&p=" + encodeURIComponent(p) +
+    (op ? "&op=" + op : "") + (to != null ? "&to=" + encodeURIComponent(to) : "");
+  const canEdit = () => !!root && !root.readonly && (root.mode === "server" || root.mode === "fs");
+  const winPath = p => String(p).replace(/\//g, "\\");
+
+  /* the full path of a tree entry or document, as far as this page can know it */
+  function fullPathOf(o) {
+    if (o.doc) return LIB.ok && o.doc.file ? LIB.path + "\\" + winPath(o.doc.file) : o.doc.name;
+    if (root && root.mode === "server" && root.disk) return root.disk + "\\" + winPath(o.path);
+    return (root ? root.name + "/" : "") + o.path;
+  }
+  function relPathOf(o) {
+    if (o.doc) return o.doc.file || o.doc.name;
+    return root && root.mode === "server" ? winPath(o.path) : o.path;
+  }
+
+  let ctxEl = null;
+  function hideCtx() { if (ctxEl) { ctxEl.remove(); ctxEl = null; } }
+  function showCtx(x, y, items) {
+    hideCtx();
+    const m = document.createElement("div");
+    m.className = "ctx";
+    m.setAttribute("role", "menu");
+    items.forEach(it => {
+      if (it === "-") { m.appendChild(Object.assign(document.createElement("div"), { className: "ctx-sep" })); return; }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ctx-i";
+      b.disabled = !!it.disabled;
+      b.setAttribute("role", "menuitem");
+      b.innerHTML = "<span>" + esc(tr(it.label)) + "</span>" + (it.keys ? "<kbd>" + esc(it.keys) + "</kbd>" : "");
+      b.addEventListener("click", () => { hideCtx(); it.run(); });
+      m.appendChild(b);
+    });
+    document.body.appendChild(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 4)) + "px";
+    m.style.top = Math.max(4, Math.min(y, innerHeight - r.height - 4)) + "px";
+    ctxEl = m;
+    const first = m.querySelector(".ctx-i:not(:disabled)");
+    if (first) first.focus();
+  }
+  async function copyOut(text, what) { await copyText(text, tr(what) + ": " + text); }
+
+  /* which row of the tree is selected, so F2, Delete and Enter there act on it */
+  let treeSel = null;
+  function selectRow(path) {
+    treeSel = path;
+    document.querySelectorAll("#treeBody .tree-row.selected").forEach(r => r.classList.remove("selected"));
+    const r = treeRowEl(path);
+    if (r) r.classList.add("selected");
+  }
+  const treeRowEl = p => document.querySelector('#treeBody .tree-row[data-path="' + CSS.escape(p) + '"]');
+
+  function treeItems(n) {
+    const exe = root && root.mode === "server";
+    const common = [
+      { label: "Reveal in File Explorer", keys: "Shift+Alt+R", run: () => revealEntry(n), disabled: !exe || n.kind === "dir" },
+      "-",
+      { label: "Copy Path", keys: "Shift+Alt+C", run: () => copyOut(fullPathOf(n), "Copied") },
+      { label: "Copy Relative Path", keys: "Ctrl+Shift+Alt+C", run: () => copyOut(relPathOf(n), "Copied") }
+    ];
+    if (n.kind === "dir") {
+      return [{ label: "New File…", run: () => newFileInFolder(n.path), disabled: !canEdit() }, "-"].concat(common.slice(2));
+    }
+    const head = n.kind === "img"
+      ? [{ label: "Open", run: () => showImage(treeImgKey(n), n.path) },
+         { label: "Insert into document", run: () => insertEntryLink(n), disabled: !imgBase(active()) || imgBase(active()).ws !== treeImgKey(n).split(":")[0] }]
+      : [{ label: "Open", run: () => openFileNode(n) }];
+    return head.concat(["-"], common, ["-",
+      { label: "Rename…", keys: "F2", run: () => startRename(n.path), disabled: !canEdit() },
+      { label: "Delete", keys: "Delete", run: () => deleteEntry(n), disabled: !canEdit() }]);
+  }
+  function docItems(d) {
+    return [
+      { label: "Open", run: () => openDoc(d.id) },
+      "-",
+      { label: "Reveal in File Explorer", keys: "Shift+Alt+R", run: () => revealDoc(d), disabled: !(LIB.ok && d.file) },
+      { label: "Copy Path", keys: "Shift+Alt+C", run: () => copyOut(fullPathOf({ doc: d }), "Copied"), disabled: !(LIB.ok && d.file) },
+      "-",
+      { label: "Rename…", keys: "F2", run: () => renameDoc(d) },
+      { label: "Delete", run: () => deleteDoc(d.id) }
+    ];
+  }
+  function tabItems(t) {
+    const n = t.kind === "file" ? nodeOfPath(t.path) : null;
+    const d = libDocOf(t);
+    return [
+      { label: "Close", keys: "Ctrl+W", run: () => closeTab(t.id) },
+      { label: "Close Others", run: () => closeOthers(t.id), disabled: tabs.length < 2 },
+      { label: "Close All", keys: "Ctrl+K Ctrl+W", run: closeAllTabs },
+      "-",
+      { label: "Copy Path", keys: "Shift+Alt+C", run: () => copyOut(n ? fullPathOf(n) : fullPathOf({ doc: d || { name: t.name } }), "Copied") },
+      { label: "Copy Relative Path", keys: "Ctrl+Shift+Alt+C", run: () => copyOut(n ? relPathOf(n) : relPathOf({ doc: d || { name: t.name } }), "Copied") },
+      { label: "Reveal in File Explorer", keys: "Shift+Alt+R", run: () => n ? revealEntry(n) : revealDoc(d),
+        disabled: n ? !(root && root.mode === "server") : !(d && LIB.ok && d.file) },
+      "-",
+      { label: "Rename…", keys: "F2", run: () => renameTab(t), disabled: t.kind === "file" && !canEdit() }
+    ];
+  }
+
+  function nodeOfPath(p) {
+    let hit = null;
+    (function walk(n) { if (hit || !n) return; if (n.path === p && n.kind !== "dir") { hit = n; return; } (n.kids || []).forEach(walk); })(tree);
+    return hit;
+  }
+
+  function insertEntryLink(n) {
+    const base = imgBase(active());
+    if (!base) return;
+    const name = n.name, link = relFrom(base.doc, n.path).replace(/ /g, "%20");
+    ed.focus();
+    insertImageText(IMG_EXT.test(name) ? "![" + name.replace(/\.[^.]+$/, "") + "](" + link + ")" : "[" + name + "](" + link + ")");
+  }
+
+  async function revealEntry(n) {
+    try {
+      const r = await fetch(entryUrl(SRV_WS, n.path, "reveal"), { method: "POST" });
+      if (!r.ok) throw new Error(await r.text());
+    } catch (e) { toast(tr("Could not open that folder")); }
+  }
+  async function revealDoc(d) {
+    if (!d || !LIB.ok || !d.file) return;
+    libFlush(d.id);
+    try {
+      const r = await fetch(entryUrl("lib", d.file, "reveal"), { method: "POST" });
+      if (!r.ok) throw new Error(await r.text());
+    } catch (e) { toast(tr("Could not open that folder")); }
+  }
+
+  /* a document's name is its title, so renaming one is the title box */
+  function renameDoc(d) {
+    if (!(active() && active().kind === "local" && active().docId === d.id)) openDoc(d.id);
+    const ti = $("#docTitle");
+    ti.focus();
+    ti.select();
+  }
+  function renameTab(t) {
+    if (t.kind === "local") { const d = libDocOf(t); if (d) renameDoc(d); return; }
+    if (!canEdit()) return;
+    showSideTab("files");
+    if (!state.settings.sidebar) setSidebar(true);
+    startRename(t.path);
+  }
+
+  /* VS Code renames in place: the row becomes a box with the name selected up to
+     its extension. Enter or leaving the box keeps it, Esc puts the name back. */
+  async function startRename(path) {
+    if (!canEdit()) return;
+    await revealInTree(path);
+    const row = treeRowEl(path), n = nodeOfPath(path);
+    if (!row || !n) return;
+    selectRow(path);
+    const name = row.querySelector(".tree-name");
+    const box = document.createElement("input");
+    box.className = "tree-rename";
+    box.value = n.name;
+    box.spellcheck = false;
+    name.replaceWith(box);
+    box.focus();
+    const dot = n.name.lastIndexOf(".");
+    box.setSelectionRange(0, dot > 0 ? dot : n.name.length);
+    let done = false;
+    const finish = keep => {
+      if (done) return;
+      done = true;
+      if (keep && box.value.trim() && box.value.trim() !== n.name) renameEntry(n, box.value.trim());
+      else renderTree();
+    };
+    box.addEventListener("keydown", e => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); finish(true); }
+      else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+    });
+    box.addEventListener("blur", () => finish(true));
+    box.addEventListener("click", e => e.stopPropagation());
+  }
+
+  async function parentDirHandle(path) {
+    let h = root.handle;
+    const segs = path.split("/").slice(0, -1);
+    for (const s of segs) h = await h.getDirectoryHandle(s);
+    return h;
+  }
+
+  async function renameEntry(n, name) {
+    if (/[\\/:*?"<>|]/.test(name) || /[. ]$/.test(name)) {
+      toast(tr("That is not a valid file name.")); renderTree(); return;
+    }
+    /* a document keeps being one: typing "notes" means "notes.md" */
+    if (n.kind === "file" && !MD_EXT.test(name)) {
+      if (!/\.[^.]+$/.test(name)) name += (n.name.match(/\.[^.]+$/) || [".md"])[0];
+      else { toast(tr("A document has to keep a Markdown extension such as .md.")); renderTree(); return; }
+    }
+    const dir = n.path.indexOf("/") >= 0 ? n.path.replace(/\/[^/]*$/, "") + "/" : "";
+    const oldPath = n.path, newPath = dir + name;
+    let newHandle = null;
+    try {
+      if (root.mode === "server") {
+        const r = await fetch(entryUrl(SRV_WS, oldPath, "rename", name), { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+      } else {
+        const parent = await parentDirHandle(oldPath);
+        const caseOnly = name.toLowerCase() === n.name.toLowerCase();
+        if (!caseOnly) {
+          let taken = false;
+          try { await parent.getFileHandle(name); taken = true; } catch (e) { }
+          if (taken) throw new Error(tr("A file named ") + name + tr(" is already there."));
+        }
+        if (n.handle && n.handle.move) { await n.handle.move(name); newHandle = n.handle; }
+        else {
+          newHandle = await parent.getFileHandle(name, { create: true });
+          const w = await newHandle.createWritable();
+          await w.write(await n.handle.getFile());
+          await w.close();
+          await parent.removeEntry(n.name);
+        }
+      }
+    } catch (e) {
+      toast(tr("Could not rename: ") + (e.message || e.name));
+      renderTree();
+      return;
+    }
+    /* everything that knew the old name follows */
+    tabs.forEach(t => {
+      if (t.kind === "file" && t.path === oldPath) {
+        t.path = newPath; t.name = name;
+        if (newHandle) t.handle = newHandle;
+        if (t.id === activeTab) { $("#docTitle").value = name; $("#docTitle").title = newPath; }
+      }
+    });
+    closedTabs.forEach(c => { if (c.path === oldPath) c.path = newPath; });
+    if (fileCache.has(oldPath)) { fileCache.set(newPath, fileCache.get(oldPath)); fileCache.delete(oldPath); }
+    const ws = root.mode === "server" ? SRV_WS : "fs", ok = imgs.get(ws + ":" + oldPath);
+    if (ok) { imgs.set(ws + ":" + newPath, ok); imgs.delete(ws + ":" + oldPath); }
+    if (root.mode === "server") await loadServerWorkspace(false, true);
+    else { await refreshTree(tree); renderTree(); }
+    selectRow(newPath);
+    renderTabs(); updateSaveUI();
+    toast(tr("Renamed to ") + name);
+    await offerLinkUpdate(oldPath, newPath);
+    renderNow();
+  }
+
+  /* Links to the old name, in every document of the folder: [x](old.md),
+     ![x](assets/old.png), [x]: old.md and src="old.png". Extension-less links to a
+     document are matched too, and keep having no extension. */
+  function rewriteLinks(text, docPath, oldPath, newPath) {
+    let count = 0;
+    const lo = oldPath.toLowerCase(), loBare = lo.replace(MD_EXT, "");
+    const fix = url => {
+      let u = url, angle = false;
+      if (u.startsWith("<") && u.endsWith(">")) { u = u.slice(1, -1); angle = true; }
+      if (!isRelUrl(u)) return url;
+      const cut = u.search(/[?#]/), tail = cut >= 0 ? u.slice(cut) : "", p = cut >= 0 ? u.slice(0, cut) : u;
+      let dec = p;
+      try { dec = decodeURIComponent(p); } catch (e) { }
+      const res = resolveRel(docPath, dec).toLowerCase();
+      const bare = !/\.[^./]+$/.test(dec);
+      if (res !== lo && !(bare && MD_EXT.test(oldPath) && res === loBare)) return url;
+      let nu = relFrom(docPath, newPath);
+      if (bare) nu = nu.replace(MD_EXT, "");
+      if (!angle) nu = nu.replace(/ /g, "%20");
+      count++;
+      return (angle ? "<" + nu + ">" : nu) + tail;
+    };
+    const out = text
+      .replace(/(\]\()(<[^>]*>|[^)\s]+)/g, (m, a, u) => a + fix(u))
+      .replace(/^( {0,3}\[[^\]^][^\]]*\]:[ \t]*)(<[^>]*>|\S+)/gm, (m, a, u) => a + fix(u))
+      .replace(/(\s(?:src|href)=")([^"]+)(")/gi, (m, a, u, b) => a + fix(u) + b);
+    return { text: out, count: count };
+  }
+
+  async function offerLinkUpdate(oldPath, newPath) {
+    let nodes;
+    try { nodes = await allFileNodes(); } catch (e) { return; }
+    const edits = [];
+    for (const f of nodes) {
+      let text;
+      try { text = await searchText(f); } catch (e) { continue; }
+      const r = rewriteLinks(text, f.path, oldPath, newPath);
+      if (r.count) edits.push({ f: f, count: r.count });
+    }
+    if (!edits.length) return;
+    const links = edits.reduce((a, e) => a + e.count, 0);
+    if (!confirm(tr("Update %n links in %m files to the new name?")
+      .replace("%n", links).replace("%m", edits.length))) return;
+    let done = 0;
+    for (const e of edits) {
+      const t = tabs.find(x => x.kind === "file" && x.path === e.f.path);
+      try {
+        if (t) {
+          /* an open file is changed in the editor and left for you to save, as in VS Code */
+          if (t.id === activeTab) {
+            const r = rewriteLinks(ed.value, t.path, oldPath, newPath);
+            const top = ed.scrollTop, at = ed.selectionStart;
+            ed.focus(); ed.setSelectionRange(0, ed.value.length); insert(r.text);
+            ed.setSelectionRange(Math.min(at, ed.value.length), Math.min(at, ed.value.length)); ed.scrollTop = top;
+          } else t.content = rewriteLinks(t.content, t.path, oldPath, newPath).text;
+        } else {
+          /* a closed one is written straight back, its own line endings and BOM kept */
+          const raw = await readNodeText(e.f);
+          const r = rewriteLinks(raw, e.f.path, oldPath, newPath);
+          if (e.f.srv) await srvWrite(e.f.path, r.text);
+          else await writeHandle(e.f.handle, r.text);
+          fileCache.set(e.f.path, normText(r.text));
+        }
+        done++;
+      } catch (err) { }
+    }
+    renderTabs(); renderTree(); updateSaveUI();
+    toast(tr("Updated links in ") + done + " " + tr(done === 1 ? "file" : "files"));
+  }
+
+  async function deleteEntry(n) {
+    if (!canEdit()) return;
+    const exe = root.mode === "server";
+    if (!confirm(tr("Delete") + ' "' + n.name + '"? ' +
+      tr(exe ? "It goes to the Recycle Bin." : "This cannot be undone."))) return;
+    try {
+      if (exe) {
+        const r = await fetch(entryUrl(SRV_WS, n.path), { method: "DELETE" });
+        if (!r.ok && r.status !== 404) throw new Error(await r.text());
+      } else {
+        await (await parentDirHandle(n.path)).removeEntry(n.name);
+      }
+    } catch (e) { toast(tr("Could not delete: ") + (e.message || e.name)); return; }
+    /* its tab goes too - asking about unsaved changes to a file that is gone helps nobody */
+    const t = tabs.find(x => x.kind === "file" && x.path === n.path);
+    if (t) {
+      const was = t.id === activeTab;
+      tabs = tabs.filter(x => x !== t);
+      if (was) { activeTab = null; if (tabs.length) activateTab(tabs[0].id, true); else ensureTab(); }
+    }
+    fileCache.delete(n.path);
+    if (exe) await loadServerWorkspace(false, true); else { await refreshTree(tree); renderTree(); }
+    renderTabs();
+    toast(tr("Deleted ") + n.name);
+  }
+
+  /* ---------- closed editors, and closing more than one ---------- */
+  const closedTabs = [];
+  function rememberClosed(t) {
+    closedTabs.push(t.kind === "file" ? { kind: "file", path: t.path } : { kind: "local", docId: t.docId });
+    if (closedTabs.length > 30) closedTabs.shift();
+  }
+  async function reopenClosed() {
+    while (closedTabs.length) {
+      const c = closedTabs.pop();
+      if (c.kind === "local") { if (state.docs.some(d => d.id === c.docId)) { openDoc(c.docId); return; } continue; }
+      const n = await findFileNode(c.path);
+      if (n) { await openFileNode(n); return; }
+    }
+  }
+  function closeOthers(id) {
+    stashActive();
+    const others = tabs.filter(t => t.id !== id);
+    const dirty = others.filter(isDirty);
+    if (dirty.length && !confirm(tr("%n open files have unsaved changes. Close all tabs anyway?")
+      .replace("%n", dirty.length))) return;
+    others.forEach(rememberClosed);
+    tabs = tabs.filter(t => t.id === id);
+    activateTab(id, true);
+  }
+
+  /* ---------- editing commands, as VS Code has them ---------- */
+  function selectLine() {
+    const v = ed.value;
+    let s = v.lastIndexOf("\n", ed.selectionStart - 1) + 1;
+    let e = v.indexOf("\n", ed.selectionEnd === ed.selectionStart ? ed.selectionEnd : ed.selectionEnd - 1);
+    e = e === -1 ? v.length : e + 1;
+    /* again on a whole-line selection takes the next line too */
+    if (ed.selectionStart === s && ed.selectionEnd === e && e < v.length) {
+      const n = v.indexOf("\n", e);
+      e = n === -1 ? v.length : n + 1;
+    }
+    ed.setSelectionRange(s, e);
+  }
+  function deleteLine() {
+    const [ls, le] = lineRange();
+    ed.setSelectionRange(ls > 0 && le >= ed.value.length ? ls - 1 : ls, Math.min(ed.value.length, le + 1));
+    insert("");
+    const p = ed.value.lastIndexOf("\n", ed.selectionStart - 1) + 1;
+    ed.setSelectionRange(Math.max(p, ed.selectionStart), Math.max(p, ed.selectionStart));
+  }
+  function copyLine(down) {
+    const [ls, le] = lineRange();
+    const block = ed.value.slice(ls, le);
+    const off = ed.selectionStart - ls, len = ed.selectionEnd - ed.selectionStart;
+    ed.setSelectionRange(le, le);
+    insert("\n" + block);
+    const base = down ? le + 1 : ls;
+    ed.setSelectionRange(base + off, base + off + len);
+  }
+  function moveLine(up) {
+    const v = ed.value;
+    const [ls, le] = lineRange();
+    if (up && ls === 0) return;
+    if (!up && le >= v.length) return;
+    const block = v.slice(ls, le);
+    const off = ed.selectionStart - ls, len = ed.selectionEnd - ed.selectionStart;
+    if (up) {
+      const ps = v.lastIndexOf("\n", ls - 2) + 1;
+      const prev = v.slice(ps, ls - 1);
+      ed.setSelectionRange(ps, le);
+      insert(block + "\n" + prev);
+      ed.setSelectionRange(ps + off, ps + off + len);
+    } else {
+      let ne = v.indexOf("\n", le + 1);
+      if (ne === -1) ne = v.length;
+      const next = v.slice(le + 1, ne);
+      ed.setSelectionRange(ls, ne);
+      insert(next + "\n" + block);
+      const ns = ls + next.length + 1;
+      ed.setSelectionRange(ns + off, ns + off + len);
+    }
+    buildMirror();
+  }
+  function newLine(above) {
+    const [ls, le] = lineRange();
+    const ind = (ed.value.slice(ls, le).match(/^[ \t]*/) || [""])[0];
+    if (above) { ed.setSelectionRange(ls, ls); insert(ind + "\n"); ed.setSelectionRange(ls + ind.length, ls + ind.length); }
+    else { ed.setSelectionRange(le, le); insert("\n" + ind); }
+  }
+  function indentLines(out) {
+    prefixLines(l => out ? l.replace(/^(?: {1,2}|\t)/, "") : (l.trim() ? "  " + l : l));
+  }
+  /* Ctrl+D: the word under the caret first; with a selection, the next place the same
+     text appears. A textarea has one caret, so this moves rather than adds. */
+  function selectNext() {
+    const v = ed.value, s = ed.selectionStart, e = ed.selectionEnd;
+    if (s === e) {
+      const isW = c => /[\p{L}\p{N}_]/u.test(c || "");
+      let a = s, b = s;
+      while (a > 0 && isW(v[a - 1])) a--;
+      while (b < v.length && isW(v[b])) b++;
+      if (a !== b) ed.setSelectionRange(a, b);
+      return;
+    }
+    const word = v.slice(s, e);
+    let at = v.indexOf(word, e);
+    if (at < 0) at = v.indexOf(word);
+    if (at >= 0) { ed.setSelectionRange(at, at + word.length); revealCaret(); }
+  }
+  function revealCaret() {
+    const top = lineTop(lineOf(ed.selectionStart)), h = ed.clientHeight;
+    if (top < ed.scrollTop || top > ed.scrollTop + h - 40) ed.scrollTop = Math.max(0, top - h / 3);
+  }
+  /* Ctrl+/: Markdown's comment is an HTML one */
+  function toggleComment() {
+    const s = ed.selectionStart, e = ed.selectionEnd;
+    const [ls, le] = s === e ? lineRange() : [s, e];
+    const text = ed.value.slice(ls, le);
+    const m = /^(\s*)<!--\s?([\s\S]*?)\s?-->(\s*)$/.exec(text);
+    ed.setSelectionRange(ls, le);
+    insert(m ? m[1] + m[2] + m[3] : "<!-- " + text + " -->");
+    ed.setSelectionRange(ls, ls + (m ? m[1].length + m[2].length + m[3].length : text.length + 9));
+  }
+  /* Ctrl+Shift+] / [ as Markdown All in One: a heading one level bigger / smaller */
+  function headingStep(up) {
+    prefixLines(l => {
+      const m = /^(#{1,6}) +(.*)$/.exec(l);
+      const lv = m ? m[1].length : 0, text = m ? m[2] : l;
+      if (!l.trim()) return l;
+      const nl = up ? (lv === 0 ? 1 : Math.max(1, lv - 1)) : (lv === 0 ? 0 : lv + 1);
+      return nl === 0 || nl > 6 ? text : "#".repeat(nl) + " " + text;
+    });
+  }
+  /* Alt+C: tick or untick the task on this line */
+  function toggleTask() {
+    prefixLines(l => {
+      if (/^\s*(?:[-*+]|\d+[.)])\s+\[ \]/.test(l)) return l.replace("[ ]", "[x]");
+      if (/^\s*(?:[-*+]|\d+[.)])\s+\[[xX]\]/.test(l)) return l.replace(/\[[xX]\]/, "[ ]");
+      if (/^\s*(?:[-*+]|\d+[.)])\s+/.test(l)) return l.replace(/^(\s*(?:[-*+]|\d+[.)])\s+)/, "$1[ ] ");
+      return l;
+    });
+  }
+  /* Ctrl+C / Ctrl+X with nothing selected take the whole line, as in VS Code */
+  function lineClip(cut) {
+    if (ed.selectionStart !== ed.selectionEnd) return false;
+    const v = ed.value, [ls, le] = lineRange();
+    const text = v.slice(ls, le) + "\n";
+    const at = ed.selectionStart;
+    copyText(text, cut ? tr("Line cut") : tr("Line copied"));
+    if (cut) { ed.setSelectionRange(ls, Math.min(v.length, le + 1)); insert(""); }
+    else ed.setSelectionRange(at, at);
+    return true;
+  }
+  function saveAs() {
+    stashActive();
+    const t = active();
+    if (!t) return;
+    const name = safeName(t.name).replace(MD_EXT, "") + ".md";
+    (async () => {
+      if (window.showSaveFilePicker) {
+        try {
+          const h = await window.showSaveFilePicker({ suggestedName: name,
+            types: [{ description: "Markdown", accept: { "text/markdown": [".md", ".markdown"] } }] });
+          await writeHandle(h, outText(t) || ed.value);
+          toast(tr("Saved a copy as ") + h.name);
+          return;
+        } catch (e) { if (e && e.name === "AbortError") return; }
+      }
+      download(name, ed.value, "text/markdown");
+      toast(tr("Downloaded ") + name);
+    })();
+  }
+  function copyActivePath(rel) {
+    const t = active();
+    if (!t) return;
+    const n = t.kind === "file" ? nodeOfPath(t.path) : null;
+    const o = n || { doc: libDocOf(t) || { name: t.name } };
+    copyOut(rel ? relPathOf(o) : fullPathOf(o), "Copied");
+  }
+  function revealActive() {
+    const t = active();
+    if (!t) return;
+    if (t.kind === "file") { const n = nodeOfPath(t.path); if (n && root.mode === "server") revealEntry(n); }
+    else revealDoc(libDocOf(t));
+  }
+  function renameActive() {
+    if (document.activeElement && document.activeElement.id === "treeBody" && treeSel) { startRename(treeSel); return; }
+    const t = active();
+    if (t) renameTab(t);
+  }
+
+  /* ---------- every command, and its keys ---------- */
+  /* One list drives the keyboard, the command palette (Ctrl+Shift+P) and the
+     shortcut sheet. Keys are VS Code's defaults wherever there is one, the formatting
+     ones are those of its Markdown All in One extension, and a few of this app's
+     older keys stay as second bindings. "editor" means only while typing in the
+     editor; "notEditor" only outside it - Ctrl+B is bold in the editor and toggles
+     the sidebar anywhere else, exactly as in VS Code with that extension. */
+  const ed1 = fn => () => { ed.focus(); fn(); };
+  const COMMANDS = [
+    /* file */
+    { g: "File", id: "newDoc", label: "New document", keys: ["Ctrl+N", "Alt+N"], run: () => newDoc() },
+    { g: "File", id: "openFile", label: "Open file…", keys: ["Ctrl+O"], run: () => $("#filePick").click() },
+    { g: "File", id: "openFolder", label: "Open folder…", keys: ["Ctrl+K Ctrl+O"], run: openFolder },
+    { g: "File", id: "save", label: "Save", keys: ["Ctrl+S"], run: saveMarkdown },
+    { g: "File", id: "saveAs", label: "Save as…", keys: ["Ctrl+Shift+S"], run: saveAs },
+    { g: "File", id: "saveAll", label: "Save all", keys: ["Ctrl+K S", "Ctrl+Alt+S"], run: saveAll },
+    { g: "File", id: "close", label: "Close editor", keys: ["Ctrl+W", "Ctrl+F4", "Ctrl+Alt+W"], run: () => activeTab && closeTab(activeTab) },
+    { g: "File", id: "closeAll", label: "Close all editors", keys: ["Ctrl+K Ctrl+W", "Ctrl+Alt+Shift+W"], run: closeAllTabs },
+    { g: "File", id: "closeOthers", label: "Close other editors", keys: [], run: () => activeTab && closeOthers(activeTab) },
+    { g: "File", id: "reopen", label: "Reopen closed editor", keys: ["Ctrl+Shift+T"], run: reopenClosed },
+    { g: "File", id: "rename", label: "Rename file", keys: ["F2"], run: renameActive },
+    { g: "File", id: "copyPath", label: "Copy path of active file", keys: ["Shift+Alt+C"], run: () => copyActivePath(false) },
+    { g: "File", id: "copyRel", label: "Copy relative path of active file", keys: ["Ctrl+Shift+Alt+C"], run: () => copyActivePath(true) },
+    { g: "File", id: "reveal", label: "Reveal active file in File Explorer", keys: ["Shift+Alt+R"], run: revealActive },
+    { g: "File", id: "exportHtml", label: "Export as HTML", keys: [], run: exportHtml },
+    { g: "File", id: "print", label: "Print / Save as PDF", keys: [], run: () => window.print() },
+    { g: "File", id: "copyHtml", label: "Copy HTML to clipboard", keys: [], run: () => copyText(MD.render(ed.value).html, tr("HTML copied")) },
+    { g: "File", id: "duplicate", label: "Duplicate as new document", keys: [], run: () => menuAct("duplicate") },
+    { g: "File", id: "backup", label: "Download backup (all docs)", keys: [], run: () => menuAct("backup") },
+    { g: "File", id: "import", label: "Import backup (.json)", keys: [], run: () => $("#jsonPick").click() },
+    { g: "File", id: "newFile", label: "New file in folder…", keys: [], run: () => newFileInFolder() },
+    /* go */
+    { g: "Go", id: "quickOpen", label: "Go to file…", keys: ["Ctrl+P", "Ctrl+E"], run: () => openPalette("") },
+    { g: "Go", id: "palette", label: "Show all commands", keys: ["Ctrl+Shift+P", "F1"], run: () => openPalette(">") },
+    { g: "Go", id: "gotoHeading", label: "Go to heading…", keys: ["Ctrl+Shift+O"], run: () => openPalette("@") },
+    { g: "Go", id: "gotoLine", label: "Go to line…", keys: ["Ctrl+G"], run: () => openPalette(":") },
+    { g: "Go", id: "nextTab", label: "Next editor", keys: ["Ctrl+PageDown", "Ctrl+Tab", "Ctrl+Alt+Right"], run: () => cycleTab(1) },
+    { g: "Go", id: "prevTab", label: "Previous editor", keys: ["Ctrl+PageUp", "Ctrl+Shift+Tab", "Ctrl+Alt+Left"], run: () => cycleTab(-1) },
+    { g: "Go", id: "tabN", label: "Open editor 1–9", keys: ["Alt+1…9"], help: true },
+    { g: "Go", id: "lastTab", label: "Open last editor", keys: ["Alt+0"], run: () => tabs.length && activateTab(tabs[tabs.length - 1].id) },
+    /* view */
+    { g: "View", id: "explorer", label: "Show Explorer", keys: ["Ctrl+Shift+E"], run: () => { if (!state.settings.sidebar) setSidebar(true); showSideTab("files"); } },
+    { g: "View", id: "search", label: "Search in folder", keys: ["Ctrl+Shift+F"], run: showFolderSearch },
+    { g: "View", id: "docs", label: "Show Docs", keys: [], run: () => { if (!state.settings.sidebar) setSidebar(true); showSideTab("docs"); } },
+    { g: "View", id: "outline", label: "Show Outline", keys: [], run: () => { if (!state.settings.sidebar) setSidebar(true); showSideTab("toc"); } },
+    { g: "View", id: "sidebar", label: "Toggle sidebar", keys: ["Ctrl+B"], when: "notEditor", run: () => setSidebar(!state.settings.sidebar) },
+    { g: "View", id: "editOnly", label: "Editor only", keys: ["Ctrl+1"], run: () => setView("edit") },
+    { g: "View", id: "split", label: "Preview to the side", keys: ["Ctrl+K V", "Ctrl+2", "Ctrl+\\"], run: () => setView("split") },
+    { g: "View", id: "previewOnly", label: "Preview only", keys: ["Ctrl+3"], run: () => setView("preview") },
+    { g: "View", id: "togglePreview", label: "Toggle preview", keys: ["Ctrl+Shift+V"], run: () => setView(state.settings.view === "preview" ? "edit" : "preview") },
+    { g: "View", id: "wrap", label: "Toggle word wrap", keys: ["Alt+Z"], run: () => setAct("wrap") },
+    { g: "View", id: "wide", label: "Toggle wide layout", keys: [], run: () => setAct("wide") },
+    { g: "View", id: "sync", label: "Toggle sync scroll & selection", keys: [], run: () => setAct("sync") },
+    { g: "View", id: "theme", label: "Toggle dark mode", keys: ["Ctrl+K Ctrl+T"], run: toggleTheme },
+    { g: "View", id: "settings", label: "Settings", keys: ["Ctrl+,"], run: () => showSettings($("#settings").hidden) },
+    { g: "View", id: "shortcuts", label: "Keyboard shortcuts", keys: ["Ctrl+K Ctrl+S"], run: () => { $("#help").hidden = false; } },
+    { g: "View", id: "guide", label: "Welcome guide", keys: [], run: openGuide },
+    /* find */
+    { g: "Find", id: "find", label: "Find", keys: ["Ctrl+F"], run: () => showFind(true) },
+    { g: "Find", id: "replace", label: "Replace", keys: ["Ctrl+H"], run: () => { showFind(true); if (!previewMode()) $("#replInput").focus(); } },
+    { g: "Find", id: "findNext", label: "Find next", keys: ["F3"], run: () => { if ($("#findbar").hidden) showFind(true); else step(1); } },
+    { g: "Find", id: "findPrev", label: "Find previous", keys: ["Shift+F3"], run: () => { if ($("#findbar").hidden) showFind(true); else step(-1); } },
+    /* editing */
+    { g: "Editing", id: "selectNext", label: "Select word / next occurrence", keys: ["Ctrl+D"], when: "editor", run: selectNext },
+    { g: "Editing", id: "selectLine", label: "Select line", keys: ["Ctrl+L"], when: "editor", run: selectLine },
+    { g: "Editing", id: "deleteLine", label: "Delete line", keys: ["Ctrl+Shift+K", "Ctrl+Shift+D"], when: "editor", run: deleteLine },
+    { g: "Editing", id: "moveUp", label: "Move line up", keys: ["Alt+Up"], when: "editor", run: () => moveLine(true) },
+    { g: "Editing", id: "moveDown", label: "Move line down", keys: ["Alt+Down"], when: "editor", run: () => moveLine(false) },
+    { g: "Editing", id: "copyUp", label: "Copy line up", keys: ["Shift+Alt+Up"], when: "editor", run: () => copyLine(false) },
+    { g: "Editing", id: "copyDown", label: "Copy line down", keys: ["Shift+Alt+Down"], when: "editor", run: () => copyLine(true) },
+    { g: "Editing", id: "lineBelow", label: "Insert line below", keys: ["Ctrl+Enter"], when: "editor", run: () => newLine(false) },
+    { g: "Editing", id: "lineAbove", label: "Insert line above", keys: ["Ctrl+Shift+Enter"], when: "editor", run: () => newLine(true) },
+    { g: "Editing", id: "indent", label: "Indent line", keys: ["Ctrl+]", "Tab"], when: "editor", run: () => indentLines(false) },
+    { g: "Editing", id: "outdent", label: "Outdent line", keys: ["Ctrl+[", "Shift+Tab"], when: "editor", run: () => indentLines(true) },
+    { g: "Editing", id: "comment", label: "Toggle comment", keys: ["Ctrl+/"], when: "editor", run: toggleComment },
+    { g: "Editing", id: "cutLine", label: "Cut line (nothing selected)", keys: ["Ctrl+X"], when: "editor", run: () => lineClip(true) },
+    { g: "Editing", id: "copyLineClip", label: "Copy line (nothing selected)", keys: ["Ctrl+C"], when: "editor", run: () => lineClip(false) },
+    { g: "Editing", id: "undo", label: "Undo / redo", keys: ["Ctrl+Z / Ctrl+Y"], help: true },
+    /* formatting */
+    { g: "Formatting", id: "bold", label: "Bold", keys: ["Ctrl+B"], when: "editor", run: () => wrap("**", "**", "bold text") },
+    { g: "Formatting", id: "italic", label: "Italic", keys: ["Ctrl+I"], when: "editor", run: () => wrap("*", "*", "italic text") },
+    { g: "Formatting", id: "strike", label: "Strikethrough", keys: ["Alt+S", "Ctrl+Shift+X"], when: "editor", run: () => wrap("~~", "~~", "struck") },
+    { g: "Formatting", id: "code", label: "Inline code", keys: ["Ctrl+`"], when: "editor", run: () => wrap("`", "`", "code") },
+    { g: "Formatting", id: "highlight", label: "Highlight", keys: [], run: ed1(() => wrap("==", "==", "highlight")) },
+    { g: "Formatting", id: "link", label: "Insert link", keys: [], run: ed1(insertLink) },
+    { g: "Formatting", id: "image", label: "Insert image", keys: [], run: ed1(insertImage) },
+    { g: "Formatting", id: "pasteImage", label: "Paste image / URL as link", keys: ["Ctrl+V"], help: true },
+    { g: "Formatting", id: "headingUp", label: "Heading up (bigger)", keys: ["Ctrl+Shift+]"], when: "editor", run: () => headingStep(true) },
+    { g: "Formatting", id: "headingDown", label: "Heading down (smaller)", keys: ["Ctrl+Shift+["], when: "editor", run: () => headingStep(false) },
+    { g: "Formatting", id: "heading", label: "Heading 1–6", keys: ["Ctrl+Alt+1…6"], help: true },
+    { g: "Formatting", id: "bullet", label: "Bullet list", keys: ["Ctrl+Shift+8"], when: "editor", run: bulletList },
+    { g: "Formatting", id: "ordered", label: "Numbered list", keys: ["Ctrl+Shift+7"], when: "editor", run: orderedList },
+    { g: "Formatting", id: "task", label: "Toggle task", keys: ["Alt+C"], when: "editor", run: toggleTask },
+    { g: "Formatting", id: "quote", label: "Blockquote", keys: ["Ctrl+Shift+."], when: "editor", run: () => togglePrefix("> ") },
+    { g: "Formatting", id: "table", label: "Insert table", keys: [], run: ed1(() => insert(TABLE)) },
+    { g: "Formatting", id: "codeBlock", label: "Insert code block", keys: [], run: ed1(() => wrap("```\n", "\n```", "code here")) },
+    { g: "Formatting", id: "hr", label: "Insert horizontal rule", keys: [], run: ed1(() => insert("\n---\n")) },
+    { g: "Formatting", id: "footnote", label: "Insert footnote", keys: [], run: ed1(insertFootnote) }
+  ];
+  /* Alt+1..9 and Ctrl+Alt+1..6 are one row each on the sheet, nine and six keys here */
+  for (let i = 1; i <= 9; i++) COMMANDS.push({ g: "Go", id: "tab" + i, label: "Open editor " + i, keys: ["Alt+" + i], hidden: true, run: () => tabs[i - 1] && activateTab(tabs[i - 1].id) });
+  for (let i = 1; i <= 6; i++) COMMANDS.push({ g: "Formatting", id: "h" + i, label: "Heading " + i, keys: ["Ctrl+Alt+" + i], when: "editor", hidden: true, run: () => toggleHeading(i) });
+
+  /* "Shift+Alt+C" and "Ctrl+Shift+Alt+C" written in VS Code's order, matched in one */
+  function normCombo(s) {
+    const parts = s.split("+"), key = parts.pop() || "+";
+    const has = m => parts.some(p => p.toLowerCase() === m);
+    return (has("ctrl") ? "Ctrl+" : "") + (has("shift") ? "Shift+" : "") + (has("alt") ? "Alt+" : "") + key;
+  }
+  const CODE_KEY = { Backquote: "`", Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\",
+    Semicolon: ";", Quote: "'", Comma: ",", Period: ".", Slash: "/", Space: "Space", IntlBackslash: "\\" };
+  const SHIFTED = { "~": "`", "_": "-", "+": "=", "{": "[", "}": "]", "|": "\\", ":": ";", '"': "'", "<": ",",
+    ">": ".", "?": "/", "!": "1", "@": "2", "#": "3", "$": "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0" };
+  const KEY_NAME = { ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right", " ": "Space", Esc: "Escape" };
+  /* The key as printed on it, from the physical position where there is one, so
+     Ctrl+Shift+] is still ] and not the } the shift turned it into */
+  function comboOf(e) {
+    let k;
+    if (e.code && /^Key[A-Z]$/.test(e.code)) k = e.code.slice(3);
+    else if (e.code && /^Digit\d$/.test(e.code)) k = e.code.slice(5);
+    else if (e.code && CODE_KEY[e.code]) k = CODE_KEY[e.code];
+    else {
+      k = KEY_NAME[e.key] || e.key || "";
+      if (k.length === 1) k = SHIFTED[k] || k.toUpperCase();
+    }
+    if (!k || /^(Control|Shift|Alt|Meta|AltGraph|CapsLock|Dead|Unidentified|Process)$/.test(k)) return null;
+    return (e.ctrlKey || e.metaKey ? "Ctrl+" : "") + (e.shiftKey ? "Shift+" : "") + (e.altKey ? "Alt+" : "") + k;
+  }
+  const BINDINGS = new Map();          /* "Ctrl+K Ctrl+O" or "Ctrl+S" -> [command, ...] */
+  const CHORD_FIRST = new Set();
+  COMMANDS.forEach(c => (c.run ? c.keys : []).forEach(k => {
+    if (k.indexOf("…") >= 0 || k.indexOf(" / ") >= 0) return;
+    const seq = k.split(" ").map(normCombo).join(" ");
+    if (!BINDINGS.has(seq)) BINDINGS.set(seq, []);
+    BINDINGS.get(seq).push(c);
+    if (seq.indexOf(" ") > 0) CHORD_FIRST.add(seq.split(" ")[0]);
+  }));
+  const cmdById = id => COMMANDS.find(c => c.id === id);
+  const keysOf = id => { const c = cmdById(id); return c && c.keys[0] ? c.keys[0] : ""; };
+
+  let chord = null, chordTimer = null;
+  function runCommand(c, e) {
+    const r = c.run();
+    if (r !== false && e) e.preventDefault();
+  }
+  function onKeys(e) {
+    if (e.defaultPrevented || e.isComposing) return;
+    const combo = comboOf(e);
+    if (!combo) return;
+    const inEditor = e.target === ed;
+    const tag = (e.target && e.target.tagName) || "";
+    const inField = !inEditor && (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && e.target.isContentEditable));
+    let seq = combo;
+    if (chord) {
+      seq = chord + " " + combo;
+      chord = null; clearTimeout(chordTimer); chordHint(null);
+      e.preventDefault();
+      const list = BINDINGS.get(seq);
+      if (!list) { toast(tr("The key combination (%s) is not a command.").replace("%s", seq.replace(" ", ", "))); return; }
+      const c = list.find(x => matchesWhen(x, inEditor));
+      if (c) runCommand(c, e);
+      return;
+    }
+    if (CHORD_FIRST.has(combo) && !BINDINGS.has(combo)) {
+      if (inField && !/^Ctrl\+/.test(combo)) return;
+      e.preventDefault();
+      chord = combo;
+      chordHint(combo);
+      chordTimer = setTimeout(() => { chord = null; chordHint(null); }, 5000);
+      return;
+    }
+    const list = BINDINGS.get(seq);
+    if (!list) return;
+    /* typing in a box keeps its own keys: only modifier and function-key commands apply */
+    if (inField && !/^(Ctrl\+|Alt\+|Shift\+Alt\+|F\d)/.test(combo)) return;
+    if (inField && /^Ctrl\+[ACVXZY]$/.test(combo)) return;
+    const c = list.find(x => matchesWhen(x, inEditor));
+    if (c) runCommand(c, e);
+  }
+  function matchesWhen(c, inEditor) {
+    if (c.when === "editor") return inEditor;
+    if (c.when === "notEditor") return !inEditor;
+    return true;
+  }
+  function chordHint(first) {
+    const el = $("#stCursor");
+    if (!el) return;
+    if (first) { el.dataset.was = el.textContent; el.textContent = "(" + first + ") " + tr("was pressed. Waiting for second key of chord..."); el.classList.add("chord"); }
+    else if (el.classList.contains("chord")) { el.classList.remove("chord"); updateCursor(); }
+  }
+
+  /* ---------- Quick Open and the command palette ---------- */
+  /* One box, VS Code's prefixes: nothing for files, ">" for commands, "@" for the
+     headings of this document, ":" for a line number. */
+  let palItems = [], palIndex = 0, palFiles = null;
+  async function openPalette(prefix) {
+    const box = $("#palette"), input = $("#palInput");
+    box.hidden = false;
+    input.value = prefix;
+    palFiles = null;
+    input.focus();
+    paletteRender();
+    /* the folder's files may still have to be read; the list fills in when they are */
+    try { palFiles = await allFileNodes(); } catch (e) { palFiles = []; }
+    if (!box.hidden) paletteRender();
+  }
+  function closePalette(back) {
+    $("#palette").hidden = true;
+    if (back !== false && !previewMode()) ed.focus();
+  }
+  /* letters in order, closer together and at word starts scoring higher */
+  function fuzzy(q, s) {
+    if (!q) return { score: 0, at: [] };
+    const lq = q.toLowerCase(), ls = s.toLowerCase();
+    let i = 0, score = 0, last = -2;
+    const at = [];
+    for (let j = 0; j < ls.length && i < lq.length; j++) {
+      if (ls[j] !== lq[i]) continue;
+      score += (j === last + 1 ? 5 : 1) + (j === 0 || /[\s/\\._-]/.test(s[j - 1]) ? 3 : 0);
+      at.push(j); last = j; i++;
+    }
+    return i === lq.length ? { score: score - s.length * 0.01, at: at } : null;
+  }
+  const mark = (s, at) => { let o = ""; for (let i = 0; i < s.length; i++) o += at.indexOf(i) >= 0 ? "<b>" + esc(s[i]) + "</b>" : esc(s[i]); return o; };
+  function paletteRender() {
+    const v = $("#palInput").value;
+    let items = [];
+    if (v.startsWith(">")) {
+      const q = v.slice(1).trim();
+      COMMANDS.filter(c => c.run && !c.hidden).forEach(c => {
+        const label = tr(c.label), f = fuzzy(q, label);
+        if (f) items.push({ label: mark(label, f.at), hint: c.keys.filter(k => k.indexOf("…") < 0).join("  ·  "), score: f.score, run: () => c.run() });
+      });
+      items.sort((a, b) => b.score - a.score);
+    } else if (v.startsWith("@")) {
+      const q = v.slice(1).trim();
+      tocData.forEach(h => {
+        const f = fuzzy(q, h.text || "");
+        if (f) items.push({ label: "&nbsp;".repeat((h.level - 1) * 3) + mark(h.text || "", f.at), hint: "H" + h.level, score: q ? f.score : -h.line,
+          run: () => { goToLine(h.line); const el = preview.querySelector('[id="' + CSS.escape(h.id) + '"]'); if (el) previewPane.scrollTop = el.offsetTop - 16; } });
+      });
+      if (v.slice(1).trim()) items.sort((a, b) => b.score - a.score);
+      if (!items.length) items.push({ label: esc(tr("No headings in this document")), hint: "", run: () => { } });
+    } else if (v.startsWith(":")) {
+      const n = parseInt(v.slice(1), 10), total = ed.value.split("\n").length;
+      items.push(n > 0
+        ? { label: esc(tr("Go to line ") + Math.min(n, total)), hint: "", run: () => { ed.focus(); goToLine(Math.min(n, total) - 1); } }
+        : { label: esc(tr("Type a line number between 1 and ") + total), hint: "", run: () => { } });
+    } else {
+      const q = v.trim(), seen = new Set();
+      const add = (name, hint, key, run, boost) => {
+        if (seen.has(key)) return;
+        seen.add(key);
+        const f = fuzzy(q, name) || (q && fuzzy(q, hint + "/" + name));
+        if (!f) return;
+        items.push({ label: mark(name, fuzzy(q, name) ? f.at : []), hint: hint, score: f.score + (boost || 0), run: run });
+      };
+      tabs.forEach((t, i) => add(t.name, t.kind === "file" ? (t.path.indexOf("/") >= 0 ? t.path.replace(/\/[^/]*$/, "") : root ? root.name : "") : tr("Docs"),
+        t.kind === "file" ? "f:" + t.path : "d:" + t.docId, () => activateTab(t.id), q ? 0 : 100 - i));
+      (palFiles || []).forEach(n => add(n.name, n.path.indexOf("/") >= 0 ? n.path.replace(/\/[^/]*$/, "") : root ? root.name : "", "f:" + n.path, () => openFileNode(n)));
+      state.docs.forEach(d => add(d.name || tr("Untitled"), tr("Docs"), "d:" + d.id, () => openDoc(d.id)));
+      if (tree) (function walk(n) { if (n.kind === "img") add(n.name, n.path.replace(/\/[^/]*$/, ""), "i:" + n.path, () => showImage(treeImgKey(n), n.path), -1); (n.kids || []).forEach(walk); })(tree);
+      if (q) items.sort((a, b) => b.score - a.score);
+      if (!items.length) items.push({ label: esc(tr("No matching files")), hint: "", run: () => { } });
+    }
+    palItems = items.slice(0, 60);
+    palIndex = 0;
+    $("#palList").innerHTML = palItems.map((it, i) =>
+      '<div class="pal-i' + (i === 0 ? " on" : "") + '" data-i="' + i + '"><span class="pal-l">' + it.label +
+      '</span><span class="pal-h">' + esc(it.hint || "") + "</span></div>").join("");
+  }
+  function paletteMove(d) {
+    if (!palItems.length) return;
+    palIndex = (palIndex + d + palItems.length) % palItems.length;
+    document.querySelectorAll("#palList .pal-i").forEach((el, i) => el.classList.toggle("on", i === palIndex));
+    const on = document.querySelector("#palList .pal-i.on");
+    if (on) on.scrollIntoView({ block: "nearest" });
+  }
+  function paletteRun(i) {
+    const it = palItems[i == null ? palIndex : i];
+    if (!it) return;
+    const toEditor = $("#palInput").value.startsWith(":") || $("#palInput").value.startsWith("@");
+    closePalette(toEditor);
+    it.run();
+  }
+
   /* ---------- local (browser-stored) documents ---------- */
   function openDoc(id) {
     const d = state.docs.find(x => x.id === id);
@@ -5787,17 +6908,17 @@ const MD = (function () {
     { sep: 1 },
     { i: '<path d="M7 5h6.5a3.5 3.5 0 010 7H7zM7 12h7.5a3.5 3.5 0 010 7H7z"/>', label: "Bold (Ctrl+B)", run: () => wrap("**", "**", "bold text") },
     { i: '<path d="M19 4h-9M14 20H5M15 4L9 20"/>', label: "Italic (Ctrl+I)", run: () => wrap("*", "*", "italic text") },
-    { i: '<path d="M6 12h12M16.5 6.5C15.6 5.2 14 4.5 12 4.5c-2.5 0-4.5 1.2-4.5 3S9 10 12 10.5m-4.5 7c.9 1.3 2.5 2 4.5 2 2.5 0 4.5-1.2 4.5-3"/>', label: "Strikethrough", run: () => wrap("~~", "~~", "struck") },
+    { i: '<path d="M6 12h12M16.5 6.5C15.6 5.2 14 4.5 12 4.5c-2.5 0-4.5 1.2-4.5 3S9 10 12 10.5m-4.5 7c.9 1.3 2.5 2 4.5 2 2.5 0 4.5-1.2 4.5-3"/>', label: "Strikethrough (Alt+S)", run: () => wrap("~~", "~~", "struck") },
     { i: '<path d="M4 6h16v12H4zM8 10l-2 2 2 2m8-4l2 2-2 2"/>', label: "Inline code (Ctrl+`)", run: () => wrap("`", "`", "code") },
     { i: '<path d="M3 5h10M3 5v14M3 19h10M17 5v14M14 5h6M14 19h6"/>', label: "Highlight", run: () => wrap("==", "==", "highlight") },
     { sep: 1 },
-    { i: '<path d="M10.5 13.5a5 5 0 007 0l2.5-2.5a5 5 0 00-7-7l-1.2 1.2"/><path d="M13.5 10.5a5 5 0 00-7 0L4 13a5 5 0 007 7l1.2-1.2"/>', label: "Link (Ctrl+K)", run: insertLink },
-    { i: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5L5 21"/>', label: "Image (Ctrl+Shift+K)", run: insertImage },
+    { i: '<path d="M10.5 13.5a5 5 0 007 0l2.5-2.5a5 5 0 00-7-7l-1.2 1.2"/><path d="M13.5 10.5a5 5 0 00-7 0L4 13a5 5 0 007 7l1.2-1.2"/>', label: "Link (paste a URL over words)", run: insertLink },
+    { i: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5L5 21"/>', label: "Image (or paste a screenshot)", run: insertImage },
     { sep: 1 },
-    { i: '<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>', label: "Bullet list", run: bulletList },
-    { i: '<path d="M10 6h11M10 12h11M10 18h11M4 5h1v4M4 15h2v1.5H4V18h2"/>', label: "Numbered list", run: orderedList },
-    { i: '<path d="M9 11.5l2.5 2.5L21 4.5"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>', label: "Task list", run: taskList },
-    { i: '<path d="M6 7h3v5c0 2-1 3.5-3 4.5M15 7h3v5c0 2-1 3.5-3 4.5"/>', label: "Blockquote", run: () => togglePrefix("> ") },
+    { i: '<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>', label: "Bullet list (Ctrl+Shift+8)", run: bulletList },
+    { i: '<path d="M10 6h11M10 12h11M10 18h11M4 5h1v4M4 15h2v1.5H4V18h2"/>', label: "Numbered list (Ctrl+Shift+7)", run: orderedList },
+    { i: '<path d="M9 11.5l2.5 2.5L21 4.5"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>', label: "Task list (Alt+C)", run: taskList },
+    { i: '<path d="M6 7h3v5c0 2-1 3.5-3 4.5M15 7h3v5c0 2-1 3.5-3 4.5"/>', label: "Blockquote (Ctrl+Shift+.)", run: () => togglePrefix("> ") },
     { sep: 1 },
     { i: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 10h18M9 10v9M15 10v9"/>', label: "Table", run: () => insert(TABLE) },
     { i: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 9l-2.5 3L9 15m6-6l2.5 3L15 15"/>', label: "Code block", run: () => wrap("```\n", "\n```", "code here") },
@@ -6617,6 +7738,8 @@ const MD = (function () {
         break;
       case "settings": showMenu(false); showSettings(true); return;
       case "help": $("#help").hidden = false; break;
+      case "quick-open": showMenu(false); openPalette(""); return;
+      case "palette": showMenu(false); openPalette(">"); return;
       case "guide": showMenu(false); openGuide(); return;
     }
     showMenu(false);
@@ -6636,29 +7759,28 @@ const MD = (function () {
   }
 
   /* ---------- help ---------- */
-  const SHORTCUTS = [
-    ["Formatting", [["Bold", "Ctrl B"], ["Italic", "Ctrl I"], ["Inline code", "Ctrl `"],
-    ["Link", "Ctrl K"], ["Image", "Ctrl Shift K"], ["Paste image", "Ctrl V"], ["Strikethrough", "Ctrl Shift X"],
-    ["Heading 1 / 2 / 3", "Ctrl Alt 1-3"], ["Bullet list", "Ctrl Shift 8"],
-    ["Numbered list", "Ctrl Shift 7"], ["Blockquote", "Ctrl Shift ."]]],
-    ["Editing", [["Indent / outdent", "Tab / Shift Tab"], ["Duplicate line", "Ctrl D"],
-    ["Move line up / down", "Alt Up / Down"], ["Delete line", "Ctrl Shift D"],
-    ["Continue list", "Enter"], ["Undo / redo", "Ctrl Z / Y"], ["Select all", "Ctrl A"]]],
-    ["Files", [["Open folder", "Ctrl Shift O"], ["Open .md file", "Ctrl O"], ["New document", "Alt N"],
-    ["Save", "Ctrl S"], ["Save all files", "Ctrl Alt S"], ["Print / PDF", "Ctrl P"]]],
-    ["Tabs", [["Next tab", "Ctrl Alt Right"], ["Previous tab", "Ctrl Alt Left"],
-    ["Go to tab 1-9", "Alt 1-9"], ["Close tab", "Ctrl Alt W"], ["Close all tabs", "Ctrl Alt Shift W"],
-    ["Find and replace", "Ctrl F"], ["Search in folder", "Ctrl Shift F"], ["Close panel", "Esc"]]],
-    ["View", [["Editor only", "Ctrl 1"], ["Split view", "Ctrl 2"], ["Preview only", "Ctrl 3"],
-    ["Toggle sidebar", "Ctrl \\"], ["Toggle theme", "Ctrl Shift L"],
-    ["Settings", "Ctrl ,"], ["Shortcuts", "F1"]]]
-  ];
+  /* The sheet is drawn from COMMANDS, so it can never list a key that does
+     something else. Where the first key is one the browser keeps for itself
+     (Ctrl+N, Ctrl+W, Ctrl+Tab...) the one that always works is shown beside it. */
+  const BROWSER_KEEPS = new Set(["Ctrl+N", "Ctrl+W", "Ctrl+F4", "Ctrl+Tab", "Ctrl+Shift+Tab", "Ctrl+Shift+T",
+    "Ctrl+PageDown", "Ctrl+PageUp"]);
+  const kbdHtml = keys => keys.split(" / ").map(alt => alt.split(" ").map(step =>
+    step.split("+").filter((x, i, a) => x || i === a.length - 1).map(k => "<kbd>" + MD.escape(k || "+") + "</kbd>").join("")
+  ).join('<span class="kb-then"></span>')).join('<span class="kb-or">/</span>');
   function buildHelp() {
-    $("#kbGrid").innerHTML = SHORTCUTS.map(g =>
-      '<div class="kbsec"><h3>' + MD.escape(tr(g[0])) + "</h3>" +
-      g[1].map(r => '<div class="kbrow"><span>' + MD.escape(tr(r[0])) + "</span>" +
-        r[1].split(" ").map(k => "<kbd>" + MD.escape(k) + "</kbd>").join(" ") + "</div>").join("") +
-      "</div>").join("");
+    const groups = ["File", "Go", "View", "Find", "Editing", "Formatting"];
+    const extra = { Editing: [["Continue list", "Enter"]], View: [["Close panel", "Escape"]] };
+    $("#kbGrid").innerHTML = groups.map(g => {
+      const rows = COMMANDS.filter(c => c.g === g && !c.hidden && c.keys.length).map(c => {
+        let k = c.keys[0];
+        if (BROWSER_KEEPS.has(k) && c.keys[1]) k += " / " + c.keys[c.keys.length - 1];
+        return [c.label, k];
+      }).concat(extra[g] || []);
+      return '<div class="kbsec"><h3>' + MD.escape(tr(g)) + "</h3>" +
+        rows.map(r => '<div class="kbrow"><span>' + MD.escape(tr(r[0])) + "</span>" + kbdHtml(r[1]) + "</div>").join("") +
+        "</div>";
+    }).join("") +
+      '<p class="kb-note">' + MD.escape(tr("The same keys as VS Code. Press Ctrl+Shift+P to search every command; a key the browser keeps for itself has a second one that always works.")) + "</p>";
   }
 
   /* ---------- key handling in editor ---------- */
@@ -6718,72 +7840,16 @@ const MD = (function () {
       return;
     }
 
-    if (mod && e.altKey && e.key >= "1" && e.key <= "6") { e.preventDefault(); toggleHeading(+e.key); return; }
-    if (mod && e.shiftKey) {
-      const k = e.key.toLowerCase();
-      if (k === "x") { e.preventDefault(); wrap("~~", "~~", "struck"); return; }
-      if (k === "k") { e.preventDefault(); insertImage(); return; }
-      if (e.key === "*" || e.key === "8") { e.preventDefault(); bulletList(); return; }
-      if (e.key === "&" || e.key === "7") { e.preventDefault(); orderedList(); return; }
-      if (e.key === ">" || e.key === ".") { e.preventDefault(); togglePrefix("> "); return; }
-      if (k === "d") {
-        e.preventDefault();
-        const [ls, le] = lineRange();
-        ed.setSelectionRange(ls, Math.min(ed.value.length, le + 1));
-        insert("");
-        return;
-      }
-    }
-    if (mod && !e.shiftKey && !e.altKey) {
-      const k = e.key.toLowerCase();
-      if (k === "b") { e.preventDefault(); wrap("**", "**", "bold text"); return; }
-      if (k === "i") { e.preventDefault(); wrap("*", "*", "italic text"); return; }
-      if (k === "k") { e.preventDefault(); insertLink(); return; }
-      if (e.key === "`") { e.preventDefault(); wrap("`", "`", "code"); return; }
-      if (k === "d") {
-        e.preventDefault();
-        const [ls, le] = lineRange();
-        const text = ed.value.slice(ls, le);
-        ed.setSelectionRange(le, le);
-        insert("\n" + text);
-        return;
-      }
-    }
-    if (e.altKey && !mod && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      e.preventDefault();
-      const up = e.key === "ArrowUp";
-      const v = ed.value;
-      const [ls, le] = lineRange();
-      if (up && ls === 0) return;
-      if (!up && le >= v.length) return;
-      const block = v.slice(ls, le);
-      const off = ed.selectionStart - ls, len = ed.selectionEnd - ed.selectionStart;
-      if (up) {
-        const ps = v.lastIndexOf("\n", ls - 2) + 1;
-        const prev = v.slice(ps, ls - 1);
-        ed.setSelectionRange(ps, le);
-        insert(block + "\n" + prev);
-        ed.setSelectionRange(ps + off, ps + off + len);
-      } else {
-        let ne = v.indexOf("\n", le + 1);
-        if (ne === -1) ne = v.length;
-        const next = v.slice(le + 1, ne);
-        ed.setSelectionRange(ls, ne);
-        insert(next + "\n" + block);
-        const ns = ls + next.length + 1;
-        ed.setSelectionRange(ns + off, ns + off + len);
-      }
-      buildMirror();
-      return;
-    }
+    /* every other key is a command - see COMMANDS */
   }
 
   /* ---------- global keys ---------- */
+  /* Esc closes whatever is on top; everything else goes through the command list. */
   function onGlobalKey(e) {
-    const mod = e.ctrlKey || e.metaKey;
-    const inField = /^(INPUT|TEXTAREA)$/.test((e.target.tagName || "")) && e.target !== ed;
-
     if (e.key === "Escape") {
+      if (chord) { chord = null; chordHint(null); return; }
+      if (ctxEl) { hideCtx(); return; }
+      if (!$("#palette").hidden) { closePalette(); return; }
       if (!$("#imgView").hidden) { hideImage(); return; }
       if (!$("#settings").hidden) { showSettings(false); return; }
       if (!$("#help").hidden) { $("#help").hidden = true; return; }
@@ -6791,42 +7857,8 @@ const MD = (function () {
       if (!$("#findbar").hidden) { showFind(false); return; }
       return;
     }
-    if (e.key === "F1") { e.preventDefault(); $("#help").hidden = false; return; }
-    if (mod && !e.shiftKey && !e.altKey && e.key === ",") {
-      e.preventDefault(); showSettings($("#settings").hidden); return;
-    }
-
-    /* these must be tested before the plain Ctrl+O / Ctrl+S below */
-    if (mod && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); openFolder(); return; }
-    if (mod && e.altKey && e.key.toLowerCase() === "s") { e.preventDefault(); saveAll(); return; }
-    if (mod && e.altKey && e.key.toLowerCase() === "w") {
-      e.preventDefault();
-      if (e.shiftKey) closeAllTabs(); else if (activeTab) closeTab(activeTab);
-      return;
-    }
-    if (mod && e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") { e.preventDefault(); showFolderSearch(); return; }
-    if (mod && e.altKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
-      e.preventDefault(); cycleTab(e.key === "ArrowRight" ? 1 : -1); return;
-    }
-    if (e.altKey && !mod && e.key >= "1" && e.key <= "9") {
-      e.preventDefault();
-      const t = tabs[+e.key - 1];
-      if (t) activateTab(t.id);
-      return;
-    }
-
-    if (mod && e.key.toLowerCase() === "f") { e.preventDefault(); showFind(true); return; }
-    if (mod && e.key.toLowerCase() === "s") { e.preventDefault(); saveMarkdown(); return; }
-    if (mod && e.key.toLowerCase() === "o") { e.preventDefault(); $("#filePick").click(); return; }
-    if (mod && e.key.toLowerCase() === "p" && !e.shiftKey) { e.preventDefault(); window.print(); return; }
-    if (mod && e.shiftKey && e.key.toLowerCase() === "l") { e.preventDefault(); toggleTheme(); return; }
-    if (mod && e.key === "\\") { e.preventDefault(); setSidebar(!state.settings.sidebar); return; }
-    if (e.altKey && e.key.toLowerCase() === "n" && !mod) { e.preventDefault(); newDoc(); return; }
-    if (mod && !e.shiftKey && !e.altKey && ["1", "2", "3"].includes(e.key) && !inField) {
-      e.preventDefault();
-      setView(["edit", "split", "preview"][+e.key - 1]);
-      return;
-    }
+    if (!$("#palette").hidden && e.target === $("#palInput")) return;
+    onKeys(e);
   }
 
   /* A hidden pane is display:none, and that is enough for the browser to forget
@@ -6902,11 +7934,11 @@ const MD = (function () {
 
      Only these roots. Never the editor or the preview: those hold the user's own
      words, and a dictionary has no business anywhere near them. */
-  const LANG_ROOTS = ["#sidebar", "#topbar", "#status", "#menu", "#settings", "#help", "#imgView",
+  const LANG_ROOTS = ["#sidebar", "#topbar", "#status", "#menu", "#settings", "#help", "#imgView", "#palette",
                       "#findbar", "#tabwrap", "#drop"];
   /* written by JavaScript, which translates them itself - a sweep would only put its
      own stale copy back */
-  const LANG_SKIP = "#kbGrid,#toolbar,#treeBody,#docList,#docAssets,#ivName,#ivPath,#ivInfo,#tocList,#fsResults,#tabbar," +
+  const LANG_SKIP = "#kbGrid,#palList,#toolbar,#treeBody,#docList,#docAssets,#ivName,#ivPath,#ivInfo,#tocList,#fsResults,#tabbar," +
     "#docHome,#fsSummary,#stCursor,#stWords,#stChars,#stLines,#stRead,#saveState," +
     "#findCount,#setPath,#setEdSize,#setPvSize";
   const langWas = new Map();
@@ -7105,9 +8137,14 @@ const MD = (function () {
     /* a screenshot pasted straight in, the way Word takes one */
     ed.addEventListener("paste", e => {
       const files = clipImages(e.clipboardData);
-      if (!files.length) return;
-      e.preventDefault();
-      addImages(files);
+      if (files.length) { e.preventDefault(); addImages(files); return; }
+      /* a URL pasted over selected words makes them a link, as VS Code does */
+      const text = (e.clipboardData && e.clipboardData.getData("text/plain") || "").trim();
+      const sel = ed.value.slice(ed.selectionStart, ed.selectionEnd);
+      if (sel && !/\n/.test(sel) && /^(https?:\/\/|mailto:)\S+$/i.test(text) && !/^(https?:\/\/|mailto:)/i.test(sel)) {
+        e.preventDefault();
+        insert("[" + sel + "](" + text + ")");
+      }
     });
     ed.addEventListener("keyup", updateCursor);
     ed.addEventListener("click", updateCursor);
@@ -7198,6 +8235,8 @@ const MD = (function () {
       if (!row) return;
       const n = nodeByPath.get(row.dataset.path);
       if (!n) return;
+      selectRow(n.path);
+      $("#treeBody").focus({ preventScroll: true });
       if (n.kind === "dir") {
         n.open = !n.open;
         if (n.open && n.kids === null) await loadDir(n);
@@ -7206,6 +8245,82 @@ const MD = (function () {
       else { openFileNode(n); autoCloseSide(); }
     });
     $("#dirPick").addEventListener("change", e => { useFlatFolder(e.target.files); e.target.value = ""; });
+
+    /* right-click menus, VS Code's: on the tree, on Docs, on editor tabs */
+    $("#treeBody").addEventListener("contextmenu", e => {
+      const row = e.target.closest(".tree-row");
+      if (!row || !root) return;
+      const n = nodeByPath.get(row.dataset.path);
+      if (!n) return;
+      e.preventDefault();
+      selectRow(n.path);
+      showCtx(e.clientX, e.clientY, treeItems(n));
+    });
+    $("#docList").addEventListener("contextmenu", e => {
+      const row = e.target.closest(".doc");
+      if (!row) return;
+      const d = state.docs.find(x => x.id === row.dataset.id);
+      if (!d) return;
+      e.preventDefault();
+      showCtx(e.clientX, e.clientY, docItems(d));
+    });
+    $("#tabbar").addEventListener("contextmenu", e => {
+      const tb = e.target.closest("[data-tab]");
+      if (!tb) return;
+      const t = tabs.find(x => x.id === tb.dataset.tab);
+      if (!t) return;
+      e.preventDefault();
+      showCtx(e.clientX, e.clientY, tabItems(t));
+    });
+    document.addEventListener("mousedown", e => { if (ctxEl && !ctxEl.contains(e.target)) hideCtx(); }, true);
+    window.addEventListener("blur", hideCtx);
+    window.addEventListener("resize", hideCtx);
+    document.addEventListener("keydown", e => {
+      if (!ctxEl) return;
+      const items = [...ctxEl.querySelectorAll(".ctx-i:not(:disabled)")];
+      const at = items.indexOf(document.activeElement);
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const nx = items[(at + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length];
+        if (nx) nx.focus();
+      }
+    }, true);
+
+    /* the tree answers keys of its own once a row is selected: F2, Delete, Enter, arrows */
+    $("#treeBody").addEventListener("keydown", e => {
+      if (!treeSel || e.target !== $("#treeBody")) return;
+      const n = nodeOfPath(treeSel) || nodeByPath.get(treeSel);
+      if (e.key === "F2" && n && n.kind !== "dir") { e.preventDefault(); e.stopPropagation(); startRename(treeSel); return; }
+      if (e.key === "Delete" && n && n.kind !== "dir") { e.preventDefault(); deleteEntry(n); return; }
+      if (e.key === "Enter" && n) { e.preventDefault(); treeRowEl(treeSel).click(); return; }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const rows = [...document.querySelectorAll("#treeBody .tree-row")];
+        const i = rows.findIndex(r => r.dataset.path === treeSel);
+        const nx = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))];
+        if (nx) { selectRow(nx.dataset.path); nx.scrollIntoView({ block: "nearest" }); }
+      }
+    });
+
+    /* Quick Open / command palette */
+    $("#palInput").addEventListener("input", paletteRender);
+    $("#palInput").addEventListener("keydown", e => {
+      if (e.key === "ArrowDown") { e.preventDefault(); paletteMove(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); paletteMove(-1); }
+      else if (e.key === "Enter") { e.preventDefault(); paletteRun(); }
+      else if (e.key === "Escape") { e.preventDefault(); closePalette(); }
+      else {
+        /* Ctrl+P again, or Ctrl+Shift+P, switch what the box is listing */
+        const c = comboOf(e);
+        if (c === "Ctrl+P" || c === "Ctrl+E") { e.preventDefault(); $("#palInput").value = ""; paletteRender(); }
+        else if (c === "Ctrl+Shift+P") { e.preventDefault(); $("#palInput").value = ">"; paletteRender(); }
+      }
+    });
+    $("#palList").addEventListener("mousedown", e => {
+      const it = e.target.closest(".pal-i");
+      if (it) { e.preventDefault(); paletteRun(+it.dataset.i); }
+    });
+    $("#palette").addEventListener("mousedown", e => { if (e.target.id === "palette") closePalette(); });
 
     /* menu */
     $("#btnMenu").addEventListener("click", e => { e.stopPropagation(); showMenu($("#menu").hidden); });

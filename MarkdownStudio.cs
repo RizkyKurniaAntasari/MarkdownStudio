@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.11.1.0")]
-[assembly: AssemblyFileVersion("1.11.1.0")]
+[assembly: AssemblyVersion("1.12.0.0")]
+[assembly: AssemblyFileVersion("1.12.0.0")]
 
 static class MarkdownStudio
 {
@@ -921,7 +921,7 @@ static class MarkdownStudio
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             k.SetValue("DisplayName", AppName);
-            k.SetValue("DisplayVersion", "1.11.1");
+            k.SetValue("DisplayVersion", "1.12.0");
             k.SetValue("Publisher", AppName);
             k.SetValue("DisplayIcon", exe + ",0");
             k.SetValue("InstallLocation", dir);
@@ -1551,7 +1551,7 @@ static class MarkdownStudio
 
                 if (path == "/__ws" || path == "/__file" || path == "/__all" ||
                     path == "/__launch" || path == "/__libdir" || path == "/__reveal" ||
-                    path == "/__asset")
+                    path == "/__asset" || path == "/__entry")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
@@ -1602,6 +1602,11 @@ static class MarkdownStudio
                            Encoding.UTF8.GetBytes(AllFiles(ws))); return; }
 
                     if (path == "/__asset") { Asset(ns, method, ws, QueryValue(query, "p"), body); return; }
+                    if (path == "/__entry")
+                    {
+                        Entry(ns, method, ws, QueryValue(query, "p"), QueryValue(query, "op"), QueryValue(query, "to"));
+                        return;
+                    }
 
                     string full = Resolve(ws, QueryValue(query, "p"));
                     if (full == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
@@ -1649,6 +1654,83 @@ static class MarkdownStudio
             }
         }
         catch { }
+    }
+
+    // What the Explorer tree shows, and so all that its right-click menu may touch:
+    // documents, and anything inside an assets folder.
+    static bool InTree(string rel) { return IsMd(rel) || InAssets(rel); }
+
+    static bool BadName(string name)
+    {
+        if (string.IsNullOrEmpty(name) || name.Trim().Length == 0) return true;
+        if (name == "." || name == ".." || name.EndsWith(".") || name.EndsWith(" ")) return true;
+        return name.IndexOfAny(new char[] { '/', '\\', ':', '*', '?', '"', '<', '>', '|' }) >= 0 ||
+               name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0;
+    }
+
+    // The right-click menu's file operations. A rename stays in the same folder and
+    // must leave the file something the tree still shows - a document stays a
+    // document, an asset stays in its assets folder - and never lands on another
+    // file. A delete goes to the Recycle Bin. Reveal opens Explorer on the file.
+    static void Entry(NetworkStream ns, string method, Workspace ws, string rel, string op, string to)
+    {
+        string full = Resolve(ws, rel, InTree);
+        if (full == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
+        if (!File.Exists(full)) { SendText(ns, "404 Not Found", "no such file"); return; }
+
+        if (method == "DELETE")
+        {
+            try { Recycle(full); SendText(ns, "200 OK", "ok"); }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+        if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+
+        if (op == "reveal")
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo("explorer.exe", "/select,\"" + full + "\"");
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+                SendText(ns, "200 OK", "ok");
+            }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+        if (op == "rename")
+        {
+            if (BadName(to)) { SendText(ns, "400 Bad Request", "That is not a valid file name."); return; }
+            string dirRel = rel.Contains("/") ? rel.Substring(0, rel.LastIndexOf('/') + 1) : "";
+            string newRel = dirRel + to;
+            string dest = Resolve(ws, newRel, InTree);
+            if (dest == null)
+            {
+                SendText(ns, "400 Bad Request", IsMd(rel)
+                    ? "A document has to keep a Markdown extension such as .md."
+                    : "That name cannot be used here.");
+                return;
+            }
+            bool sameFile = string.Equals(dest, full, StringComparison.OrdinalIgnoreCase);
+            if (File.Exists(dest) && !sameFile)
+            { SendText(ns, "409 Conflict", "A file named " + to + " is already there."); return; }
+            try
+            {
+                if (sameFile)
+                {
+                    // only the letter case changes, which Windows will not do in one move
+                    string tmp = full + ".rename-" + NewKey().Substring(0, 6);
+                    File.Move(full, tmp);
+                    File.Move(tmp, dest);
+                }
+                else File.Move(full, dest);
+                Send(ns, "200 OK", "application/json; charset=utf-8",
+                     Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(newRel) + "}"));
+            }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+        SendText(ns, "400 Bad Request", "unknown operation");
     }
 
     // A picture beside a document. GET shows it in the preview; POST is a pasted or
