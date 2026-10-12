@@ -162,7 +162,7 @@ On a `file://` page browsers refuse the save dialog outright, so saving falls ba
 download. Chrome's **"Ask where to save each file before downloading"** setting is the
 closest you get to choosing a folder there; serving through laragon is the real fix.
 
-The whole app is one file, `index.html` (~243 KB). Copy it to a USB stick, email it,
+The whole app is one file, `index.html` (~340 KB). Copy it to a USB stick, email it,
 drop it on any machine with a browser — it keeps working.
 
 ## What it does
@@ -210,7 +210,9 @@ drop it on any machine with a browser — it keeps working.
   the documents, each picture with the document that uses it (or
   *not used in any document*, in orange). Click one to see it with its size and full
   path, copy the path, or **Insert into document**, which writes the right relative
-  link from the document you are in (`../assets/...` from a subfolder)
+  link from the document you are in (`../assets/...` from a subfolder). A picture you
+  have just pasted shows up straight away: the Explorer switches to it, opens the
+  `assets` folder — even one the paste has only just created — and flashes the new file
 - Smart Enter: continues bullet, numbered, task and quote lists; empty item ends the list
 - `Tab` / `Shift+Tab` to indent, `Alt+Up/Down` to move lines, `Ctrl+D` to duplicate
 - Find and replace (`Ctrl+F`) with case-sensitive and regex modes. Every hit is
@@ -226,7 +228,9 @@ drop it on any machine with a browser — it keeps working.
 - Both panes centre their text in a readable column instead of stretching across a
   maximised window; **Menu → Wide layout** turns that off when you want the full width
 - Files keep their own line endings and encoding: a CRLF file is written back as CRLF
-  and a byte-order mark is preserved, so opening a file never counts as changing it
+  and a byte-order mark is preserved, so opening a file never counts as changing it.
+  The file is read as raw bytes for this, because the browser's own text reading
+  quietly drops the mark
 - The ⋮ menu sizes itself to the window and scrolls when it does not fit, so nothing
   hides off the bottom edge on a short screen
 - **Settings** (`Ctrl ,`) holds the documents folder, soft wrap, sync scroll, wide
@@ -254,14 +258,20 @@ drop it on any machine with a browser — it keeps working.
   diagram; the bar under it has **Code** to read the source that made it, **Copy**,
   and **PNG** / **SVG** to save the picture. See *Diagrams* below
 - Blockquotes and GitHub-style callouts: `> [!NOTE]`, `[!TIP]`, `[!WARNING]`, ...
-- Links, reference links, images, autolinks, and footnotes
+- Links, reference links, images, autolinks, and footnotes. An image's alt text is
+  its label as plain words — `![the *login* page](...)` reads "the login page" to a
+  screen reader, not the asterisks
 - A safe subset of inline HTML (`<details>`, `<kbd>`, `<mark>`, ...) — scripts and
-  event handlers are stripped
+  event handlers are stripped. **Collapsible sections work with Markdown inside**:
+  everything between `<details>` and `</details>` folds away, lists and code included,
+  and folds can be nested
 - Hard line breaks with a trailing `\` or two trailing spaces; escape any special
   character with a backslash, and `<!-- comments -->` never render
 
 **The Welcome document is a tour of the app and a guide to writing a README.** It
-opens on first run. Part 0 walks through what the app does — Docs and folders, tabs,
+opens on first run — into an empty library only: a fresh browser profile pointed at a
+documents folder that already has notes (after a reinstall, or clearing site data)
+picks those up instead of adding another Welcome beside them. Part 0 walks through what the app does — Docs and folders, tabs,
 saving, pasting pictures and the `assets` folder, finding things, views, sharing and
 settings. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
 version at any time: the existing copy if it is untouched, otherwise a fresh one, so
@@ -387,3 +397,49 @@ Without the exe — the page served by laragon, or `index.html` double-clicked �
 no library folder, and Docs stay where they always were: in that browser's local
 storage, per browser and per machine, erased if you clear its site data. Press `Ctrl+S`
 to save a real `.md` file, or export them all as JSON.
+
+## When something goes wrong
+
+An error the app did not expect is **shown on screen** for a few seconds, as
+*"Something went wrong: …"* with the step it happened in. Copy that text when you
+report a problem — it names exactly what failed. A step that fails while the app is
+starting is skipped rather than stopping everything after it, so the menu, Settings
+and the rest of the buttons keep working either way.
+
+## Fixes
+
+**1.11.1**
+
+- **Find: Next / Enter did not move to the next match.** The counter stayed on
+  `1 / 3`. A startup helper added in 1.11 had the same name as the function that
+  steps through matches and replaced it. Renamed, and the app is now checked for any
+  other name declared twice
+- **A byte-order mark was lost on the first save.** A file that started with one was
+  written back without it, so saving changed every such file. The browser's text
+  reading dropped the mark before the app could see it; files are now read as raw bytes
+- **Collapsible sections showed their contents outside the fold.** An HTML block was
+  wrapped in its own container, whose closing tag shut `<details>` straight away.
+  Blocks that open an element and leave it open are no longer wrapped. This also fixes
+  the collapsible example in the Welcome guide
+- **Image alt text kept the Markdown.** `![a *bold* word](...)` gave the alt text
+  `a *bold* word`; it is now `a bold word`
+- **A second Welcome appeared** each time a fresh browser profile met a documents
+  folder that already had notes. The first-run guide is now only written into an empty
+  library
+- **A picture just pasted into a document was briefly marked "not used in any
+  document"** in the Docs pane's `assets` list, because the list was drawn before the
+  link went into the text. It is drawn again once the link is in
+
+**1.11.0**
+
+- **The whole app stopped working** after the `assets` update: a Windows path in the
+  code had lost a backslash, which broke the script before anything ran
+- **Settings in the page opened on its own** showed a Documents section whose
+  **Change folder…** and **Open in Explorer** could never work there, so it looked
+  broken. That section is now left out without the exe, and the Welcome guide no
+  longer describes exe-only features in that mode
+- An error during startup used to stop everything after it silently, leaving buttons
+  that did nothing. Startup steps now fail one at a time and errors are shown (see
+  *When something goes wrong*)
+- The first picture pasted into a document creates its `assets` folder; the Explorer
+  now opens that folder and flashes the new file instead of showing it collapsed

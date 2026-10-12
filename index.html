@@ -273,6 +273,9 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .tree-kids{margin-left:10px;padding-left:4px;border-left:1px solid var(--bd)}
 .tree-pad{width:12px;flex:0 0 auto}
 .tree-row.img{color:var(--fg3)}
+/* a file that has just been added, so the eye finds it */
+.flash{animation:flash 1.8s ease-out}
+@keyframes flash{0%,35%{background:var(--accsoft);color:var(--acc)}100%{background:transparent}}
 .tree-row.img .tree-ico{color:var(--purple);opacity:.85}
 
 /* pictures in the library, under the Docs list */
@@ -3297,6 +3300,7 @@ const MD = (function () {
 
   const TAGS = new Set(["a","b","i","u","s","em","strong","del","ins","mark","small","sub","sup","kbd","code","abbr","span","br","hr","img","p","div","details","summary","center","dl","dt","dd","figure","figcaption","picture","source","table","thead","tbody","tfoot","tr","td","th","caption","ul","ol","li","blockquote","q","cite","time","var","samp","wbr"]);
   const ATTRS = new Set(["href","src","alt","title","align","width","height","class","id","open","colspan","rowspan","start","type","datetime","cite","reversed","srcset","loading","dir","lang"]);
+  const VOID = new Set(["br", "hr", "img", "wbr", "source", "input"]);
   const TAG_RE = /^<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[a-zA-Z_:@#-][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>`]+))?)*)\s*(\/?)>/;
 
   let refs = {}, fnDefs = {}, fnList = [], headings = [], slugs = {};
@@ -3456,7 +3460,8 @@ const MD = (function () {
 
   function build(label, url, title, isImg) {
     const ti = title ? ' title="' + esc(title) + '"' : "";
-    if (isImg) return "<img" + imgSrc(url) + ' alt="' + esc(strip(label)) + '"' + ti + ' loading="lazy">';
+    /* alt is what a screen reader says, so the label's text, not its Markdown */
+    if (isImg) return "<img" + imgSrc(url) + ' alt="' + esc(strip(inline(label))) + '"' + ti + ' loading="lazy">';
     const ext = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(url) ? ' target="_blank" rel="noopener noreferrer"' : "";
     return '<a href="' + safeUrl(url) + '"' + ti + ext + ">" + inline(label) + "</a>";
   }
@@ -3715,7 +3720,20 @@ const MD = (function () {
           const buf = [];
           let j = i;
           while (j < L && lines[j].trim()) { buf.push(lines[j]); j++; }
-          out += "<div" + A + ">" + inline(buf.join("\n")) + "</div>";
+          const raw = inline(buf.join("\n"));
+          /* A block that opens an element and leaves it open - <details> with
+             Markdown between it and </details> - must not be wrapped: the wrapper's
+             own </div> would close it on the spot and leave everything meant to be
+             inside it outside. So only a balanced block gets the wrapper; an open or
+             closing one goes out as it is, its source line on its first tag. */
+          let depth = 0, tg;
+          const tagRx = /<(\/?)([a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+          while ((tg = tagRx.exec(raw))) {
+            if (tg[3] || VOID.has(tg[2].toLowerCase())) continue;
+            depth += tg[1] ? -1 : 1;
+          }
+          out += depth === 0 ? "<div" + A + ">" + raw + "</div>"
+            : raw.replace(/^(\s*<[a-zA-Z][\w-]*)/, "$1" + A);
           i = j; continue;
         }
       }
@@ -3941,7 +3959,7 @@ const MD = (function () {
     }
     if (!state.docs.length) {
       const g = guideText();
-      state.docs = [{ id: uid(), name: g.name, content: g.text, created: Date.now(), updated: Date.now() }];
+      state.docs = [{ id: uid(), name: g.name, content: g.text, created: Date.now(), updated: Date.now(), seed: true }];
       state.active = state.docs[0].id;
     }
     if (!state.docs.some(d => d.id === state.active)) state.active = state.docs[0].id;
@@ -4418,6 +4436,17 @@ const MD = (function () {
         if (text !== d.content) { d.content = text; d.updated = Date.now(); }
       } catch (e) { }
     }
+    /* The guide a first run writes is for an empty library. Run with a fresh
+       browser profile - a reinstall, cleared site data - against a folder that
+       already holds notes, it would only pile another Welcome beside the one there
+       from last time. So an untouched one is dropped when the folder has anything. */
+    if (LIB.files.length) {
+      const fresh = state.docs.filter(d => d.seed && !d.file && d.content === guideText().text);
+      if (fresh.length) {
+        state.docs = state.docs.filter(d => fresh.indexOf(d) < 0);
+        if (fresh.some(d => d.id === state.active)) state.active = null;
+      }
+    }
     for (const d of state.docs) {
       if (d.file) continue;
       const file = libNameFor(d.name, d.id);
@@ -4711,7 +4740,8 @@ const MD = (function () {
         (n.open ? '<div class="tree-kids">' + (n.kids || []).map(renderNode).join("") + "</div>" : "");
     }
     if (n.kind === "img") {
-      return '<div class="tree-row img" data-path="' + esc(n.path) + '" title="' + esc(n.path) + '">' +
+      return '<div class="tree-row img' + (flashing.has(n.path) ? " flash" : "") +
+        '" data-path="' + esc(n.path) + '" title="' + esc(n.path) + '">' +
         '<span class="tree-pad"></span>' + (IMG_EXT.test(n.name) ? ICO_IMG : ICO_FILE) + '<span class="tree-name">' + esc(n.name) + "</span></div>";
     }
     const tab = tabs.find(t => t.kind === "file" && t.path === n.path);
@@ -4829,11 +4859,19 @@ const MD = (function () {
     activateTab(tab.id, true);
   }
 
-  /* the raw text on disk, whichever way the folder was opened */
+  /* The raw text on disk, whichever way the folder was opened. Decoded by hand with
+     ignoreBOM: response.text() and file.text() silently drop a byte-order mark, so a
+     file that had one was never seen to have it - and lost it on the first save. */
   async function readNodeText(n) {
-    if (n.srv) return srvRead(n.path);
-    const f = n.handle ? await n.handle.getFile() : n.file;
-    return f.text();
+    let bytes;
+    if (n.srv) {
+      const r = await fetch(srvUrl("/__file", n.path));
+      if (!r.ok) throw new Error((await r.text()) || r.status);
+      bytes = await r.arrayBuffer();
+    } else {
+      bytes = await (n.handle ? await n.handle.getFile() : n.file).arrayBuffer();
+    }
+    return new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes);
   }
 
   /* ---------- searching every file in the opened folder ---------- */
@@ -5354,6 +5392,9 @@ const MD = (function () {
         } else { embedImage(alt, data); embedded++; }
       }
     } finally { imgBusy = false; }
+    /* the library's list was drawn when the file was written, before the link went
+       in - drawn again now, or a picture just pasted reads "not used" for a second */
+    if (saved && base && base.ws === "lib") renderLibAssets();
     if (saved === 1) toast(tr("Image saved as ") + last);
     else if (saved) toast(tr("Images saved: ") + saved + " → " + ASSET_DIR + "/");
     if (embedded) toast(tr("Image embedded in the document - open a folder to keep pictures as files"));
@@ -5380,16 +5421,62 @@ const MD = (function () {
   }
 
   /* a new picture belongs in whichever list shows its folder */
+  /* The first paste into a document creates its assets folder, and a folder that has
+     just appeared arrives closed - so the tree changed, but all you saw was a new
+     folder name, or nothing if another pane was showing. So the new file is shown:
+     every folder on its way is opened, and the row is scrolled to and flashed. */
   async function imgListed(ws, path) {
     if (ws === "lib") {
       if (LIB.assets.indexOf(path) < 0) { LIB.assets.push(path); LIB.assets.sort(); }
+      $("#docAssets").classList.remove("shut");
+      markFlash(path);
       renderLibAssets();
-    } else if (ws === "fs" && root && root.mode === "fs") {
-      await refreshTree(tree);
-      renderTree();
-    } else if (root && root.mode === "server" && ws === SRV_WS) {
-      await loadServerWorkspace(false, true);
+      flashRow($('#docAssets [data-as="' + CSS.escape(path) + '"]'));
+      /* the library itself may also be the folder open in the Explorer */
+      if (root && root.mode === "server" && root.disk && LIB.path &&
+          root.disk.toLowerCase() === LIB.path.toLowerCase()) {
+        await loadServerWorkspace(false, true);
+        await revealInTree(path);
+      }
+      return;
     }
+    if (ws === "fs" && root && root.mode === "fs") await refreshTree(tree);
+    else if (root && root.mode === "server" && ws === SRV_WS) await loadServerWorkspace(false, true);
+    else return;
+    showSideTab("files");
+    await revealInTree(path);
+  }
+
+  async function revealInTree(path) {
+    if (!tree) return;
+    const parts = path.split("/");
+    let n = tree;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const want = parts.slice(0, i + 1).join("/");
+      const next = (n.kids || []).find(k => k.kind === "dir" && k.path === want);
+      if (!next) break;
+      next.open = true;
+      if (next.kids === null && next.handle) await loadDir(next);
+      n = next;
+    }
+    markFlash(path);
+    renderTree();
+    flashRow($('#treeBody .tree-row[data-path="' + CSS.escape(path) + '"]'));
+  }
+
+  /* Remembered rather than only set on the element: inserting the link marks the file
+     as edited, which redraws the tree straight away and would wipe the class. */
+  const flashing = new Map();
+  function markFlash(path) {
+    clearTimeout(flashing.get(path));
+    flashing.set(path, setTimeout(() => flashing.delete(path), 1800));
+  }
+  function flashRow(el) {
+    if (!el) return;
+    el.scrollIntoView({ block: "nearest" });
+    el.classList.remove("flash");
+    void el.offsetWidth;                 /* restart the animation for a second paste */
+    el.classList.add("flash");
   }
 
   /* "assets/a.png" as the document at "notes/x.md" would write it: "../assets/a.png" */
@@ -5426,7 +5513,7 @@ const MD = (function () {
         const meta = users.length
           ? tr("in ") + users.map(d => d.name || tr("Untitled")).join(", ")
           : tr("not used in any document");
-        return '<div class="as-row" data-as="' + esc(p) + '" title="' + esc(LIB.path + "\\" + p.replace(/\//g, "\\")) + '">' +
+        return '<div class="as-row' + (flashing.has(p) ? " flash" : "") + '" data-as="' + esc(p) + '" title="' + esc(LIB.path + "\\" + p.replace(/\//g, "\\")) + '">' +
           (IMG_EXT.test(p) ? '<img class="as-th" data-as-th="' + esc(p) + '" alt="">'
             : '<span class="as-th as-file">' + ICO_DOC + "</span>") +
           '<div class="as-main"><div class="as-name">' + esc(p.replace(/^.*\//, "")) + "</div>" +
@@ -6947,7 +7034,7 @@ const MD = (function () {
     try { console.error("Markdown Studio" + (where ? " (" + where + ")" : "") + ":", e); } catch (x) { }
     toast(tr("Something went wrong: ") + msg + (where ? " [" + where + "]" : ""), 9000);
   }
-  function step(where, fn) {
+  function startStep(where, fn) {
     try {
       const r = fn();
       return r && typeof r.then === "function" ? r.catch(e => report(where, e)) : r;
@@ -6972,13 +7059,13 @@ const MD = (function () {
     window.addEventListener("error", e => report("", e.error || e.message));
     window.addEventListener("unhandledrejection", e => report("", e.reason));
     /* before the first tab is opened, so it opens the document as disk has it */
-    await step("libSync", libSync);
-    step("ensureTab", ensureTab);
-    step("renderDocs", renderDocs);
-    step("renderLibAssets", renderLibAssets);
-    step("renderTree", renderTree);
-    step("updateSaveUI", updateSaveUI);
-    step("updateCursor", updateCursor);
+    await startStep("libSync", libSync);
+    startStep("ensureTab", ensureTab);
+    startStep("renderDocs", renderDocs);
+    startStep("renderLibAssets", renderLibAssets);
+    startStep("renderTree", renderTree);
+    startStep("updateSaveUI", updateSaveUI);
+    startStep("updateCursor", updateCursor);
     idbGet("root").then(h => {
       if (h && !root) { reopen = { name: h.name, handle: h }; renderTree(); }
     });

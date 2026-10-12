@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.11.0.0")]
-[assembly: AssemblyFileVersion("1.11.0.0")]
+[assembly: AssemblyVersion("1.11.1.0")]
+[assembly: AssemblyFileVersion("1.11.1.0")]
 
 static class MarkdownStudio
 {
@@ -921,7 +921,7 @@ static class MarkdownStudio
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             k.SetValue("DisplayName", AppName);
-            k.SetValue("DisplayVersion", "1.11.0");
+            k.SetValue("DisplayVersion", "1.11.1");
             k.SetValue("Publisher", AppName);
             k.SetValue("DisplayIcon", exe + ",0");
             k.SetValue("InstallLocation", dir);
