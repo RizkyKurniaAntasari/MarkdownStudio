@@ -410,6 +410,20 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .tree-rename{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:1px 4px;border:1px solid var(--acc);border-radius:4px;background:var(--bg);color:var(--fg);outline:none}
 #stCursor.chord{color:var(--acc)}
 
+/* the picture-in-picture window - this stylesheet is copied into it */
+body.pip-body{margin:0;height:100vh;display:block;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--f-ui)}
+.pip{display:flex;flex-direction:column;height:100vh}
+.pip-bar{display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid var(--bd);background:var(--panel);flex:0 0 auto}
+.pip-name{flex:1;min-width:0;font-size:12.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pip-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--bd2);background:var(--bg);color:var(--fg2);border-radius:var(--r-sm);font:inherit;font-size:12px;padding:3px 9px;cursor:pointer}
+.pip-btn:hover{color:var(--fg);border-color:var(--fg3)}
+.pip-main{flex:1;min-height:0;overflow:auto;position:relative}
+.pip-main #preview.pip-pv{max-width:none;margin:0;padding:14px 18px 48px}
+.pip-pv[hidden],.pip-ed[hidden]{display:none}
+.pip-ed{display:block;width:100%;height:100%;border:0;resize:none;padding:12px 14px;font-family:var(--f-mono);font-size:var(--ed-size);line-height:1.6;background:var(--bg);color:var(--fg);outline:none;box-sizing:border-box}
+#btnPip.on{background:var(--accsoft);color:var(--acc)}
+.tgl:disabled{opacity:.45;cursor:not-allowed}
+
 /* Quick Open / command palette */
 #palette{position:fixed;inset:0;z-index:250;background:rgba(15,20,28,.18)}
 #palette[hidden]{display:none}
@@ -697,6 +711,9 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
       <button class="btn btn-ico hide-sm" id="btnTheme" title="Toggle theme (Ctrl+K Ctrl+T)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
       </button>
+      <button class="btn btn-ico hide-sm" id="btnPip" title="Picture-in-picture (Ctrl+Alt+P)" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="8" height="7" rx="1" fill="currentColor" stroke="none"/></svg>
+      </button>
       <button class="btn btn-ico" id="btnMenu" title="More" aria-haspopup="menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
       </button>
@@ -797,6 +814,9 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
   <button class="mi" data-act="theme" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
     Toggle dark mode<kbd>Ctrl+K Ctrl+T</kbd></button>
+  <button class="mi" data-act="pip" role="menuitem" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="8" height="7" rx="1"/></svg>
+    Picture-in-picture<kbd>Ctrl+Alt+P</kbd></button>
   <div class="mdiv"></div>
   <button class="mi" data-act="settings" role="menuitem">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007.9 19a1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 003.6 8a1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H8a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V8a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
@@ -877,6 +897,14 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
             <option value="en">English</option>
             <option value="id">Bahasa Indonesia</option>
           </select></div>
+      </section>
+      <section class="setsec">
+        <h3>Window</h3>
+        <div class="setrow"><span>Picture-in-picture</span>
+          <button class="tgl" data-set="pip" role="switch" aria-label="Picture-in-picture"></button></div>
+        <p class="sethint" id="setPipHint">A small window that stays on top of every other app, like Google Meet's,
+          showing the document you are in - read it, or switch it to Edit and keep writing.
+          Open it with the button in the top bar or Ctrl+Alt+P.</p>
       </section>
     </div>
   </div>
@@ -1098,6 +1126,23 @@ Side by side, the two panes scroll together, and **selecting text in the editor
 highlights the matching block in the preview** — handy for finding which part of a long
 document you are in. Both can be turned off in Settings.
 
+## Picture-in-picture
+
+Like Google Meet's floating window: a small window that stays on top of every other
+app, showing the document you are in. Turn it on in **Settings → Window →
+Picture-in-picture**, then open it with the button that appears in the top bar or
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd>.
+
+- **Preview** shows the finished page and follows what you type; tick a task in it and
+  the document is ticked
+- **Edit** turns it into a small editor — keep writing notes while a meeting, a browser
+  or a spreadsheet has the screen. It writes into the same document, so saving and
+  autosave work as usual, and <kbd>Ctrl</kbd>+<kbd>S</kbd> works inside it
+- Switch documents in the app and it follows; the ↩ button takes you back and closes it
+
+It needs Edge or Chrome 116 or newer — the desktop app has that. Opening it always takes
+a click or a key: a browser only lets a video call open one by itself.
+
 ## Links between files
 
 Click a link to another Markdown file in the preview — `[notes](notes.md)`,
@@ -1120,7 +1165,7 @@ Everything is in the **⋮ menu** at the top right:
 
 <kbd>Ctrl</kbd>+<kbd>,</kbd> opens them: <!-- exe -->where your documents live, <!-- /exe -->soft wrap, scroll
 sync, wide layout, both text sizes, dark mode (<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>T</kbd>),
-and the language — English or **Bahasa Indonesia**.
+the language — English or **Bahasa Indonesia** — and picture-in-picture.
 
 ## Keys, as in VS Code
 
@@ -1770,6 +1815,25 @@ Saat berdampingan, kedua panel menggulir bersama, dan **memilih teks di editor m
 blok yang sama di pratinjau** — berguna untuk tahu sedang di bagian mana dari dokumen
 yang panjang. Keduanya bisa dimatikan di Pengaturan.
 
+## Picture-in-picture
+
+Seperti jendela mengambang di Google Meet: jendela kecil yang selalu tampil di atas
+aplikasi lain, berisi dokumen yang sedang Anda buka. Nyalakan di **Pengaturan → Jendela →
+Picture-in-picture**, lalu buka lewat tombol yang muncul di bar atas atau
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd>.
+
+- **Pratinjau** menampilkan hasil jadinya dan mengikuti apa yang Anda ketik; centang tugas
+  di sana dan dokumennya ikut tercentang
+- **Edit** mengubahnya menjadi editor kecil — terus menulis catatan sementara rapat,
+  browser, atau spreadsheet memenuhi layar. Tulisan masuk ke dokumen yang sama, jadi
+  menyimpan dan simpan otomatis tetap berjalan, dan <kbd>Ctrl</kbd>+<kbd>S</kbd> berfungsi
+  di dalamnya
+- Ganti dokumen di aplikasi dan jendela ini ikut; tombol ↩ membawa Anda kembali dan
+  menutupnya
+
+Butuh Edge atau Chrome 116 ke atas — aplikasi desktop sudah memakainya. Membukanya selalu
+butuh klik atau tombol: browser hanya mengizinkan panggilan video membukanya sendiri.
+
 ## Tautan antar-file
 
 Klik tautan ke file Markdown lain di pratinjau — `[catatan](catatan.md)`,
@@ -1792,8 +1856,8 @@ Semuanya ada di **menu ⋮** di kanan atas:
 
 <kbd>Ctrl</kbd>+<kbd>,</kbd> membukanya: <!-- exe -->lokasi dokumen Anda, <!-- /exe -->soft wrap, sinkronisasi
 gulir, tata letak lebar, kedua ukuran teks, mode gelap
-(<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>T</kbd>), dan bahasa — **Bahasa Indonesia** atau
-English.
+(<kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>T</kbd>), bahasa — **Bahasa Indonesia** atau
+English — dan picture-in-picture.
 
 ## Tombol, seperti di VS Code
 
@@ -2615,6 +2679,19 @@ const I18N = (function () {
     "Pictures": "Gambar",
     "No preview for this kind of file": "Tidak ada pratinjau untuk jenis file ini",
     "Go to file": "Buka berkas",
+    "Window": "Jendela", "Picture-in-picture": "Picture-in-picture",
+    "Picture-in-picture (Ctrl+Alt+P)": "Picture-in-picture (Ctrl+Alt+P)",
+    "A small window that stays on top of every other app, like Google Meet's, showing the document you are in - read it, or switch it to Edit and keep writing. Open it with the button in the top bar or Ctrl+Alt+P.":
+      "Jendela kecil yang selalu tampil di atas aplikasi lain, seperti di Google Meet, berisi dokumen yang sedang Anda buka - baca, atau ganti ke Edit dan terus menulis. Buka lewat tombol di bar atas atau Ctrl+Alt+P.",
+    "Picture-in-picture needs Edge or Chrome 116 or newer": "Picture-in-picture butuh Edge atau Chrome 116 ke atas",
+    "Picture-in-picture is off - turn it on in Settings": "Picture-in-picture belum aktif - nyalakan di Pengaturan",
+    "Picture-in-picture is on - open it with the button in the top bar or Ctrl+Alt+P":
+      "Picture-in-picture aktif - buka lewat tombol di bar atas atau Ctrl+Alt+P",
+    "Could not open the picture-in-picture window: ": "Jendela picture-in-picture tidak bisa dibuka: ",
+    "This browser has no picture-in-picture for pages. It needs Edge or Chrome 116 or newer, which the desktop app uses.":
+      "Browser ini tidak punya picture-in-picture untuk halaman. Butuh Edge atau Chrome 116 ke atas, yang dipakai aplikasi desktop.",
+    "Back to Markdown Studio": "Kembali ke Markdown Studio", "Edit": "Edit", "Preview": "Pratinjau",
+    "Write in this window": "Menulis di jendela ini", "Show the finished page": "Tampilkan hasil jadinya",
     "Command palette": "Palet perintah",
     "Search files by name - type > for commands, @ for headings, : for a line": "Cari berkas menurut nama - ketik > untuk perintah, @ untuk judul, : untuk baris",
     "Open": "Buka",
@@ -3588,6 +3665,14 @@ const MD = (function () {
   const TAGS = new Set(["a","b","i","u","s","em","strong","del","ins","mark","small","sub","sup","kbd","code","abbr","span","br","hr","img","p","div","details","summary","center","dl","dt","dd","figure","figcaption","picture","source","table","thead","tbody","tfoot","tr","td","th","caption","ul","ol","li","blockquote","q","cite","time","var","samp","wbr"]);
   const ATTRS = new Set(["href","src","alt","title","align","width","height","class","id","open","colspan","rowspan","start","type","datetime","cite","reversed","srcset","loading","dir","lang"]);
   const VOID = new Set(["br", "hr", "img", "wbr", "source", "input"]);
+  /* Every id the document's own content produces carries this, as GitHub's
+     "user-content-" does. Without it a heading called "Settings" became
+     id="settings" - the app's own Settings window - and since the preview comes
+     first in the page, the Settings button opened the heading instead. Headings
+     named Help, Menu, Status or Editor did the same to those parts of the app, and
+     picked up their styling too. Links keep the plain name: #settings still finds
+     the heading. */
+  const ID_PREFIX = "md-";
   const TAG_RE = /^<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:\s+[a-zA-Z_:@#-][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>`]+))?)*)\s*(\/?)>/;
 
   let refs = {}, fnDefs = {}, fnList = [], headings = [], slugs = {};
@@ -3645,7 +3730,7 @@ const MD = (function () {
       if (!ATTRS.has(a)) continue;
       let v = m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4] !== undefined ? m[4] : "";
       if (a === "src" && name === "img") { out += imgSrc(v); continue; }
-      v = (a === "href" || a === "src") ? safeUrl(v) : esc(v);
+      v = (a === "href" || a === "src") ? safeUrl(v) : a === "id" ? ID_PREFIX + esc(v) : esc(v);
       out += " " + a + '="' + v + '"';
     }
     if (name === "a" && !/\shref=/.test(out)) out += ' href="#"';
@@ -3922,8 +4007,8 @@ const MD = (function () {
         const inner = inline(m[2]);
         const txt = strip(inner);
         const id = slug(txt);
-        if (top) headings.push({ level: lv, text: txt, id: id, line: base + i });
-        out += "<h" + lv + ' id="' + id + '"' + A + ">" + inner +
+        if (top) headings.push({ level: lv, text: txt, id: ID_PREFIX + id, line: base + i });
+        out += "<h" + lv + ' id="' + ID_PREFIX + id + '"' + A + ">" + inner +
           '<a class="anchor" href="#' + id + '" aria-hidden="true">#</a></h' + lv + ">";
         i++; continue;
       }
@@ -4035,8 +4120,8 @@ const MD = (function () {
           const inner = inline(buf.join("\n"));
           const txt = strip(inner);
           const id = slug(txt);
-          if (top) headings.push({ level: lv, text: txt, id: id, line: base + i });
-          out += "<h" + lv + ' id="' + id + '"' + A + ">" + inner +
+          if (top) headings.push({ level: lv, text: txt, id: ID_PREFIX + id, line: base + i });
+          out += "<h" + lv + ' id="' + ID_PREFIX + id + '"' + A + ">" + inner +
             '<a class="anchor" href="#' + id + '" aria-hidden="true">#</a></h' + lv + ">";
           i = j + 1;
           buf.length = 0;
@@ -4170,7 +4255,7 @@ const MD = (function () {
     return { html: html, headings: headings };
   }
 
-  return { render: render, escape: esc, setImageHook: fn => { imgHook = fn; } };
+  return { render: render, escape: esc, setImageHook: fn => { imgHook = fn; }, ID_PREFIX: ID_PREFIX };
 })();
 
 /* =========================================================
@@ -4183,7 +4268,7 @@ const MD = (function () {
 
   const KEY = "md-studio-v1";
   const DEFAULTS = { theme: "light", view: "split", split: 50, edSize: 14, pvSize: 16,
-    wrap: true, sync: true, wide: false, sidebar: true, lang: "auto" };
+    wrap: true, sync: true, wide: false, sidebar: true, lang: "auto", pip: false };
   let state = { docs: [], active: null, settings: Object.assign({}, DEFAULTS) };
   let saveTimer = null, renderTimer = null, lineMap = [], mirrorStale = true, mirrorStyleStale = true, mirrorW = -1, storageWarned = false;
 
@@ -4331,6 +4416,8 @@ const MD = (function () {
     document.documentElement.style.setProperty("--pv-size", s.pvSize + "px");
     document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === s.view));
     settingsUI();
+    pipUI();
+    pipSync();
     mirrorStale = true; mirrorStyleStale = true;
     if (s.view !== "split" || !s.sync) clearHl();
     if (findHL && !previewMode()) paintHits();
@@ -4353,6 +4440,7 @@ const MD = (function () {
     if (document.activeElement === ed && ed.selectionStart !== ed.selectionEnd) syncSelection(true);
     /* innerHTML wiped the preview hits too */
     if (findHL && previewMode()) { pvMarks = []; runFind(true); }
+    pipSync();
   }
   function queueRender() {
     clearTimeout(renderTimer);
@@ -5419,7 +5507,10 @@ const MD = (function () {
   function scrollToAnchor(id) {
     if (!id) return;
     let el = null;
-    try { el = preview.querySelector('[id="' + CSS.escape(id) + '"]'); } catch (e) { }
+    try {
+      el = preview.querySelector('[id="' + CSS.escape(MD.ID_PREFIX + id) + '"]') ||
+        preview.querySelector('[id="' + CSS.escape(id) + '"]');
+    } catch (e) { }
     if (!el) return;
     /* measured from the rects, so it does not depend on which ancestor happens
        to be positioned, and assigned directly because it always takes effect */
@@ -6468,7 +6559,7 @@ const MD = (function () {
     { g: "File", id: "reveal", label: "Reveal active file in File Explorer", keys: ["Shift+Alt+R"], run: revealActive },
     { g: "File", id: "exportHtml", label: "Export as HTML", keys: [], run: exportHtml },
     { g: "File", id: "print", label: "Print / Save as PDF", keys: [], run: () => window.print() },
-    { g: "File", id: "copyHtml", label: "Copy HTML to clipboard", keys: [], run: () => copyText(MD.render(ed.value).html, tr("HTML copied")) },
+    { g: "File", id: "copyHtml", label: "Copy HTML to clipboard", keys: [], run: () => menuAct("copy-html") },
     { g: "File", id: "duplicate", label: "Duplicate as new document", keys: [], run: () => menuAct("duplicate") },
     { g: "File", id: "backup", label: "Download backup (all docs)", keys: [], run: () => menuAct("backup") },
     { g: "File", id: "import", label: "Import backup (.json)", keys: [], run: () => $("#jsonPick").click() },
@@ -6496,6 +6587,7 @@ const MD = (function () {
     { g: "View", id: "wide", label: "Toggle wide layout", keys: [], run: () => setAct("wide") },
     { g: "View", id: "sync", label: "Toggle sync scroll & selection", keys: [], run: () => setAct("sync") },
     { g: "View", id: "theme", label: "Toggle dark mode", keys: ["Ctrl+K Ctrl+T"], run: toggleTheme },
+    { g: "View", id: "pip", label: "Picture-in-picture", keys: ["Ctrl+Alt+P"], run: togglePip },
     { g: "View", id: "settings", label: "Settings", keys: ["Ctrl+,"], run: () => showSettings($("#settings").hidden) },
     { g: "View", id: "shortcuts", label: "Keyboard shortcuts", keys: ["Ctrl+K Ctrl+S"], run: () => { $("#help").hidden = false; } },
     { g: "View", id: "guide", label: "Welcome guide", keys: [], run: openGuide },
@@ -6726,6 +6818,119 @@ const MD = (function () {
     const toEditor = $("#palInput").value.startsWith(":") || $("#palInput").value.startsWith("@");
     closePalette(toEditor);
     it.run();
+  }
+
+  /* ---------- picture-in-picture ---------- */
+  /* Google Meet's floating window: a small window that stays on top of every other
+     app, here showing the document you are in - read it in Preview, or switch to Edit
+     and keep writing while another program has the screen. It is the browser's
+     Document Picture-in-Picture (Edge and Chrome 116+), the same thing Meet uses.
+     What is typed in it goes into the main editor as if typed there, so saving,
+     autosave and the unsaved marks all behave as usual. Settings > Window turns the
+     feature on; opening the window always takes a click or a key, because a browser
+     only lets a video call open one by itself. */
+  const PIP_OK = typeof window.documentPictureInPicture === "object" && !!window.isSecureContext;
+  let pipWin = null, pipMode = "preview";
+
+  function pipOn() { return !!state.settings.pip && PIP_OK; }
+  function pipUI() {
+    const b = $("#btnPip"), m = document.querySelector('[data-act="pip"]');
+    if (b) { b.hidden = !pipOn(); b.classList.toggle("on", !!pipWin); }
+    if (m) m.hidden = !pipOn();
+  }
+  async function togglePip() {
+    if (pipWin) { closePip(); return; }
+    if (!PIP_OK) { toast(tr("Picture-in-picture needs Edge or Chrome 116 or newer")); return; }
+    if (!state.settings.pip) {
+      toast(tr("Picture-in-picture is off - turn it on in Settings"));
+      showSettings(true);
+      return;
+    }
+    let w;
+    try { w = await window.documentPictureInPicture.requestWindow({ width: 420, height: 560 }); }
+    catch (e) { toast(tr("Could not open the picture-in-picture window: ") + (e.message || e.name)); return; }
+    pipWin = w;
+    const d = w.document;
+    /* the window starts empty: it gets this page's styles, theme and text sizes */
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(n => d.head.appendChild(n.cloneNode(true)));
+    d.documentElement.style.cssText = document.documentElement.style.cssText;
+    d.body.className = "pip-body";
+    d.body.innerHTML =
+      '<div class="pip"><div class="pip-bar"><span class="pip-name"></span>' +
+      '<button type="button" class="pip-btn" data-pip="mode"></button>' +
+      '<button type="button" class="pip-btn" data-pip="back" title="' + esc(tr("Back to Markdown Studio")) + '">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>' +
+      '</div><div class="pip-main"><article id="preview" class="pip-pv"></article>' +
+      '<textarea class="pip-ed" spellcheck="false" hidden></textarea></div></div>';
+    const ta = d.querySelector(".pip-ed");
+    ta.addEventListener("input", () => {
+      if (ed.value === ta.value) return;
+      ed.value = ta.value;
+      ed.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    d.addEventListener("click", e => {
+      const b = e.target.closest("[data-pip]");
+      if (b && b.dataset.pip === "mode") { pipMode = pipMode === "preview" ? "edit" : "preview"; pipSync(true); if (pipMode === "edit") ta.focus(); return; }
+      if (b && b.dataset.pip === "back") { window.focus(); closePip(); return; }
+      /* a task ticked in the floating window is ticked in the document */
+      const box = e.target.closest("[data-task-line]");
+      if (box) {
+        e.preventDefault();
+        const real = preview.querySelector('[data-task-line="' + box.dataset.taskLine + '"]');
+        if (real) real.click();
+        return;
+      }
+      const a = e.target.closest("a");
+      if (a) {
+        e.preventDefault();
+        const href = a.getAttribute("href") || "";
+        if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.indexOf("//") === 0) window.open(href, "_blank", "noopener");
+        else if (href.charAt(0) === "#") {
+          const el = d.getElementById(MD.ID_PREFIX + href.slice(1)) || d.getElementById(href.slice(1));
+          if (el) el.scrollIntoView();
+        }
+        else followLink(href);
+      }
+    });
+    d.addEventListener("keydown", e => {
+      const c = comboOf(e);
+      if (c === "Ctrl+S") { e.preventDefault(); saveMarkdown(); }
+      else if (c === "Ctrl+Alt+P") { e.preventDefault(); closePip(); }
+    });
+    w.addEventListener("pagehide", () => { pipWin = null; pipUI(); });
+    pipSync(true);
+    pipUI();
+  }
+  function closePip() {
+    if (pipWin) { try { pipWin.close(); } catch (e) { } }
+    pipWin = null;
+    pipUI();
+  }
+  /* called after every render, tab switch and theme change */
+  function pipSync(full) {
+    if (!pipWin) return;
+    const d = pipWin.document, t = active();
+    const name = t ? t.name : "Markdown Studio";
+    d.title = name;
+    d.querySelector(".pip-name").textContent = name;
+    d.documentElement.setAttribute("data-theme", state.settings.theme);
+    d.documentElement.style.cssText = document.documentElement.style.cssText;
+    const pv = d.querySelector(".pip-pv"), ta = d.querySelector(".pip-ed"), main = d.querySelector(".pip-main");
+    const mode = d.querySelector('[data-pip="mode"]');
+    mode.textContent = tr(pipMode === "preview" ? "Edit" : "Preview");
+    mode.title = tr(pipMode === "preview" ? "Write in this window" : "Show the finished page");
+    pv.hidden = pipMode !== "preview";
+    ta.hidden = pipMode !== "edit";
+    if (pipMode === "preview") {
+      const top = main.scrollTop;
+      pv.innerHTML = preview.innerHTML;
+      /* the main window's selection highlight and find marks are not this window's */
+      pv.querySelectorAll(".sync-hl").forEach(el => el.classList.remove("sync-hl"));
+      pv.querySelectorAll("mark.pv-hit").forEach(mk => mk.replaceWith(d.createTextNode(mk.textContent)));
+      main.scrollTop = top;
+    } else if (full || d.activeElement !== ta) {
+      if (ta.value !== ed.value) ta.value = ed.value;
+    }
   }
 
   /* ---------- local (browser-stored) documents ---------- */
@@ -7626,11 +7831,17 @@ const MD = (function () {
     }
     return keep.join("\n");
   }
+  /* the exported page is the whole document, so its ids go back to the plain names its links use */
+  function plainIds(box) {
+    box.querySelectorAll('[id^="' + MD.ID_PREFIX + '"]').forEach(el => { el.id = el.id.slice(MD.ID_PREFIX.length); });
+    return box;
+  }
   async function exportHtml() {
     const r = MD.render(ed.value);
     const box = document.createElement("div");
     box.innerHTML = r.html;
     await inlineImages(box);
+    plainIds(box);
     r.html = box.innerHTML;
     const title = (r.headings[0] && r.headings[0].level === 1 ? r.headings[0].text : activeName()) || "Document";
     const html = "<!DOCTYPE html>\n" +
@@ -7722,11 +7933,17 @@ const MD = (function () {
       case "search-folder": showMenu(false); showFolderSearch(); return;
       case "find": showMenu(false); showFind(true); return;
       case "theme": toggleTheme(); return;
+      case "pip": showMenu(false); togglePip(); return;
       case "import": $("#jsonPick").click(); break;
       case "export-md": saveMarkdown(); break;
       case "export-html": exportHtml(); break;
       case "print": window.print(); break;
-      case "copy-html": copyText(MD.render(ed.value).html, "HTML copied"); break;
+      case "copy-html": {
+        const box = document.createElement("div");
+        box.innerHTML = MD.render(ed.value).html;
+        copyText(plainIds(box).innerHTML, tr("HTML copied"));
+        break;
+      }
       case "duplicate":
         newDoc(String(activeName()).replace(MD_EXT, "") + " (copy)", ed.value, true);
         toast(tr("Duplicated"));
@@ -8015,6 +8232,11 @@ const MD = (function () {
     on("sync", s.sync);
     on("wide", s.wide);
     on("theme", s.theme === "dark");
+    on("pip", pipOn());
+    const pt = document.querySelector('.tgl[data-set="pip"]');
+    if (pt) pt.disabled = !PIP_OK;
+    const ph = $("#setPipHint");
+    if (ph && !PIP_OK) ph.textContent = tr("This browser has no picture-in-picture for pages. It needs Edge or Chrome 116 or newer, which the desktop app uses.");
     const a = $("#setEdSize"), b = $("#setPvSize"), l = $("#setLang");
     if (a) a.textContent = s.edSize;
     if (b) b.textContent = s.pvSize;
@@ -8032,6 +8254,12 @@ const MD = (function () {
     else if (k === "sync") s.sync = !s.sync;
     else if (k === "wide") s.wide = !s.wide;
     else if (k === "theme") s.theme = s.theme === "dark" ? "light" : "dark";
+    else if (k === "pip") {
+      if (!PIP_OK) { toast(tr("Picture-in-picture needs Edge or Chrome 116 or newer")); return; }
+      s.pip = !s.pip;
+      if (!s.pip) closePip();
+      else toast(tr("Picture-in-picture is on - open it with the button in the top bar or Ctrl+Alt+P"));
+    }
     else if (k === "font+") s.edSize = Math.min(24, s.edSize + 1);
     else if (k === "font-") s.edSize = Math.max(10, s.edSize - 1);
     else if (k === "pfont+") s.pvSize = Math.min(26, s.pvSize + 1);
@@ -8196,6 +8424,7 @@ const MD = (function () {
     document.querySelectorAll("[data-view]").forEach(b =>
       b.addEventListener("click", () => setView(b.dataset.view)));
     $("#btnTheme").addEventListener("click", toggleTheme);
+    $("#btnPip").addEventListener("click", togglePip);
     $("#btnSide").addEventListener("click", () => setSidebar(!state.settings.sidebar));
     $("#btnSave").addEventListener("click", saveMarkdown);
     $("#btnFind").addEventListener("click", () => showFind($("#findbar").hidden));

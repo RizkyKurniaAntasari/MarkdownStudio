@@ -166,7 +166,7 @@ On a `file://` page browsers refuse the save dialog outright, so saving falls ba
 download. Chrome's **"Ask where to save each file before downloading"** setting is the
 closest you get to choosing a folder there; serving through laragon is the real fix.
 
-The whole app is one file, `index.html` (~390 KB). Copy it to a USB stick, email it,
+The whole app is one file, `index.html` (~410 KB). Copy it to a USB stick, email it,
 drop it on any machine with a browser — it keeps working.
 
 ## What it does
@@ -254,8 +254,19 @@ drop it on any machine with a browser — it keeps working.
   quietly drops the mark
 - The ⋮ menu sizes itself to the window and scrolls when it does not fit, so nothing
   hides off the bottom edge on a short screen
+- **Picture-in-picture, like Google Meet.** A small window that stays on top of every
+  other app, showing the document you are in. Turn it on in **Settings → Window**, then
+  open it with the button that appears in the top bar, `Ctrl+Alt+P` or the ⋮ menu.
+  **Preview** follows what you type (and ticking a task in it ticks the document);
+  **Edit** turns it into a small editor, so you can keep taking notes while another app
+  has the screen — it writes into the same document, so saving, autosave and the unsaved
+  marks behave as usual, and `Ctrl+S` works inside it. It follows when you switch
+  documents, and ↩ takes you back. It is the browser's Document Picture-in-Picture
+  (Edge or Chrome 116+, which the desktop app uses). Opening it always takes a click or a
+  key: a browser only lets a video call open one by itself, so it cannot pop up on its
+  own when you switch away the way Meet's does
 - **Settings** (`Ctrl+,`) holds the documents folder, soft wrap, sync scroll, wide
-  layout, both text sizes, dark mode and the language — one place per setting, rather
+  layout, both text sizes, dark mode, the language and picture-in-picture — one place per setting, rather
   than the same switch in a menu and a panel
 - **English and Bahasa Indonesia.** The whole interface — menus, panels, tooltips,
   the status bar, the shortcut sheet, messages and questions — switches between them
@@ -286,6 +297,12 @@ drop it on any machine with a browser — it keeps working.
   event handlers are stripped. **Collapsible sections work with Markdown inside**:
   everything between `<details>` and `</details>` folds away, lists and code included,
   and folds can be nested
+- **Ids from the document get a `md-` prefix in the preview** — `## Quick start` becomes
+  `id="md-quick-start"`, `<span id="note">` becomes `id="md-note"` — the way GitHub
+  prefixes them with `user-content-`, so a heading or id in your text can never take the
+  name of a part of the app. Links are written with the plain name as usual
+  (`[start](#quick-start)`, `#note`) and still find their target, and **Export HTML** and
+  **Copy HTML** give the plain ids back, since an exported page has nothing to collide with
 - Hard line breaks with a trailing `\` or two trailing spaces; escape any special
   character with a backslash, and `<!-- comments -->` never render
 
@@ -295,8 +312,8 @@ documents folder that already has notes (after a reinstall, or clearing site dat
 picks those up instead of adding another Welcome beside them. It is written out in full
 in English and in Bahasa Indonesia. Part 0 walks through what the app does — Docs and
 folders, tabs, saving, pasting pictures and the `assets` folder, the right-click menu
-with rename and delete, finding things with `Ctrl+P` and `Ctrl+Shift+P`, views, sharing,
-settings, and a table of the VS Code keys. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
+with rename and delete, finding things with `Ctrl+P` and `Ctrl+Shift+P`, views,
+picture-in-picture, sharing, settings, and a table of the VS Code keys. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
 version at any time: the existing copy if it is untouched, otherwise a fresh one, so
 your own edits to an old copy are never overwritten. The rest is a
 live reference in three parts — the basics (headings, emphasis, lists, links, code,
@@ -392,9 +409,11 @@ shortcut sheet, so the three never disagree.
 | Close / close all | `Ctrl+W` / `Ctrl+K Ctrl+W` | Rename file | `F2` |
 | Reopen closed | `Ctrl+Shift+T` | Copy path / relative path | `Shift+Alt+C` / `Ctrl+Shift+Alt+C` |
 | Next / previous editor | `Ctrl+PageDown` / `Ctrl+PageUp` | Reveal in File Explorer | `Shift+Alt+R` |
+| Picture-in-picture | `Ctrl+Alt+P` (once on in Settings) | | |
 
 `Ctrl+B` is bold while you type in the editor and toggles the sidebar anywhere else,
-exactly as in VS Code with that extension.
+exactly as in VS Code with that extension. `Ctrl+Alt+P` opens and closes the
+picture-in-picture window (VS Code has no such key, so this one is the app's own).
 
 A few keys belong to the browser and may never reach the page — `Ctrl+N`, `Ctrl+W`,
 `Ctrl+Tab`, `Ctrl+Shift+T` can open or close a window instead. Each has a second key
@@ -486,6 +505,18 @@ and the rest of the buttons keep working either way.
 
 ## Fixes
 
+**1.13.0**
+
+- **Settings would not open while the Welcome guide was on screen.** The guide has a
+  heading called "Settings", which became `id="settings"` in the preview — the id of the
+  app's own Settings window. The preview comes first in the page, so the Settings button
+  opened the heading instead, silently. Any document with a heading named Help, Menu,
+  Status, Editor or Preview could do the same to that part of the app and pick up its
+  styling. Ids from a document's content now carry a `md-` prefix, as GitHub's carry
+  `user-content-`; links such as `[x](#settings)` still find their heading, and Export
+  HTML and Copy HTML put the plain ids back
+- New: picture-in-picture (see *What it does*)
+
 **1.12.0**
 
 - **Right-click had no Rename.** Files can now be renamed, deleted, revealed in File
@@ -530,7 +561,9 @@ and the rest of the buttons keep working either way.
 - **Settings in the page opened on its own** showed a Documents section whose
   **Change folder…** and **Open in Explorer** could never work there, so it looked
   broken. That section is now left out without the exe, and the Welcome guide no
-  longer describes exe-only features in that mode
+  longer describes exe-only features in that mode. (The report of Settings not opening
+  at all had a second cause that was only found later — a heading in the Welcome guide
+  taking the Settings window's id — fixed in 1.13.0.)
 - An error during startup used to stop everything after it silently, leaving buttons
   that did nothing. Startup steps now fail one at a time and errors are shown (see
   *When something goes wrong*)
