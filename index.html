@@ -258,6 +258,8 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .etab.dirty:hover .etab-x{display:grid}
 .etab.dirty:hover .etab-dot{display:none}
 .etab-ico{width:13px;height:13px;flex:0 0 auto;opacity:.7}
+#tabbar.dragging{cursor:grabbing}
+.etab.dragging{position:relative;z-index:2;cursor:grabbing;box-shadow:0 2px 10px rgba(0,0,0,.18);opacity:.95}
 
 /* ---------------- file tree ---------------- */
 .root-bar{display:flex;align-items:center;gap:2px;padding:0 2px 6px;margin-bottom:2px;border-bottom:1px solid var(--bd)}
@@ -1004,7 +1006,28 @@ jumps to a tab, <kbd>Ctrl</kbd>+<kbd>PageDown</kbd>/<kbd>PageUp</kbd> steps thro
 them, a middle-click or <kbd>Ctrl</kbd>+<kbd>W</kbd> closes one,
 <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>W</kbd> closes them all and
 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> brings back the last one closed.
-Right-click a tab for Close Others, Copy Path and Rename.
+Right-click a tab for Close Others, Copy Tab, Copy Path and Rename.
+
+**Move a tab** the way you would in Chrome: drag it along the bar and drop it where
+you want it; the others make room as it passes. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PageUp</kbd>/<kbd>PageDown</kbd>
+moves the current tab one place left or right.
+
+**Copy a tab:** right-click it → **Copy Tab**, then right-click an empty part of the
+tab bar → **Paste Tab**. You get a new tab with the same content, named "… (copy)".
+It is a **new document saved in a new place**, not the same file — editing the copy
+never changes the original:
+<!-- exe -->
+- the copy is a Doc, saved as its own `.md` file in the documents folder
+  (`Documents\Markdown Studio`), and it is listed in the Docs pane
+- pictures the original shows from its own `assets` folder are copied into the
+  documents folder's `assets` too, and the copy's links point at them, so the
+  pictures still show
+<!-- /exe -->
+<!-- web -->
+- the copy is a Doc, kept in this browser's storage and listed in the Docs pane
+- pictures the original shows from its folder are put into the copy's text, so they
+  still show without that folder
+<!-- /web -->
 
 > [!NOTE]
 > A few keys belong to the browser and never reach the page: <kbd>Ctrl</kbd>+<kbd>W</kbd>,
@@ -1695,7 +1718,27 @@ melompat ke sebuah tab, <kbd>Ctrl</kbd>+<kbd>PageDown</kbd>/<kbd>PageUp</kbd> be
 satu per satu, klik tengah atau <kbd>Ctrl</kbd>+<kbd>W</kbd> menutup satu tab,
 <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>W</kbd> menutup semuanya, dan
 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> membuka lagi tab yang terakhir ditutup.
-Klik kanan sebuah tab untuk Tutup yang lain, Salin lokasi, dan Ganti nama.
+Klik kanan sebuah tab untuk Tutup yang lain, Salin Tab, Salin lokasi, dan Ganti nama.
+
+**Pindahkan tab** seperti di Chrome: seret tab di sepanjang bar lalu lepaskan di tempat
+yang Anda mau; tab lain bergeser memberi tempat. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PageUp</kbd>/<kbd>PageDown</kbd>
+memindahkan tab yang sedang dibuka satu langkah ke kiri atau ke kanan.
+
+**Salin tab:** klik kanan tab → **Salin Tab**, lalu klik kanan bagian kosong di bar tab →
+**Tempel Tab**. Muncul tab baru dengan isi yang sama, bernama "… (salinan)". Salinan
+ini **dokumen baru yang disimpan di lokasi baru**, bukan file yang sama — mengedit
+salinan tidak pernah mengubah aslinya:
+<!-- exe -->
+- salinannya adalah Doc, disimpan sebagai file `.md` sendiri di folder dokumen
+  (`Documents\Markdown Studio`), dan tampil di panel Docs
+- gambar yang ditampilkan aslinya dari folder `assets`-nya ikut disalin ke `assets` di
+  folder dokumen, dan tautan di salinan diarahkan ke sana, jadi gambarnya tetap tampil
+<!-- /exe -->
+<!-- web -->
+- salinannya adalah Doc, disimpan di penyimpanan browser ini dan tampil di panel Docs
+- gambar yang ditampilkan aslinya dari foldernya dimasukkan ke dalam teks salinan,
+  jadi tetap tampil tanpa folder itu
+<!-- /web -->
 
 > [!NOTE]
 > Beberapa tombol milik browser dan tidak pernah sampai ke halaman: <kbd>Ctrl</kbd>+<kbd>W</kbd>,
@@ -2780,6 +2823,14 @@ const I18N = (function () {
     "Go to line…": "Ke baris…",
     "Next editor": "Editor berikutnya",
     "Previous editor": "Editor sebelumnya",
+    "Move tab left": "Pindahkan tab ke kiri",
+    "Move tab right": "Pindahkan tab ke kanan",
+    "Copy Tab": "Salin Tab", "Paste Tab": "Tempel Tab",
+    "Copy tab": "Salin tab", "Paste tab as a new document": "Tempel tab sebagai dokumen baru",
+    "Tab copied - right-click an empty part of the tab bar to paste it":
+      "Tab disalin - klik kanan bagian kosong di bar tab untuk menempelnya",
+    "Pasted as ": "Ditempel sebagai ", " (copy)": " (salinan)",
+    " picture(s) could not be copied": " gambar tidak bisa disalin",
     "Open editor 1–9": "Buka editor 1–9",
     "Open last editor": "Buka editor terakhir",
     "Show Explorer": "Tampilkan Explorer",
@@ -5158,7 +5209,8 @@ const MD = (function () {
   /* ---------- tabs ---------- */
   function renderTabs() {
     const bar = $("#tabbar");
-    const show = tabs.length > 1 || tabs.some(t => t.kind === "file");
+    /* always there, as in Chrome: its empty part is where a copied tab is pasted */
+    const show = tabs.length > 0;
     $("#tabwrap").hidden = !show;
     if (!show) { bar.innerHTML = ""; return; }
     bar.innerHTML = tabs.map(t => {
@@ -6118,6 +6170,9 @@ const MD = (function () {
       { label: "Close Others", run: () => closeOthers(t.id), disabled: tabs.length < 2 },
       { label: "Close All", keys: "Ctrl+K Ctrl+W", run: closeAllTabs },
       "-",
+      { label: "Copy Tab", run: () => copyTab(t) },
+      { label: "Paste Tab", run: pasteTab, disabled: !tabClip },
+      "-",
       { label: "Copy Path", keys: "Shift+Alt+C", run: () => copyOut(n ? fullPathOf(n) : fullPathOf({ doc: d || { name: t.name } }), "Copied") },
       { label: "Copy Relative Path", keys: "Ctrl+Shift+Alt+C", run: () => copyOut(n ? relPathOf(n) : relPathOf({ doc: d || { name: t.name } }), "Copied") },
       { label: "Reveal in File Explorer", keys: "Shift+Alt+R", run: () => n ? revealEntry(n) : revealDoc(d),
@@ -6391,6 +6446,153 @@ const MD = (function () {
     activateTab(id, true);
   }
 
+  /* ---------- moving tabs, as Chrome does ----------
+     A tab is picked up by dragging it along the bar: it follows the pointer, and the
+     others make room as it passes their middle. Ctrl+Shift+PageUp/PageDown moves the
+     current one a place at a time, VS Code's keys for the same thing. */
+  function moveTab(id, to) {
+    const i = tabs.findIndex(t => t.id === id);
+    if (i < 0) return;
+    to = Math.max(0, Math.min(tabs.length - 1, to));
+    if (to === i) return;
+    const t = tabs.splice(i, 1)[0];
+    tabs.splice(to, 0, t);
+    renderTabs();
+  }
+  function moveActiveTab(d) {
+    const i = tabs.findIndex(t => t.id === activeTab);
+    if (i >= 0) moveTab(activeTab, i + d);
+  }
+  let tabDrag = null;
+  function tabDragStart(e) {
+    /* a finger on the bar scrolls it; only a mouse or pen picks a tab up */
+    if (e.button !== 0 || e.pointerType === "touch" || e.target.closest("[data-close]")) return;
+    const el = e.target.closest("[data-tab]");
+    if (!el) return;
+    tabDrag = { id: el.dataset.tab, el: el, x0: e.clientX, grab: e.clientX - el.getBoundingClientRect().left, on: false, pid: e.pointerId };
+  }
+  function tabDragMove(e) {
+    const d = tabDrag;
+    if (!d || e.pointerId !== d.pid) return;
+    const bar = $("#tabbar");
+    if (!d.on) {
+      if (Math.abs(e.clientX - d.x0) < 6) return;
+      d.on = true;
+      try { d.el.setPointerCapture(e.pointerId); } catch (err) { }
+      d.el.classList.add("dragging");
+      bar.classList.add("dragging");
+      hideCtx();
+    }
+    const br = bar.getBoundingClientRect();
+    if (e.clientX < br.left + 24) bar.scrollLeft -= 14;
+    else if (e.clientX > br.right - 24) bar.scrollLeft += 14;
+    const left = Math.max(br.left, Math.min(br.right - d.el.offsetWidth, e.clientX - d.grab));
+    const right = left + d.el.offsetWidth;
+    const all = Array.prototype.slice.call(bar.querySelectorAll(".etab"));
+    const cur = all.indexOf(d.el), others = all.filter(x => x !== d.el);
+    /* a tab to the left is passed when the carried tab's left edge crosses its middle,
+       one to the right when the right edge does - so a wide tab still reaches the ends */
+    const at = others.filter((x, k) => {
+      const r = x.getBoundingClientRect(), c = r.left + r.width / 2;
+      return k < cur ? left >= c : right > c;
+    }).length;
+    const ref = others[at] || null;
+    if (d.el.nextElementSibling !== ref) bar.insertBefore(d.el, ref);
+    d.el.style.transform = "";
+    d.el.style.transform = "translateX(" + (left - d.el.getBoundingClientRect().left) + "px)";
+  }
+  function tabDragEnd(e) {
+    const d = tabDrag;
+    if (!d || (e && e.pointerId !== d.pid)) return;
+    tabDrag = null;
+    if (!d.on) return;
+    const bar = $("#tabbar");
+    d.el.style.transform = "";
+    d.el.classList.remove("dragging");
+    bar.classList.remove("dragging");
+    const order = Array.prototype.map.call(bar.querySelectorAll(".etab"), x => x.dataset.tab);
+    tabs.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    /* the tab that was carried is the one you are looking at, as in Chrome */
+    if (d.id !== activeTab) activateTab(d.id); else renderTabs();
+  }
+
+  /* ---------- copying a tab ----------
+     Copy Tab remembers what the tab holds; Paste Tab, on an empty part of the tab bar,
+     opens it again as a new document of its own. The copy is not the same file: it
+     is a new Doc, so it is saved where Docs are - a file of its own in the documents
+     folder from the exe, this browser's storage otherwise - and editing it never
+     touches the original. Pictures the original shows from beside it (assets/...)
+     would not be beside the copy, so they are copied along and the links pointed at
+     the copies; with nowhere to put a file, they go into the text itself. */
+  let tabClip = null;
+  function copyTab(t) {
+    if (t.id === activeTab) stashActive();
+    tabClip = { name: t.name, content: t.content, base: imgBase(t) };
+    toast(tr("Tab copied - right-click an empty part of the tab bar to paste it"));
+  }
+  async function pasteTab() {
+    const c = tabClip;
+    if (!c) return;
+    const name = String(c.name || "Untitled").replace(MD_EXT, "") + tr(" (copy)");
+    const d = newDoc(name, c.content, true);
+    const t = tabs.find(x => x.kind === "local" && x.docId === d.id);
+    if (!c.base || !t) { toast(tr("Pasted as ") + name); return; }
+    let lost = 0;
+    const text = await carryImages(c.content, c.base, imgBase(t), () => lost++);
+    if (text !== c.content) {
+      d.content = text; d.updated = Date.now();
+      t.content = text;
+      if (activeTab === t.id) { const s = ed.selectionStart; ed.value = text; try { ed.setSelectionRange(s, s); } catch (e) { } renderNow(); }
+      libFlush(d.id);
+      persist();
+    }
+    toast(lost ? tr("Pasted as ") + name + " - " + lost + tr(" picture(s) could not be copied")
+      : tr("Pasted as ") + name);
+  }
+  /* every picture link in a text - ![alt](url), [ref]: url and <img src="url"> - with
+     fn(url) answering what to put there instead */
+  function mapImageUrls(text, fn) {
+    return text
+      .replace(/(!\[(?:[^\]\\]|\\.)*\]\(\s*)(<[^>]*>|[^)\s]+)/g, (m, a, u) =>
+        u.charAt(0) === "<" ? a + "<" + fn(u.slice(1, -1)) + ">" : a + fn(u))
+      .replace(/^( {0,3}\[[^\]]+\]:[ \t]*)(<[^>]*>|\S+)/gm, (m, a, u) =>
+        u.charAt(0) === "<" ? a + "<" + fn(u.slice(1, -1)) + ">" : a + fn(u))
+      .replace(/(<img\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi, (m, a, q, u) => a + q + fn(u) + q);
+  }
+  async function carryImages(text, from, to, onLost) {
+    /* a Doc copied to a Doc: both sit in the same folder, so the links already work */
+    const dirOf = p => p.split("/").slice(0, -1).join("/");
+    if (to && to.ws === from.ws && dirOf(to.doc) === dirOf(from.doc)) return text;
+    const want = new Map();
+    mapImageUrls(text, u => {
+      if (!isRelUrl(u)) return u;
+      let rel = u.replace(/[?#].*$/, "");
+      try { rel = decodeURIComponent(rel); } catch (e) { }
+      const path = resolveRel(from.doc, rel);
+      if (path && IMG_EXT.test(path)) want.set(u, path);
+      return u;
+    });
+    if (!want.size) return text;
+    const got = new Map();
+    for (const [u, path] of want) {
+      try {
+        const blob = await imgFetch(from.ws + ":" + path);
+        const file = new File([blob], path.replace(/^.*\//, ""), { type: blob.type || "" });
+        if (to && to.write) got.set(u, (await imgWrite(to, file)).split("/").map(encodeURIComponent).join("/"));
+        else got.set(u, await imgDataUrl(file));
+      } catch (e) { onLost(); }
+    }
+    return mapImageUrls(text, u => got.has(u) ? got.get(u) : u);
+  }
+  function tabBarItems() {
+    return [
+      { label: "Paste Tab", run: pasteTab, disabled: !tabClip },
+      "-",
+      { label: "New document", keys: "Alt+N", run: () => newDoc() },
+      { label: "Reopen closed editor", keys: "Ctrl+Shift+T", run: reopenClosed, disabled: !closedTabs.length }
+    ];
+  }
+
   /* ---------- editing commands, as VS Code has them ---------- */
   function selectLine() {
     const v = ed.value;
@@ -6572,6 +6774,8 @@ const MD = (function () {
     { g: "File", id: "closeAll", label: "Close all editors", keys: ["Ctrl+K Ctrl+W", "Ctrl+Alt+Shift+W"], run: closeAllTabs },
     { g: "File", id: "closeOthers", label: "Close other editors", keys: [], run: () => activeTab && closeOthers(activeTab) },
     { g: "File", id: "reopen", label: "Reopen closed editor", keys: ["Ctrl+Shift+T"], run: reopenClosed },
+    { g: "File", id: "copyTab", label: "Copy tab", keys: [], run: () => active() && copyTab(active()) },
+    { g: "File", id: "pasteTab", label: "Paste tab as a new document", keys: [], run: pasteTab },
     { g: "File", id: "rename", label: "Rename file", keys: ["F2"], run: renameActive },
     { g: "File", id: "copyPath", label: "Copy path of active file", keys: ["Shift+Alt+C"], run: () => copyActivePath(false) },
     { g: "File", id: "copyRel", label: "Copy relative path of active file", keys: ["Ctrl+Shift+Alt+C"], run: () => copyActivePath(true) },
@@ -6590,6 +6794,8 @@ const MD = (function () {
     { g: "Go", id: "gotoLine", label: "Go to line…", keys: ["Ctrl+G"], run: () => openPalette(":") },
     { g: "Go", id: "nextTab", label: "Next editor", keys: ["Ctrl+PageDown", "Ctrl+Tab", "Ctrl+Alt+Right"], run: () => cycleTab(1) },
     { g: "Go", id: "prevTab", label: "Previous editor", keys: ["Ctrl+PageUp", "Ctrl+Shift+Tab", "Ctrl+Alt+Left"], run: () => cycleTab(-1) },
+    { g: "Go", id: "moveTabLeft", label: "Move tab left", keys: ["Ctrl+Shift+PageUp"], run: () => moveActiveTab(-1) },
+    { g: "Go", id: "moveTabRight", label: "Move tab right", keys: ["Ctrl+Shift+PageDown"], run: () => moveActiveTab(1) },
     { g: "Go", id: "tabN", label: "Open editor 1–9", keys: ["Alt+1…9"], help: true },
     { g: "Go", id: "lastTab", label: "Open last editor", keys: ["Alt+0"], run: () => tabs.length && activateTab(tabs[tabs.length - 1].id) },
     /* view */
@@ -8682,13 +8888,16 @@ const MD = (function () {
       showCtx(e.clientX, e.clientY, docItems(d));
     });
     $("#tabbar").addEventListener("contextmenu", e => {
-      const tb = e.target.closest("[data-tab]");
-      if (!tb) return;
-      const t = tabs.find(x => x.id === tb.dataset.tab);
-      if (!t) return;
       e.preventDefault();
-      showCtx(e.clientX, e.clientY, tabItems(t));
+      const tb = e.target.closest("[data-tab]");
+      const t = tb && tabs.find(x => x.id === tb.dataset.tab);
+      /* on a tab, that tab's menu; on the empty bar beside them, Paste Tab */
+      showCtx(e.clientX, e.clientY, t ? tabItems(t) : tabBarItems());
     });
+    $("#tabbar").addEventListener("pointerdown", tabDragStart);
+    window.addEventListener("pointermove", tabDragMove);
+    window.addEventListener("pointerup", tabDragEnd);
+    window.addEventListener("pointercancel", tabDragEnd);
     document.addEventListener("mousedown", e => { if (ctxEl && !ctxEl.contains(e.target)) hideCtx(); }, true);
     window.addEventListener("blur", hideCtx);
     window.addEventListener("resize", hideCtx);

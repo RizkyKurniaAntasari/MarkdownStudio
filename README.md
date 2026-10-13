@@ -210,13 +210,28 @@ drop it on any machine with a browser — it keeps working.
 - `Ctrl+S` saves the current file, `Ctrl+K S` saves every changed file
 - `Alt+1`–`9` jumps to a tab, `Ctrl+PageDown/PageUp` cycles, `Ctrl+W` closes,
   `Ctrl+Shift+T` reopens the last one closed
+- **Move tabs as in Chrome**: drag a tab along the bar and drop it where you want it;
+  the others make room as it passes their middle, and the tab you carried is the one
+  you see. `Ctrl+Shift+PageUp/PageDown` moves the current tab a place left or right
+  (VS Code's keys). On a touch screen a finger on the bar scrolls it instead
+- **Copy a tab**: right-click it → **Copy Tab**, then right-click an empty part of the
+  tab bar → **Paste Tab**. The paste opens a new tab with the same content, named
+  "… (copy)" — but it is a **new document in a new place**, never the same file, so
+  editing the copy leaves the original alone. From the exe the copy is a Doc with its
+  own `.md` file in the documents folder; in a plain browser it is a Doc in that
+  browser's storage. Pictures the original shows from its own `assets` folder would
+  not be beside the copy, so they are copied into the documents folder's `assets`
+  (or, with no folder to put them in, into the text) and the copy's links point at
+  them. Copying a Doc to a Doc needs none of that — both live in the same folder
+- The tab bar is always there, even with one document open, so its empty part can
+  be right-clicked: **Paste Tab**, **New document** and **Reopen closed editor**
 - The folder is remembered, so you can reopen it in one click after a reload
 - **New file** and **Refresh** buttons at the top of the tree. A new file never
   replaces one that is already there under that name
 - **Right-click, as in VS Code.** Files, folders, the contents of `assets`, Docs and
   editor tabs each have a menu: **Open**, **Reveal in File Explorer**, **Copy Path**,
   **Copy Relative Path**, **Rename…** and **Delete**, plus **New File…** on a folder,
-  **Insert into document** on an asset and **Close Others** on a tab
+  **Insert into document** on an asset, and **Close Others** and **Copy Tab** on a tab
 - **Rename in place**: the row becomes a box with the name selected up to its
   extension; `Enter` keeps it, `Esc` puts it back. Click a file once and `F2` renames
   it, `Delete` deletes it. Typing a name without `.md` keeps the extension, a name
@@ -452,7 +467,7 @@ shortcut sheet, so the three never disagree.
 | Close / close all | `Ctrl+W` / `Ctrl+K Ctrl+W` | Rename file | `F2` |
 | Reopen closed | `Ctrl+Shift+T` | Copy path / relative path | `Shift+Alt+C` / `Ctrl+Shift+Alt+C` |
 | Next / previous editor | `Ctrl+PageDown` / `Ctrl+PageUp` | Reveal in File Explorer | `Shift+Alt+R` |
-| Picture-in-picture | `Ctrl+Alt+P` (once on in Settings) | | |
+| Move tab left / right | `Ctrl+Shift+PageUp` / `Ctrl+Shift+PageDown` | Picture-in-picture | `Ctrl+Alt+P` (once on in Settings) |
 
 `Ctrl+B` is bold while you type in the editor and toggles the sidebar anywhere else,
 exactly as in VS Code with that extension. `Ctrl+Alt+P` opens and closes the
@@ -547,6 +562,17 @@ starting is skipped rather than stopping everything after it, so the menu, Setti
 and the rest of the buttons keep working either way.
 
 ## Fixes
+
+**1.14.0**
+
+- **Tabs can be moved, as in Chrome** — drag one along the tab bar, or
+  `Ctrl+Shift+PageUp/PageDown`. Until now a tab stayed wherever it had been opened
+- **Copy Tab and Paste Tab** — right-click a tab to copy it, right-click an empty part
+  of the tab bar to paste it as a new document with the same content. The copy is
+  saved in a new place (a Doc of its own), pictures included, so the original is never
+  touched
+- **The tab bar no longer disappears** when only one document is open, so there is
+  always an empty part of it to paste into
 
 **1.13.3**
 
