@@ -130,6 +130,33 @@ copy is moved aside as `MarkdownStudio.old.exe` and keeps working, the build tel
 to restart it, and the next build deletes the old copy. A failed build never touches
 the working exe.
 
+### The icon
+
+The icon is the gradient **M** with a downward arrow — the Markdown mark — on a dark
+rounded square. It lives in two places, and both have to change together:
+
+- **`icon.ico`** is baked into the exe by `build-exe.cmd`. It is what Windows shows for
+  the exe itself, the Start menu entry, the desktop shortcut, Installed apps and `.md`
+  files opened with it. It holds nine sizes — 16, 20, 24, 32, 40, 48, 64, 128 and 256
+  px — so Windows picks the one drawn for the taskbar, Alt+Tab, the desktop or the
+  display scale in use, instead of resizing a single picture for all of them
+- **`index.html`** carries the same picture as PNGs written into the page: the page's
+  icon (32 and 256 px) and the logo at the top left of the app (64 px, so it is still
+  sharp on a high-DPI screen). The app window and the floating window take their icon
+  from the page, not from the exe, which is why the page needs its own copy
+
+`icon-v2.jpg` is the 2048×2048 source. The mark sits small in the middle of it, so the
+icon is cut from it rather than shrunk whole: the **sharp point of the M's V** is put
+exactly on the vertical centre line of the square, and the mark is centred top to
+bottom. The arrow then reaches further left than the M does right — on purpose: it is
+the M that the eye reads as the middle. The mark fills enough of the square to stay
+readable at 16 px, with room left around the arrow.
+
+After changing the icon, rebuild the exe, then close Markdown Studio and run the new
+exe's setup again so the installed copy and its shortcuts pick it up. If a shortcut
+still shows the old picture, that is Windows' icon cache; it refreshes after signing
+out and back in.
+
 ### Or just open the HTML
 
 **Double-click `index.html`.** It opens in your default browser and works fully
@@ -168,7 +195,7 @@ On a `file://` page browsers refuse the save dialog outright, so saving falls ba
 download. Chrome's **"Ask where to save each file before downloading"** setting is the
 closest you get to choosing a folder there; serving through laragon is the real fix.
 
-The whole app is one file, `index.html` (~410 KB). Copy it to a USB stick, email it,
+The whole app is one file, `index.html` (~520 KB, icons included). Copy it to a USB stick, email it,
 drop it on any machine with a browser — it keeps working.
 
 ## What it does
@@ -529,6 +556,11 @@ and the rest of the buttons keep working either way.
   from, and the editor's lines are measured with their wrapping, so the position carries
   over both ways. The caret goes to that line too, so focusing the editor no longer jumps
   back up, and an update from the main window no longer resets the editor's scroll
+- **New icon** — the gradient Markdown M, replacing the old white "M" on a blue square
+  everywhere: the exe, its shortcuts, the app window, the floating window and the logo
+  at the top left of the app. The old `icon.ico` held a single 256 px picture that
+  Windows had to shrink for every small size; the new one has nine, from 16 to 256 px,
+  each drawn at its own size. See **The icon** under Running it
 
 **1.13.2**
 
