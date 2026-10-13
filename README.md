@@ -118,8 +118,9 @@ folder, and they only ever touch what the Explorer tree shows: Markdown and text
 and the contents of `assets` folders. Pictures are read and saved as pictures only
 (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, ...), an SVG is never let out as anything but a
 picture, a rename stays in the same folder and never lands on another file, and a
-delete goes to the Recycle Bin. The one endpoint that touches windows, `/__pip`, only
-changes the style of the browser windows running this app's own profile. A later launch finds that key in
+delete goes to the Recycle Bin. The one endpoint that touches windows, `/__float`,
+opens the floating window on the app's own page with the app's own browser profile,
+and only ever moves, styles, closes or brings forward windows of that browser. A later launch finds that key in
 `%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
 
 To rebuild it after editing `index.html`, run `build-exe.cmd` (from PowerShell:
@@ -261,19 +262,25 @@ drop it on any machine with a browser — it keeps working.
   **Preview** follows what you type (and ticking a task in it ticks the document);
   **Edit** turns it into a small editor, so you can keep taking notes while another app
   has the screen — it writes into the same document, so saving, autosave and the unsaved
-  marks behave as usual, and `Ctrl+S` works inside it. It follows when you switch
-  documents, and ↩ takes you back. It is the browser's Document Picture-in-Picture
-  (Edge or Chrome 116+, which the desktop app uses). Opening it always takes a click or a
-  key: a browser only lets a video call open one by itself, so it cannot pop up on its
-  own when you switch away the way Meet's does
-- **One app in Alt+Tab, not two.** To Windows the floating window is a window of its
-  own, so Alt+Tab and the taskbar used to show Markdown Studio twice — the big one and
-  the small one. Run from the exe, the floating window is folded into the app: it stays
-  on top of everything and stays clickable, but has no Alt+Tab entry or taskbar button
-  of its own, and it does not disappear when you minimize the main window. (The page
-  asks; the exe finds that window among its own browser's windows and gives it the
-  tool-window style floating palettes have. Opened from a plain browser page there is no
-  exe to ask, so there it stays a separate window)
+  marks behave as usual, and `Ctrl+S` works inside it. Switching between the two keeps
+  your place: the paragraph at the top of one is at the top of the other. It follows
+  when you switch documents and themes, and ↩ brings the main window to the front and
+  closes it
+- **Its title bar says "Markdown Studio"**, with the app's icon. The browser's own
+  picture-in-picture window prints the page's address there — `ⓘ 127.0.0.1:41873` — and no
+  page can change that, so run from the exe the floating window is not the browser's:
+  it is one of the app's own windows, opened on the same page in a floating mode, which
+  the exe pins on top, sizes to 420×560 in the bottom-right corner of the screen the app
+  is on, and keeps in step with the main window
+- **One app in Alt+Tab, not two.** The floating window has no Alt+Tab entry and no
+  taskbar button of its own (the exe gives it the tool-window style floating palettes
+  have), it stays on screen when you minimize the main window, and it closes with the
+  main window. Since it would be out of reach minimized, its minimize button closes it;
+  the picture-in-picture button brings it back
+- Opened as a plain browser page there is no exe to pin a window, so there the floating
+  window is the browser's Document Picture-in-Picture (Edge or Chrome 116+), with the
+  address in its title bar and an Alt+Tab entry of its own. Opening it takes a click or
+  a key, because a browser only lets a video call open one by itself
 - **Settings** (`Ctrl+,`) holds the documents folder, soft wrap, sync scroll, wide
   layout, both text sizes, dark mode, the language and picture-in-picture — one place per setting, rather
   than the same switch in a menu and a panel
@@ -514,14 +521,37 @@ and the rest of the buttons keep working either way.
 
 ## Fixes
 
+**1.13.3**
+
+- **The floating window lost your place when switching between Edit and Preview** —
+  scrolled halfway down in one, the other opened at the top. Each now opens at the
+  paragraph the other was showing: the preview's blocks know which source line they came
+  from, and the editor's lines are measured with their wrapping, so the position carries
+  over both ways. The caret goes to that line too, so focusing the editor no longer jumps
+  back up, and an update from the main window no longer resets the editor's scroll
+
+**1.13.2**
+
+- **The floating window's title bar showed `ⓘ 127.0.0.1:41873`** — the browser's own
+  picture-in-picture prints the page's address there and cannot be told otherwise. Run
+  from the exe, the floating window is now one of the app's own windows, pinned on top
+  by the launcher, and its title bar reads **Markdown Studio**. It still has no Alt+Tab
+  entry or taskbar button, still stays up when the main window is minimized, and now
+  closes when the main window does
+- **Minimizing the floating window lost it** — with no Alt+Tab entry or taskbar button
+  there was no way back. Minimizing it now closes it, and the picture-in-picture button
+  opens it again
+- **Edge offered to translate the page** ("Translate page from Indonesian?") whenever a
+  document was written in another language. The page now tells the browser not to: what
+  is on it is your own writing
+
 **1.13.1**
 
 - **Alt+Tab showed the app twice while picture-in-picture was open** — the main window
   and the floating one, each with its own taskbar button. The floating window is now a
   tool window of the app: on top, clickable, still there when the main window is
   minimized, but only one Markdown Studio in Alt+Tab and on the taskbar. This needs the
-  exe (it is done by the launcher, through the new `/__pip` endpoint); opened as a plain
-  browser page the floating window stays a window of its own
+  exe; opened as a plain browser page the floating window stays a window of its own
 - The Welcome guide (both languages) says so in its Picture-in-picture section, in the
   exe's version of the guide only
 

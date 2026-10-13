@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.13.1.0")]
-[assembly: AssemblyFileVersion("1.13.1.0")]
+[assembly: AssemblyVersion("1.13.3.0")]
+[assembly: AssemblyFileVersion("1.13.3.0")]
 
 static class MarkdownStudio
 {
@@ -179,6 +179,7 @@ static class MarkdownStudio
         string id = AddWorkspace(ws);
         TcpListener listener = Listen();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        ServePort = port;
 
         Thread server = new Thread(delegate() { Serve(listener); });
         server.IsBackground = true;
@@ -922,7 +923,7 @@ static class MarkdownStudio
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             k.SetValue("DisplayName", AppName);
-            k.SetValue("DisplayVersion", "1.13.1");
+            k.SetValue("DisplayVersion", "1.13.3");
             k.SetValue("Publisher", AppName);
             k.SetValue("DisplayIcon", exe + ",0");
             k.SetValue("InstallLocation", dir);
@@ -1399,12 +1400,10 @@ static class MarkdownStudio
 
     // ---------------------------------------------------------------- picture-in-picture
 
-    // The page's picture-in-picture window is a window of its own as far as Windows is
-    // concerned, so Alt+Tab and the taskbar showed Markdown Studio twice - the big one
-    // and the small one. The page cannot change that; we can. When it opens one it tells
-    // us, and we find that window among our own browser's windows and give it the
-    // tool-window style floating palettes have: still on top of everything and still
-    // clickable, but no longer a second entry in Alt+Tab or on the taskbar.
+    // Window plumbing for the floating window below: to Windows it is a window of its
+    // own, so Alt+Tab and the taskbar would show Markdown Studio twice. It gets the
+    // tool-window style floating palettes have - still on top and clickable, but no
+    // second entry in Alt+Tab or on the taskbar.
 
     static string ProfileDir = "";
 
@@ -1471,12 +1470,40 @@ static class MarkdownStudio
         return ids;
     }
 
-    // The floating window: visible, a browser frame, always on top - which the app's
-    // main window never is - and not yet a tool window. Returns how many it changed.
-    static int TuckPip(HashSet<uint> pids)
+    // ---------------------------------------------------------------- the floating window
+
+    // The browser's own picture-in-picture window prints the page's address in its title
+    // bar - "127.0.0.1:41873" - and nothing a page does can change that. So from the exe
+    // the floating window is one of our own app windows instead, the same kind as the main
+    // one (whose title bar shows the page's title), opened on the same page in its
+    // floating mode. We then do what the browser's version did: pin it on top, make it
+    // small in the corner, and keep it out of Alt+Tab and off the taskbar. Its title bar
+    // reads "Markdown Studio".
+
+    static int ServePort = 0;
+    static IntPtr FloatMain = IntPtr.Zero, FloatWin = IntPtr.Zero;
+    static readonly object FloatLock = new object();
+
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] static extern bool IsWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+    [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetWindowText(IntPtr h, StringBuilder s, int max);
+
+    static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    const uint WM_CLOSE = 0x0010;
+
+    // Our browser's visible app windows, with their titles.
+    static Dictionary<IntPtr, string> OurWindows(HashSet<uint> pids)
     {
-        List<IntPtr> found = new List<IntPtr>();
-        StringBuilder cls = new StringBuilder(64);
+        Dictionary<IntPtr, string> all = new Dictionary<IntPtr, string>();
+        StringBuilder cls = new StringBuilder(64), title = new StringBuilder(256);
         EnumWindows(delegate(IntPtr h, IntPtr l)
         {
             if (!IsWindowVisible(h)) return true;
@@ -1486,40 +1513,122 @@ static class MarkdownStudio
             cls.Length = 0;
             GetClassName(h, cls, cls.Capacity);
             if (cls.ToString() != "Chrome_WidgetWin_1") return true;
-            long ex = ExStyle(h);
-            if ((ex & WS_EX_TOPMOST) != 0 && (ex & WS_EX_TOOLWINDOW) == 0) found.Add(h);
+            title.Length = 0;
+            GetWindowText(h, title, title.Capacity);
+            all[h] = title.ToString();
             return true;
         }, IntPtr.Zero);
-
-        ITaskbarList bar = null;
-        try { bar = (ITaskbarList)new TaskbarList(); bar.HrInit(); } catch { bar = null; }
-        foreach (IntPtr h in found)
-        {
-            SetExStyle(h, (ExStyle(h) | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW);
-            SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-            if (bar != null) { try { bar.DeleteTab(h); } catch { } }
-        }
-        if (bar != null) { try { Marshal.ReleaseComObject(bar); } catch { } }
-        return found.Count;
+        return all;
     }
 
-    // Answers /__pip at once and keeps looking for a few seconds on a thread of its own:
-    // the window appears a moment after the page asks for it.
-    static void PipOpened()
+    // Opens the floating window for the page whose channel is `id`, then finds it - the
+    // new window of ours that titles itself "Markdown Studio" - and pins it in the
+    // bottom-right corner of the screen the app is on.
+    static void FloatOpen(string id)
     {
+        string browser = FindBrowser();
+        if (browser == null || ServePort == 0) return;
+        try { SetProcessDPIAware(); } catch { }
+        HashSet<uint> pids = OurBrowserPids();
+        IntPtr fg = GetForegroundWindow();
+        Dictionary<IntPtr, string> before = OurWindows(pids);
+        lock (FloatLock)
+        {
+            if (before.ContainsKey(fg)) FloatMain = fg;
+            if (FloatWin != IntPtr.Zero && IsWindow(FloatWin)) PostMessage(FloatWin, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+            FloatWin = IntPtr.Zero;
+        }
+
+        string url = "http://127.0.0.1:" + ServePort + "/?k=" + key + "&pip=" + Uri.EscapeDataString(id);
+        ProcessStartInfo psi = new ProcessStartInfo(browser);
+        psi.Arguments = "--app=" + url + " --user-data-dir=\"" + ProfileDir + "\"" +
+                        " --window-size=420,560 --no-first-run --no-default-browser-check --disable-background-mode";
+        psi.UseShellExecute = false;
+        try { Process.Start(psi); } catch { return; }
+
         Thread t = new Thread(delegate()
         {
-            HashSet<uint> pids = OurBrowserPids();
-            for (int i = 0; i < 25; i++)
+            for (int i = 0; i < 60; i++)
             {
-                if (TuckPip(pids) > 0) return;
-                Thread.Sleep(200);
+                Thread.Sleep(150);
+                foreach (KeyValuePair<IntPtr, string> w in OurWindows(OurBrowserPidsCached(pids)))
+                {
+                    if (before.ContainsKey(w.Key) || w.Value != "Markdown Studio") continue;
+                    PinFloat(w.Key);
+                    lock (FloatLock) FloatWin = w.Key;
+                    WatchFloat(w.Key);
+                    return;
+                }
             }
         });
         t.IsBackground = true;
         t.SetApartmentState(ApartmentState.STA);
         t.Start();
+    }
+
+    // The browser may have started a helper process for the new window; look again then.
+    static HashSet<uint> OurBrowserPidsCached(HashSet<uint> known)
+    {
+        HashSet<uint> now = OurBrowserPids();
+        now.UnionWith(known);
+        return now;
+    }
+
+    static void PinFloat(IntPtr h)
+    {
+        double scale = 1.0;
+        try { uint dpi = GetDpiForWindow(h); if (dpi > 0) scale = dpi / 96.0; } catch { }
+        int w = (int)(420 * scale), hh = (int)(560 * scale), gap = (int)(16 * scale);
+        System.Drawing.Rectangle wa;
+        try { wa = Screen.FromHandle(FloatMain != IntPtr.Zero ? FloatMain : h).WorkingArea; }
+        catch { wa = Screen.PrimaryScreen.WorkingArea; }
+        w = Math.Min(w, wa.Width - 2 * gap);
+        hh = Math.Min(hh, wa.Height - 2 * gap);
+        SetExStyle(h, (ExStyle(h) | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW);
+        SetWindowPos(h, HWND_TOPMOST, wa.Right - w - gap, wa.Bottom - hh - gap, w, hh, SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        try
+        {
+            ITaskbarList bar = (ITaskbarList)new TaskbarList();
+            bar.HrInit();
+            bar.DeleteTab(h);
+            Marshal.ReleaseComObject(bar);
+        }
+        catch { }
+    }
+
+    // With no Alt+Tab entry and no taskbar button, a minimized floating window would be
+    // out of reach. So minimizing it closes it; the picture-in-picture button opens it
+    // again. Watched from here, because the page inside cannot tell: the browser reports
+    // a tool window as hidden even while it is on screen.
+    static void WatchFloat(IntPtr h)
+    {
+        while (IsWindow(h))
+        {
+            lock (FloatLock) { if (FloatWin != h) return; }
+            if (IsIconic(h)) { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); return; }
+            Thread.Sleep(300);
+        }
+    }
+
+    static void FloatClose()
+    {
+        IntPtr h;
+        lock (FloatLock) { h = FloatWin; FloatWin = IntPtr.Zero; }
+        if (h != IntPtr.Zero && IsWindow(h)) PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+    }
+
+    // "Back to Markdown Studio": the main window to the front. Windows only lets the
+    // foreground process hand that over, and a key press counts as taking part - the
+    // usual way round it for a helper like this one.
+    static void FloatFront()
+    {
+        IntPtr h;
+        lock (FloatLock) h = FloatMain;
+        if (h == IntPtr.Zero || !IsWindow(h)) return;
+        if (IsIconic(h)) ShowWindow(h, 9);              // SW_RESTORE
+        keybd_event(0x12, 0, 0, UIntPtr.Zero);          // Alt down
+        keybd_event(0x12, 0, 2, UIntPtr.Zero);          // Alt up
+        SetForegroundWindow(h);
     }
 
     static int CountOurs(string profile)
@@ -1677,7 +1786,7 @@ static class MarkdownStudio
 
                 if (path == "/__ws" || path == "/__file" || path == "/__all" ||
                     path == "/__launch" || path == "/__libdir" || path == "/__reveal" ||
-                    path == "/__asset" || path == "/__entry" || path == "/__pip")
+                    path == "/__asset" || path == "/__entry" || path == "/__float")
                 {
                     if (QueryValue(query, "k") != key)
                     { SendText(ns, "403 Forbidden", "forbidden"); return; }
@@ -1689,10 +1798,21 @@ static class MarkdownStudio
                         return;
                     }
 
-                    if (path == "/__pip")
+                    if (path == "/__float")
                     {
                         if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
-                        PipOpened();
+                        string op = QueryValue(query, "op") ?? "";
+                        if (op == "open")
+                        {
+                            string id = QueryValue(query, "id") ?? "";
+                            bool okId = id.Length > 0 && id.Length <= 40;
+                            foreach (char c in id) if (!char.IsLetterOrDigit(c)) okId = false;
+                            if (!okId) { SendText(ns, "400 Bad Request", "bad id"); return; }
+                            FloatOpen(id);
+                        }
+                        else if (op == "close") FloatClose();
+                        else if (op == "front") FloatFront();
+                        else { SendText(ns, "400 Bad Request", "unknown operation"); return; }
                         SendText(ns, "200 OK", "ok");
                         return;
                     }

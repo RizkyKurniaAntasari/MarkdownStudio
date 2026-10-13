@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" translate="no">
 <head>
 <meta charset="utf-8">
+<!-- your own writing, in whatever language: Edge must not offer to translate it -->
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Markdown Studio</title>
@@ -1138,14 +1140,18 @@ Picture-in-picture**, then open it with the button that appears in the top bar o
 - **Edit** turns it into a small editor — keep writing notes while a meeting, a browser
   or a spreadsheet has the screen. It writes into the same document, so saving and
   autosave work as usual, and <kbd>Ctrl</kbd>+<kbd>S</kbd> works inside it
+- Switching between Preview and Edit keeps your place: halfway down in one is halfway
+  down in the other, at the same paragraph
 - Switch documents in the app and it follows; the ↩ button takes you back and closes it
 <!-- exe -->
-- It belongs to the app: one Markdown Studio in Alt+Tab and on the taskbar, not two,
-  and it stays on screen when you minimize the main window
+- It belongs to the app: its title bar says Markdown Studio, there is one Markdown
+  Studio in Alt+Tab and on the taskbar, not two, and it stays on screen when you minimize
+  the main window. Its own minimize button closes it — open it again with the button
 <!-- /exe -->
-
-It needs Edge or Chrome 116 or newer — the desktop app has that. Opening it always takes
-a click or a key: a browser only lets a video call open one by itself.
+<!-- web -->
+It needs Edge or Chrome 116 or newer. Opening it always takes a click or a key: a
+browser only lets a video call open one by itself.
+<!-- /web -->
 
 ## Links between files
 
@@ -1832,15 +1838,19 @@ Picture-in-picture**, lalu buka lewat tombol yang muncul di bar atas atau
   browser, atau spreadsheet memenuhi layar. Tulisan masuk ke dokumen yang sama, jadi
   menyimpan dan simpan otomatis tetap berjalan, dan <kbd>Ctrl</kbd>+<kbd>S</kbd> berfungsi
   di dalamnya
+- Berpindah antara Pratinjau dan Edit tetap di posisi yang sama: sudah scroll setengah di
+  satu mode, mode lainnya juga terbuka di paragraf yang sama
 - Ganti dokumen di aplikasi dan jendela ini ikut; tombol ↩ membawa Anda kembali dan
   menutupnya
 <!-- exe -->
-- Jendela ini menyatu dengan aplikasi: hanya satu Markdown Studio di Alt+Tab dan di
-  taskbar, bukan dua, dan tetap tampil saat jendela utama diminimalkan
+- Jendela ini menyatu dengan aplikasi: judulnya Markdown Studio, hanya ada satu Markdown
+  Studio di Alt+Tab dan di taskbar, bukan dua, dan tetap tampil saat jendela utama
+  diminimalkan. Tombol minimize-nya menutup jendela ini — buka lagi lewat tombolnya
 <!-- /exe -->
-
-Butuh Edge atau Chrome 116 ke atas — aplikasi desktop sudah memakainya. Membukanya selalu
-butuh klik atau tombol: browser hanya mengizinkan panggilan video membukanya sendiri.
+<!-- web -->
+Butuh Edge atau Chrome 116 ke atas. Membukanya selalu butuh klik atau tombol: browser
+hanya mengizinkan panggilan video membukanya sendiri.
+<!-- /web -->
 
 ## Tautan antar-file
 
@@ -6830,38 +6840,37 @@ const MD = (function () {
 
   /* ---------- picture-in-picture ---------- */
   /* Google Meet's floating window: a small window that stays on top of every other
-     app, here showing the document you are in - read it in Preview, or switch to Edit
-     and keep writing while another program has the screen. It is the browser's
-     Document Picture-in-Picture (Edge and Chrome 116+), the same thing Meet uses.
-     What is typed in it goes into the main editor as if typed there, so saving,
-     autosave and the unsaved marks all behave as usual. Settings > Window turns the
-     feature on; opening the window always takes a click or a key, because a browser
-     only lets a video call open one by itself. */
-  const PIP_OK = typeof window.documentPictureInPicture === "object" && !!window.isSecureContext;
-  let pipWin = null, pipMode = "preview";
+     app, showing the document you are in - read it in Preview, or switch to Edit and
+     keep writing while another program has the screen. What is typed in it goes into
+     the main editor as if typed there, so saving, autosave and the unsaved marks all
+     behave as usual. Settings > Window turns the feature on.
+
+     It comes in two forms with the same insides:
+     - From the exe, it is one of our own app windows, opened on this page in its
+       floating mode (?pip=...) and pinned on top by the launcher. The browser's own
+       picture-in-picture prints the page's address - "127.0.0.1:41873" - in its title
+       bar and cannot be told otherwise; this one's title bar says "Markdown Studio", and
+       the launcher keeps it out of Alt+Tab and off the taskbar. The two windows talk
+       over a BroadcastChannel.
+     - Opened as a plain page, there is no launcher to pin a window, so it is the
+       browser's Document Picture-in-Picture (Edge and Chrome 116+). Opening that always
+       takes a click or a key: a browser only lets a video call open one by itself. */
+  const PIP_EXE = !!SRV_KEY;
+  const PIP_OK = PIP_EXE || (typeof window.documentPictureInPicture === "object" && !!window.isSecureContext);
+  let pipWin = null, pipMode = "preview";          /* the browser's own window, when that is the form */
+  let pipChan = null, pipLive = false, pipTimer = null;   /* the launcher's window */
 
   function pipOn() { return !!state.settings.pip && PIP_OK; }
+  function pipOpen() { return !!pipWin || pipLive; }
   function pipUI() {
     const b = $("#btnPip"), m = document.querySelector('[data-act="pip"]');
-    if (b) { b.hidden = !pipOn(); b.classList.toggle("on", !!pipWin); }
+    if (b) { b.hidden = !pipOn(); b.classList.toggle("on", pipOpen()); }
     if (m) m.hidden = !pipOn();
   }
-  async function togglePip() {
-    if (pipWin) { closePip(); return; }
-    if (!PIP_OK) { toast(tr("Picture-in-picture needs Edge or Chrome 116 or newer")); return; }
-    if (!state.settings.pip) {
-      toast(tr("Picture-in-picture is off - turn it on in Settings"));
-      showSettings(true);
-      return;
-    }
-    let w;
-    try { w = await window.documentPictureInPicture.requestWindow({ width: 420, height: 560 }); }
-    catch (e) { toast(tr("Could not open the picture-in-picture window: ") + (e.message || e.name)); return; }
-    pipWin = w;
-    const d = w.document;
-    /* the window starts empty: it gets this page's styles, theme and text sizes */
-    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(n => d.head.appendChild(n.cloneNode(true)));
-    d.documentElement.style.cssText = document.documentElement.style.cssText;
+
+  /* The floating window's insides, the same in both forms. `on` says what to do with
+     what happens in it: edit(text), task(line), link(href), save(), back(), close(). */
+  function floatBuild(d, w, on) {
     d.body.className = "pip-body";
     d.body.innerHTML =
       '<div class="pip"><div class="pip-bar"><span class="pip-name"></span>' +
@@ -6871,78 +6880,244 @@ const MD = (function () {
       '</div><div class="pip-main"><article id="preview" class="pip-pv"></article>' +
       '<textarea class="pip-ed" spellcheck="false" hidden></textarea></div></div>';
     const ta = d.querySelector(".pip-ed");
-    ta.addEventListener("input", () => {
-      if (ed.value === ta.value) return;
-      ed.value = ta.value;
-      ed.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    ta.addEventListener("input", () => on.edit(ta.value));
     d.addEventListener("click", e => {
       const b = e.target.closest("[data-pip]");
-      if (b && b.dataset.pip === "mode") { pipMode = pipMode === "preview" ? "edit" : "preview"; pipSync(true); if (pipMode === "edit") ta.focus(); return; }
-      if (b && b.dataset.pip === "back") { window.focus(); closePip(); return; }
+      if (b && b.dataset.pip === "mode") { on.mode(); return; }
+      if (b && b.dataset.pip === "back") { on.back(); return; }
       /* a task ticked in the floating window is ticked in the document */
       const box = e.target.closest("[data-task-line]");
-      if (box) {
-        e.preventDefault();
-        const real = preview.querySelector('[data-task-line="' + box.dataset.taskLine + '"]');
-        if (real) real.click();
-        return;
-      }
+      if (box) { e.preventDefault(); on.task(box.dataset.taskLine); return; }
       const a = e.target.closest("a");
       if (a) {
         e.preventDefault();
         const href = a.getAttribute("href") || "";
-        if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.indexOf("//") === 0) window.open(href, "_blank", "noopener");
-        else if (href.charAt(0) === "#") {
+        if (href.charAt(0) === "#") {
           const el = d.getElementById(MD.ID_PREFIX + href.slice(1)) || d.getElementById(href.slice(1));
           if (el) el.scrollIntoView();
-        }
-        else followLink(href);
+        } else if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.indexOf("//") === 0) w.open(href, "_blank", "noopener");
+        else on.link(href);
       }
     });
     d.addEventListener("keydown", e => {
       const c = comboOf(e);
-      if (c === "Ctrl+S") { e.preventDefault(); saveMarkdown(); }
-      else if (c === "Ctrl+Alt+P") { e.preventDefault(); closePip(); }
+      if (c === "Ctrl+S") { e.preventDefault(); on.save(); }
+      else if (c === "Ctrl+Alt+P") { e.preventDefault(); on.close(); }
     });
+  }
+  /* s: { name, theme, css, html, text, mode } */
+  function floatPaint(d, s, full) {
+    d.title = PIP_EXE ? "Markdown Studio" : s.name;
+    d.querySelector(".pip-name").textContent = s.name;
+    d.documentElement.setAttribute("data-theme", s.theme);
+    d.documentElement.style.cssText = s.css;
+    const pv = d.querySelector(".pip-pv"), ta = d.querySelector(".pip-ed"), main = d.querySelector(".pip-main");
+    const mode = d.querySelector('[data-pip="mode"]');
+    mode.textContent = tr(s.mode === "preview" ? "Edit" : "Preview");
+    mode.title = tr(s.mode === "preview" ? "Write in this window" : "Show the finished page");
+    /* switching between Edit and Preview keeps the same place in the document: the
+       source line at the top of the view being left is put at the top of the other */
+    const was = pv.hidden ? "edit" : "preview";
+    const line = was === s.mode ? -1 : was === "preview" ? floatPvLine(pv, main) : floatEdLine(d, ta);
+    pv.hidden = s.mode !== "preview";
+    ta.hidden = s.mode !== "edit";
+    if (s.mode === "preview") {
+      const top = main.scrollTop;
+      pv.innerHTML = s.html;
+      /* the main window's selection highlight and find marks are not this window's */
+      pv.querySelectorAll(".sync-hl").forEach(el => el.classList.remove("sync-hl"));
+      pv.querySelectorAll("mark.pv-hit").forEach(mk => mk.replaceWith(d.createTextNode(mk.textContent)));
+      main.scrollTop = line >= 0 ? floatPvTop(pv, main, line) : top;
+    } else {
+      if ((full || d.activeElement !== ta) && ta.value !== s.text) {
+        const top = ta.scrollTop;
+        ta.value = s.text;
+        ta.scrollTop = top;
+      }
+      if (line >= 0) {
+        main.scrollTop = 0;
+        ta.scrollTop = floatEdTop(d, ta, line);
+        /* the caret goes to that line too, so focusing the editor does not jump to the top */
+        const v = ta.value;
+        let p = 0;
+        for (let n = Math.floor(line); n > 0 && p >= 0; n--) { p = v.indexOf("\n", p); if (p >= 0) p++; }
+        p = p < 0 ? v.length : p;
+        ta.setSelectionRange(p, p);
+      }
+    }
+  }
+  /* The preview's blocks carry the source line they came from (data-src-line), so a
+     position in it maps to a fractional source line, and back. */
+  function floatPvMap(pv, main) {
+    const base = main.getBoundingClientRect().top - main.scrollTop;
+    return Array.prototype.map.call(pv.querySelectorAll("[data-src-line]"),
+      el => { const r = el.getBoundingClientRect(); return { line: +el.dataset.srcLine, top: r.top - base, h: r.height }; })
+      .sort((a, b) => a.line - b.line || a.top - b.top);
+  }
+  function floatPvLine(pv, main) {
+    const map = floatPvMap(pv, main), y = main.scrollTop;
+    if (!map.length) return 0;
+    let i = 0;
+    while (i + 1 < map.length && map[i + 1].top <= y) i++;
+    const a = map[i], b = map[i + 1];
+    if (y <= a.top) return i === 0 ? 0 : a.line;
+    const bo = b ? b.top : a.top + a.h, span = (b ? b.line : a.line + 1) - a.line;
+    return a.line + span * Math.min(1, Math.max(0, bo > a.top ? (y - a.top) / (bo - a.top) : 0));
+  }
+  function floatPvTop(pv, main, line) {
+    const map = floatPvMap(pv, main);
+    if (!map.length || line <= map[0].line) return line <= 0 || !map.length ? 0 : map[0].top;
+    let i = 0;
+    while (i + 1 < map.length && map[i + 1].line <= line) i++;
+    const a = map[i], b = map[i + 1];
+    const bo = b ? b.top : a.top + a.h, span = (b ? b.line : a.line + 1) - a.line;
+    return Math.max(0, a.top + (bo - a.top) * Math.min(1, Math.max(0, (line - a.line) / (span || 1))));
+  }
+  /* The editor wraps long lines, so where a line sits is measured on a hidden copy of
+     the text laid out exactly like the textarea, one div per line. */
+  function floatEdRows(d, ta) {
+    let m = d.querySelector(".pip-measure");
+    if (!m) {
+      m = d.createElement("div");
+      m.className = "pip-measure";
+      m.setAttribute("aria-hidden", "true");
+      d.body.appendChild(m);
+    }
+    const cs = d.defaultView.getComputedStyle(ta);
+    m.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;white-space:pre-wrap;" +
+      "overflow-wrap:break-word;word-wrap:break-word;box-sizing:border-box;width:" + ta.clientWidth + "px;" +
+      "padding:" + cs.padding + ";font:" + cs.font + ";line-height:" + cs.lineHeight + ";letter-spacing:" +
+      cs.letterSpacing + ";tab-size:" + cs.tabSize + ";";
+    m.innerHTML = ta.value.split("\n").map(l => "<div>" + (l ? esc(l) : "&#8203;") + "</div>").join("");
+    return m.children;
+  }
+  function floatEdLine(d, ta) {
+    const rows = floatEdRows(d, ta), y = ta.scrollTop;
+    if (!rows.length || y <= 0) return 0;
+    let lo = 0, hi = rows.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (rows[mid].offsetTop <= y) lo = mid; else hi = mid - 1; }
+    const r = rows[lo];
+    return lo + Math.min(1, Math.max(0, (y - r.offsetTop) / (r.offsetHeight || 1)));
+  }
+  function floatEdTop(d, ta, line) {
+    if (line <= 0) return 0;
+    const rows = floatEdRows(d, ta);
+    if (!rows.length) return 0;
+    const n = Math.min(rows.length - 1, Math.floor(line)), r = rows[n];
+    return Math.max(0, r.offsetTop + (r.offsetHeight || 0) * (line - n));
+  }
+  function floatState() {
+    const t = active();
+    return { name: t ? t.name : "Markdown Studio", theme: state.settings.theme,
+      css: document.documentElement.style.cssText, html: preview.innerHTML, text: ed.value, mode: pipMode };
+  }
+  /* what the floating window asks of the document */
+  const floatDo = {
+    edit(text) { if (ed.value === text) return; ed.value = text; ed.dispatchEvent(new Event("input", { bubbles: true })); },
+    task(line) { const real = preview.querySelector('[data-task-line="' + line + '"]'); if (real) real.click(); },
+    link(href) { followLink(href); },
+    save() { saveMarkdown(); }
+  };
+
+  async function togglePip() {
+    if (pipOpen()) { closePip(); return; }
+    if (!PIP_OK) { toast(tr("Picture-in-picture needs Edge or Chrome 116 or newer")); return; }
+    if (!state.settings.pip) {
+      toast(tr("Picture-in-picture is off - turn it on in Settings"));
+      showSettings(true);
+      return;
+    }
+    if (PIP_EXE) openFloatWindow(); else await openBrowserPip();
+  }
+
+  /* ----- the launcher's window ----- */
+  function openFloatWindow() {
+    const id = uid().replace(/[^a-z0-9]/gi, "");
+    if (pipChan) pipChan.close();
+    pipChan = new BroadcastChannel("md-pip-" + id);
+    pipChan.onmessage = e => {
+      const m = e.data || {};
+      if (m.type === "hello") {
+        pipLive = true; clearTimeout(pipTimer); pipUI();
+        pipChan.postMessage(Object.assign({ type: "state", full: true }, floatState()));
+      } else if (m.type === "mode") { pipMode = pipMode === "preview" ? "edit" : "preview"; pipSync(true); }
+      else if (m.type === "edit") floatDo.edit(m.text);
+      else if (m.type === "task") floatDo.task(m.line);
+      else if (m.type === "link") floatDo.link(m.href);
+      else if (m.type === "save") floatDo.save();
+      else if (m.type === "back") { fetch(floatUrl("front"), { method: "POST" }).catch(() => { }); closePip(); }
+      else if (m.type === "close") closePip();
+      else if (m.type === "closed") { pipLive = false; pipUI(); }
+    };
+    fetch(floatUrl("open", id), { method: "POST" }).catch(() => toast(tr("Could not open the picture-in-picture window: ") + "launcher"));
+    clearTimeout(pipTimer);
+    pipTimer = setTimeout(() => { if (!pipLive) toast(tr("Could not open the picture-in-picture window: ") + tr("it did not start")); }, 12000);
+  }
+  const floatUrl = (op, id) => "/__float?k=" + encodeURIComponent(SRV_KEY) + "&op=" + op + (id ? "&id=" + id : "");
+
+  /* ----- the browser's own window ----- */
+  async function openBrowserPip() {
+    let w;
+    try { w = await window.documentPictureInPicture.requestWindow({ width: 420, height: 560, preferInitialWindowPlacement: true }); }
+    catch (e) { toast(tr("Could not open the picture-in-picture window: ") + (e.message || e.name)); return; }
+    pipWin = w;
+    const d = w.document;
+    /* the window starts empty: it gets this page's styles */
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(n => d.head.appendChild(n.cloneNode(true)));
+    floatBuild(d, w, Object.assign({}, floatDo, {
+      mode() { pipMode = pipMode === "preview" ? "edit" : "preview"; pipSync(true); if (pipMode === "edit") d.querySelector(".pip-ed").focus({ preventScroll: true }); },
+      back() { window.focus(); closePip(); },
+      close() { closePip(); }
+    }));
     w.addEventListener("pagehide", () => { pipWin = null; pipUI(); });
     pipSync(true);
     pipUI();
-    /* To Windows the floating window is a second window: Alt+Tab and the taskbar
-       showed the app twice. The exe can fold it into the main one (a tool window,
-       still on top, no entry of its own); the page can only ask. */
-    if (SRV_KEY) fetch("/__pip?k=" + encodeURIComponent(SRV_KEY), { method: "POST" }).catch(() => { });
   }
+
   function closePip() {
     if (pipWin) { try { pipWin.close(); } catch (e) { } }
     pipWin = null;
+    if (pipLive || pipChan) {
+      if (pipChan) pipChan.postMessage({ type: "close" });
+      fetch(floatUrl("close"), { method: "POST" }).catch(() => { });
+    }
+    pipLive = false;
     pipUI();
   }
   /* called after every render, tab switch and theme change */
   function pipSync(full) {
-    if (!pipWin) return;
-    const d = pipWin.document, t = active();
-    const name = t ? t.name : "Markdown Studio";
-    d.title = name;
-    d.querySelector(".pip-name").textContent = name;
-    d.documentElement.setAttribute("data-theme", state.settings.theme);
-    d.documentElement.style.cssText = document.documentElement.style.cssText;
-    const pv = d.querySelector(".pip-pv"), ta = d.querySelector(".pip-ed"), main = d.querySelector(".pip-main");
-    const mode = d.querySelector('[data-pip="mode"]');
-    mode.textContent = tr(pipMode === "preview" ? "Edit" : "Preview");
-    mode.title = tr(pipMode === "preview" ? "Write in this window" : "Show the finished page");
-    pv.hidden = pipMode !== "preview";
-    ta.hidden = pipMode !== "edit";
-    if (pipMode === "preview") {
-      const top = main.scrollTop;
-      pv.innerHTML = preview.innerHTML;
-      /* the main window's selection highlight and find marks are not this window's */
-      pv.querySelectorAll(".sync-hl").forEach(el => el.classList.remove("sync-hl"));
-      pv.querySelectorAll("mark.pv-hit").forEach(mk => mk.replaceWith(d.createTextNode(mk.textContent)));
-      main.scrollTop = top;
-    } else if (full || d.activeElement !== ta) {
-      if (ta.value !== ed.value) ta.value = ed.value;
-    }
+    if (pipWin) floatPaint(pipWin.document, floatState(), full);
+    else if (pipLive && pipChan) pipChan.postMessage(Object.assign({ type: "state", full: !!full }, floatState()));
+  }
+
+  /* The page in floating mode: what the launcher's small window shows. It is this same
+     file, so it has every style already; it only draws what the main window sends. */
+  function initFloat(id) {
+    document.title = "Markdown Studio";
+    /* the interface language the main window is in */
+    try { I18N.set((JSON.parse(localStorage.getItem(KEY)) || {}).settings.lang); } catch (e) { }
+    const ch = new BroadcastChannel("md-pip-" + id);
+    let last = null;
+    floatBuild(document, window, {
+      edit: text => ch.postMessage({ type: "edit", text: text }),
+      task: line => ch.postMessage({ type: "task", line: line }),
+      link: href => ch.postMessage({ type: "link", href: href }),
+      save: () => ch.postMessage({ type: "save" }),
+      mode: () => ch.postMessage({ type: "mode" }),
+      back: () => ch.postMessage({ type: "back" }),
+      close: () => ch.postMessage({ type: "close" })
+    });
+    ch.onmessage = e => {
+      const m = e.data || {};
+      if (m.type === "state") {
+        const was = last && last.mode;
+        last = m;
+        floatPaint(document, m, m.full || was !== m.mode);
+        if (was && was !== m.mode && m.mode === "edit") document.querySelector(".pip-ed").focus({ preventScroll: true });
+      } else if (m.type === "close") window.close();
+    };
+    window.addEventListener("pagehide", () => ch.postMessage({ type: "closed" }));
+    ch.postMessage({ type: "hello" });
   }
 
   /* ---------- local (browser-stored) documents ---------- */
@@ -8832,14 +9007,21 @@ const MD = (function () {
       }
       try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (err) { }
       libFlushNow();
+      /* the floating window belongs to this one */
+      if (pipLive && pipChan) { pipChan.postMessage({ type: "close" }); try { navigator.sendBeacon(floatUrl("close")); } catch (err) { } }
       /* files live on disk and are not autosaved, so warn before losing edits */
       if (tabs.some(isDirty)) { e.preventDefault(); e.returnValue = ""; return ""; }
     });
     ed.focus();
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  /* the same page serves the launcher's floating window, as ?pip=<channel> */
+  const FLOAT_ID = (function () {
+    try { return (new URLSearchParams(location.search).get("pip") || "").replace(/[^a-z0-9]/gi, ""); } catch (e) { return ""; }
+  })();
+  const start = FLOAT_ID ? () => initFloat(FLOAT_ID) : init;
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
 })();
 </script>
 </body>
