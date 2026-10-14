@@ -983,6 +983,8 @@ The sidebar on the left has four panes, switched by the icons at its top.
 **Docs save themselves.** Each document in the Docs pane is a file in
 `Documents\Markdown Studio`, written as you type. Rename it with the title box at the
 top and its file is renamed too; delete it and the file goes to the Recycle Bin.
+Deleting or renaming the file itself — in Windows Explorer, or in the Explorer pane —
+does the same to the document: a deleted one stays gone.
 **Settings → Change folder…** moves them all somewhere else.
 <!-- /exe -->
 <!-- web -->
@@ -1710,7 +1712,9 @@ Sidebar di kiri punya empat panel, dipilih lewat ikon di bagian atasnya.
 **Docs tersimpan sendiri.** Setiap dokumen di panel Docs adalah file di
 `Documents\Markdown Studio`, ditulis seiring Anda mengetik. Ganti namanya lewat kotak
 judul di atas dan nama file-nya ikut berganti; hapus dokumennya dan file-nya masuk ke
-Recycle Bin. **Pengaturan → Change folder…** memindahkan semuanya ke tempat lain.
+Recycle Bin. Menghapus atau mengganti nama file-nya langsung — di Windows Explorer, atau
+di panel Explorer — berlaku juga untuk dokumennya: yang dihapus tidak muncul lagi.
+**Pengaturan → Change folder…** memindahkan semuanya ke tempat lain.
 <!-- /exe -->
 <!-- web -->
 **Docs tersimpan sendiri, di browser ini.** Dokumen tetap ada saat Anda kembali, tapi
@@ -2580,8 +2584,8 @@ const I18N = (function () {
   const ID = {
     /* ---- panes, bars and buttons ---- */
     "Explorer": "Folder", "Docs": "Dokumen", "Outline": "Kerangka", "Search": "Cari",
-    "New": "Baru", "Edit": "Edit", "Split": "Terbagi", "Preview": "Pratinjau",
-    "Save": "Simpan", "Settings": "Pengaturan", "Documents": "Dokumen",
+    "New": "Baru", "Split": "Terbagi", 
+    "Settings": "Pengaturan", "Documents": "Dokumen",
     "Editor": "Editor", "Appearance": "Tampilan", "Language": "Bahasa",
     "words": "kata", "chars": "karakter", "lines": "baris", "min read": "menit baca",
     "Ln": "Brs", "Col": "Kol", "selected": "terpilih",
@@ -2608,17 +2612,15 @@ const I18N = (function () {
     /* ---- menu ---- */
     "Open folder": "Buka folder", "Save all files": "Simpan semua berkas",
     "Close all tabs": "Tutup semua tab", "Search in folder": "Cari di folder",
-    "Save as Markdown": "Simpan sebagai Markdown", "Export as HTML": "Ekspor sebagai HTML",
+    "Save as Markdown": "Simpan sebagai Markdown", 
     "Print / Save as PDF": "Cetak / Simpan sebagai PDF",
-    "Copy HTML to clipboard": "Salin HTML ke papan klip",
-    "Duplicate as new document": "Gandakan jadi dokumen baru",
-    "Download backup (all docs)": "Unduh cadangan (semua dokumen)",
-    "Import backup (.json)": "Impor cadangan (.json)",
+    
+    
     "Find and replace": "Cari dan ganti", "Toggle dark mode": "Mode gelap",
     "Keyboard shortcuts": "Pintasan papan tik",
 
     /* ---- find bar ---- */
-    "Find": "Cari", "Replace with": "Ganti dengan", "Replace": "Ganti", "All": "Semua",
+    "Replace with": "Ganti dengan", "All": "Semua",
     "preview · read-only": "pratinjau · hanya baca",
     "Preview is read-only, so replace is off":
       "Pratinjau hanya bisa dibaca, jadi ganti dimatikan",
@@ -2649,7 +2651,7 @@ const I18N = (function () {
     "Collapse / expand all": "Tutup / buka semua",
     "Re-read files from disk and search again": "Baca ulang berkas dari disk lalu cari lagi",
     "Smaller": "Perkecil", "Larger": "Perbesar", "Show me where": "Tunjukkan di mana",
-    "Delete": "Hapus", "Markdown source": "Sumber Markdown",
+    "Markdown source": "Sumber Markdown",
     "New file": "Berkas baru", "Refresh": "Muat ulang", "Close folder": "Tutup folder",
     "Keep your documents somewhere else": "Simpan dokumen Anda di tempat lain",
     "Drop Markdown files to open": "Lepas berkas Markdown untuk membuka",
@@ -2664,23 +2666,20 @@ const I18N = (function () {
     "Numbered list (Ctrl+Shift+7)": "Daftar bernomor (Ctrl+Shift+7)",
     "Task list (Alt+C)": "Daftar tugas (Alt+C)",
     "Blockquote (Ctrl+Shift+.)": "Kutipan (Ctrl+Shift+.)",
-    "Bullet list": "Daftar poin", "Numbered list": "Daftar bernomor",
-    "Task list": "Daftar tugas", "Blockquote": "Kutipan", "Table": "Tabel",
+    "Task list": "Daftar tugas", "Table": "Tabel",
     "Code block": "Blok kode", "Horizontal rule": "Garis pemisah", "Footnote": "Catatan kaki",
 
     /* ---- shortcuts sheet ---- */
-    "Formatting": "Format", "Editing": "Mengedit", "Files": "Berkas", "Tabs": "Tab",
-    "View": "Tampilan",
-    "Bold": "Tebal", "Italic": "Miring", "Inline code": "Kode sebaris", "Link": "Tautan",
+    "Files": "Berkas", "Tabs": "Tab",
+    "Link": "Tautan",
     "Image": "Gambar", "Heading 1 / 2 / 3": "Judul 1 / 2 / 3",
     "Indent / outdent": "Menjorok masuk / keluar", "Duplicate line": "Gandakan baris",
-    "Move line up / down": "Pindah baris naik / turun", "Delete line": "Hapus baris",
-    "Continue list": "Lanjutkan daftar", "Undo / redo": "Urungkan / ulangi",
+    "Move line up / down": "Pindah baris naik / turun", 
     "Select all": "Pilih semua", "Open .md file": "Buka berkas .md",
-    "New document": "Dokumen baru", "Print / PDF": "Cetak / PDF",
+    "Print / PDF": "Cetak / PDF",
     "Next tab": "Tab berikutnya", "Previous tab": "Tab sebelumnya",
-    "Go to tab 1-9": "Ke tab 1-9", "Close tab": "Tutup tab", "Close panel": "Tutup panel",
-    "Toggle sidebar": "Buka/tutup panel samping", "Toggle theme": "Ganti tema",
+    "Go to tab 1-9": "Ke tab 1-9", "Close tab": "Tutup tab", 
+    "Toggle theme": "Ganti tema",
     "Shortcuts": "Pintasan",
 
     /* ---- the folder tree ---- */
@@ -2736,9 +2735,8 @@ const I18N = (function () {
     "Could not read ": "Gagal membaca ", "Could not find ": "Gagal menemukan ",
     "Could not create file: ": "Gagal membuat berkas: ",
     "Could not use that folder: ": "Gagal memakai folder itu: ",
-    "Deleted ": "Dihapus ",
-    "Copied": "Disalin", "Copy failed": "Gagal menyalin",
-    "Code copied": "Kode disalin", "HTML copied": "HTML disalin",
+    "Copy failed": "Gagal menyalin",
+    "Code copied": "Kode disalin", 
     "Mermaid source copied": "Sumber Mermaid disalin",
     "Duplicated": "Digandakan", "Refreshed": "Dimuat ulang",
     "Exported HTML": "HTML diekspor", "Backup downloaded": "Cadangan diunduh",
@@ -4448,6 +4446,74 @@ const MD = (function () {
       state.active = state.docs[0].id;
     }
     if (!state.docs.some(d => d.id === state.active)) state.active = state.docs[0].id;
+    if (!Array.isArray(state.gone)) state.gone = [];
+  }
+  /* ---------- more than one window ----------
+     Every window of the app keeps the Docs list and the settings in memory and writes
+     all of it to the same storage slot. Two windows open at once - a second file
+     opened with "Open with", say - used to each write their own copy, so whichever
+     wrote last undid the other: a Doc made in one window dropped out of the list
+     after the other saved, and a setting changed in one never reached the other.
+     Now each window takes in what another one wrote (the browser tells it, through
+     the storage event) before it writes again.
+
+     A Doc missing from the other window's list is not taken to be deleted - that
+     window may simply not have heard of it yet. Deleting one writes its id to
+     state.gone, and only those are taken out here. */
+  function forgetDoc(id) {
+    state.docs = state.docs.filter(d => d.id !== id);
+    if (!Array.isArray(state.gone)) state.gone = [];
+    if (state.gone.indexOf(id) < 0) state.gone.push(id);
+    if (state.gone.length > 200) state.gone = state.gone.slice(-200);
+  }
+  function adoptOtherWindow(raw) {
+    let other;
+    try { other = JSON.parse(raw); } catch (e) { return; }
+    if (!other || !Array.isArray(other.docs)) return;
+
+    const s = Object.assign({}, DEFAULTS, other.settings || {});
+    if (JSON.stringify(s) !== JSON.stringify(state.settings)) {
+      const langWas = state.settings.lang;
+      state.settings = s;
+      applySettings();
+      if (s.lang !== langWas) applyLang();
+    }
+
+    stashActive();
+    const open = new Set(tabs.filter(t => t.kind === "local").map(t => t.docId));
+    let changed = false;
+    /* deleted in the other window - unless it is open here, where it stays */
+    const gone = new Set((other.gone || []).concat(state.gone || []));
+    state.gone = Array.from(gone).slice(-200);
+    state.docs = state.docs.filter(d => {
+      if (!gone.has(d.id) || open.has(d.id)) return true;
+      changed = true;
+      return false;
+    });
+    other.docs.forEach(od => {
+      if (gone.has(od.id)) return;
+      const mine = state.docs.find(d => d.id === od.id);
+      if (!mine) { state.docs.push(od); changed = true; return; }
+      if ((od.updated || 0) <= (mine.updated || 0)) return;
+      const t = tabs.find(x => x.kind === "local" && x.docId === od.id);
+      /* written to here as well since: what is typed in this window stays */
+      if (t && t.content !== mine.content) return;
+      mine.name = od.name; mine.content = od.content; mine.updated = od.updated;
+      if (od.file) mine.file = od.file;
+      if (t) {
+        t.content = od.content; t.name = od.name || t.name;
+        if (t.id === activeTab) {
+          const at = ed.selectionStart, top = ed.scrollTop;
+          ed.value = od.content;
+          try { ed.setSelectionRange(Math.min(at, ed.value.length), Math.min(at, ed.value.length)); } catch (e) { }
+          ed.scrollTop = top;
+          $("#docTitle").value = t.name;
+          renderNow();
+        }
+      }
+      changed = true;
+    });
+    if (changed) { renderDocs(); renderTabs(); renderLibAssets(); updateSaveUI(); }
   }
   function persist() {
     try {
@@ -4807,11 +4873,6 @@ const MD = (function () {
     (SRV_WS ? "&w=" + encodeURIComponent(SRV_WS) : "") +
     (path == null ? "" : "&p=" + encodeURIComponent(path));
 
-  async function srvRead(path) {
-    const r = await fetch(srvUrl("/__file", path));
-    if (!r.ok) throw new Error((await r.text()) || r.status);
-    return r.text();
-  }
   async function srvWrite(path, text) {
     const r = await fetch(srvUrl("/__file", path), {
       method: "POST",
@@ -4883,9 +4944,13 @@ const MD = (function () {
      in the list. Where both exist the file wins, because that is the copy every other
      program, and the end of the last session, saw.
 
-     A document whose file has gone is written again rather than dropped: losing
-     notes because a folder was moved or synced away would be far worse than a file
-     coming back. Deleting one for good is what the Docs list's own delete is for. */
+     A document whose file has gone was deleted - in Windows Explorer, or from this
+     app's own Explorer pane with the documents folder open in it - so it leaves the
+     list too; the file is in the Recycle Bin. This used to write the file again
+     instead, which made a note deleted anywhere but the Docs list come back on every
+     start, however many times it was deleted. The one case still written again is a
+     folder with no notes left in it at all: that is a folder moved or synced away,
+     not one note deleted, and losing every note to it would be far worse. */
   async function libSync() {
     if (!SRV_KEY) return;
     let ws;
@@ -4913,10 +4978,15 @@ const MD = (function () {
     const loose = new Map();
     LIB.files.forEach(f => loose.set(f.toLowerCase(), f));
 
+    const deleted = [];
     for (const d of state.docs) {
       if (!d.file) continue;
       const on = loose.get(String(d.file).toLowerCase());
-      if (!on) { d.file = null; continue; }
+      if (!on) {
+        if (LIB.files.length) deleted.push(d.id);   /* deleted outside the Docs list */
+        else d.file = null;                          /* the whole folder went: write it again */
+        continue;
+      }
       d.file = on;
       loose.delete(on.toLowerCase());
       try {
@@ -4924,6 +4994,8 @@ const MD = (function () {
         if (text !== d.content) { d.content = text; d.updated = Date.now(); }
       } catch (e) { }
     }
+    deleted.forEach(forgetDoc);
+    if (!state.docs.some(d => d.id === state.active)) state.active = null;
     /* The guide a first run writes is for an empty library. Run with a fresh
        browser profile - a reinstall, cleared site data - against a folder that
        already holds notes, it would only pile another Welcome beside the one there
@@ -4931,7 +5003,7 @@ const MD = (function () {
     if (LIB.files.length) {
       const fresh = state.docs.filter(d => d.seed && !d.file && d.content === guideText().text);
       if (fresh.length) {
-        state.docs = state.docs.filter(d => fresh.indexOf(d) < 0);
+        fresh.forEach(d => forgetDoc(d.id));
         if (fresh.some(d => d.id === state.active)) state.active = null;
       }
     }
@@ -5841,7 +5913,7 @@ const MD = (function () {
         const c = document.createElement("canvas");
         c.width = bmp.width; c.height = bmp.height;
         c.getContext("2d").drawImage(bmp, 0, 0);
-        const webp = await new Promise(res => c.toBlob(res, "image/webp", 0.9));
+        const webp = await new Promise(res => { c.toBlob(res, "image/webp", 0.9); });
         if (webp && webp.type === "image/webp" && webp.size < file.size) return read(webp);
       } catch (e) { }
     }
@@ -6348,6 +6420,7 @@ const MD = (function () {
       return;
     }
     /* everything that knew the old name follows */
+    libTreeRenamed(oldPath, newPath);
     tabs.forEach(t => {
       if (t.kind === "file" && t.path === oldPath) {
         t.path = newPath; t.name = name;
@@ -6438,6 +6511,40 @@ const MD = (function () {
     toast(tr("Updated links in ") + done + " " + tr(done === 1 ? "file" : "files"));
   }
 
+  /* The documents folder can be opened in the Explorer pane like any other, and then
+     its files are Docs too. One deleted there leaves the Docs list at once - with its
+     tab - instead of lingering until the next start, where typing in it would have
+     written it straight back. One renamed there keeps its Doc, under the new name. */
+  function libDocAtTree(path) {
+    if (!LIB.ok || !root || root.mode !== "server" || !root.disk || !LIB.path) return null;
+    if (root.disk.toLowerCase() !== LIB.path.toLowerCase()) return null;
+    const lo = String(path).toLowerCase();
+    return state.docs.find(d => d.file && d.file.toLowerCase() === lo) || null;
+  }
+  function libTreeDeleted(path) {
+    const d = libDocAtTree(path);
+    if (!d) return;
+    const t = tabs.find(x => x.kind === "local" && x.docId === d.id);
+    if (t) forgetTab(t);
+    forgetDoc(d.id);
+    LIB.files = LIB.files.filter(f => f.toLowerCase() !== String(path).toLowerCase());
+    if (!activeTab && tabs.length) activateTab(tabs[0].id, true);
+    if (!state.docs.length) state.docs.push({ id: uid(), name: "Untitled", content: "", created: Date.now(), updated: Date.now() });
+    ensureTab();
+    persist();
+    renderDocs(); renderTabs();
+  }
+  function libTreeRenamed(oldPath, newPath) {
+    const d = libDocAtTree(oldPath);
+    if (!d) return;
+    d.file = newPath;
+    d.name = newPath.replace(/^.*\//, "").replace(MD_EXT, "");
+    LIB.files = LIB.files.map(f => f.toLowerCase() === String(oldPath).toLowerCase() ? newPath : f);
+    const t = tabs.find(x => x.kind === "local" && x.docId === d.id);
+    if (t) { t.name = d.name; if (t.id === activeTab) $("#docTitle").value = d.name; }
+    persist();
+    renderDocs(); renderTabs();
+  }
   async function deleteEntry(n) {
     if (!canEdit()) return;
     const exe = root.mode === "server";
@@ -6451,6 +6558,7 @@ const MD = (function () {
         await (await parentDirHandle(n.path)).removeEntry(n.name);
       }
     } catch (e) { toast(tr("Could not delete: ") + (e.message || e.name)); return; }
+    libTreeDeleted(n.path);
     /* its tab goes too - asking about unsaved changes to a file that is gone helps nobody */
     const t = tabs.find(x => x.kind === "file" && x.path === n.path);
     if (t) {
@@ -6659,6 +6767,7 @@ const MD = (function () {
       const r = await fetch(entryUrl(SRV_WS, path), { method: "DELETE" });
       if (!r.ok && r.status !== 404) throw new Error(await r.text());
     } else await (await parentDirHandle(path)).removeEntry(path.replace(/^.*\//, ""));
+    libTreeDeleted(path);
   }
   function placeTab(nt, at) {
     tabs.splice(tabs.indexOf(nt), 1);
@@ -6721,7 +6830,7 @@ const MD = (function () {
       if (oldPath) {
         if (writable(t)) await removeEntryAt(oldPath); else removed = false;
       } else if (doc) {
-        state.docs = state.docs.filter(x => x.id !== doc.id);
+        forgetDoc(doc.id);
         if (doc.file && LIB.ok) await libDelete(doc.file);
         persist();
       }
@@ -6789,10 +6898,37 @@ const MD = (function () {
         u.charAt(0) === "<" ? a + "<" + fn(u.slice(1, -1)) + ">" : a + fn(u))
       .replace(/(<img\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi, (m, a, q, u) => a + q + fn(u) + q);
   }
+  /* A document moved to another folder of the same tree: every relative link in it -
+     pictures and other documents alike, [x](a.md), ![x](assets/a.png), [r]: a.md,
+     src="..." and href="..." - is rewritten to reach the same file from the new place.
+     Links to the open web and to #headings are left alone, and so is anything after a
+     ? or # in the link. */
+  function relinkAll(text, fromDoc, toDoc) {
+    const fix = url => {
+      let u = url, angle = false;
+      if (u.startsWith("<") && u.endsWith(">")) { u = u.slice(1, -1); angle = true; }
+      if (!isRelUrl(u)) return url;
+      const cut = u.search(/[?#]/), tail = cut >= 0 ? u.slice(cut) : "", p = cut >= 0 ? u.slice(0, cut) : u;
+      if (!p) return url;
+      let dec = p;
+      try { dec = decodeURIComponent(p); } catch (e) { }
+      const target = resolveRel(fromDoc, dec);
+      if (!target) return url;
+      let nu = relFrom(toDoc, target);
+      if (!angle) nu = nu.split("/").map(s => s === ".." ? s : encodeURIComponent(s)).join("/");
+      return (angle ? "<" + nu + tail + ">" : nu + tail);
+    };
+    return text
+      .replace(/(\]\(\s*)(<[^>]*>|[^)\s]+)/g, (m, a, u) => a + fix(u))
+      .replace(/^( {0,3}\[[^\]^][^\]]*\]:[ \t]*)(<[^>]*>|\S+)/gm, (m, a, u) => a + fix(u))
+      .replace(/(\s(?:src|href)=")([^"]+)(")/gi, (m, a, u, b) => a + fix(u) + b);
+  }
   async function carryImages(text, from, to, onLost) {
     /* a Doc copied to a Doc: both sit in the same folder, so the links already work */
     const dirOf = p => p.split("/").slice(0, -1).join("/");
     if (to && to.ws === from.ws && dirOf(to.doc) === dirOf(from.doc)) return text;
+    /* within one folder tree nothing needs copying: every link is pointed at the same file */
+    if (to && to.ws === from.ws) return relinkAll(text, from.doc, to.doc);
     const want = new Map();
     mapImageUrls(text, u => {
       if (!isRelUrl(u)) return u;
@@ -6805,9 +6941,6 @@ const MD = (function () {
     if (!want.size) return text;
     const got = new Map();
     for (const [u, path] of want) {
-      /* moving within one folder tree: the picture stays where it is, only the link
-         changes, so it still reaches it from the new place */
-      if (to && to.ws === from.ws) { got.set(u, relFrom(to.doc, path).split("/").map(encodeURIComponent).join("/")); continue; }
       try {
         const blob = await imgFetch(from.ws + ":" + path);
         const file = new File([blob], path.replace(/^.*\//, ""), { type: blob.type || "" });
@@ -7129,8 +7262,6 @@ const MD = (function () {
     BINDINGS.get(seq).push(c);
     if (seq.indexOf(" ") > 0) CHORD_FIRST.add(seq.split(" ")[0]);
   }));
-  const cmdById = id => COMMANDS.find(c => c.id === id);
-  const keysOf = id => { const c = cmdById(id); return c && c.keys[0] ? c.keys[0] : ""; };
 
   let chord = null, chordTimer = null;
   function runCommand(c, e) {
@@ -7590,7 +7721,7 @@ const MD = (function () {
     if (!confirm(tr("Delete") + ' "' + (d.name || tr("Untitled")) + '"? ' +
       (d.file && LIB.ok ? d.file + tr(" goes to the Recycle Bin.")
         : tr("This cannot be undone.")))) return;
-    state.docs = state.docs.filter(x => x.id !== id);
+    forgetDoc(id);
     if (d.file && LIB.ok) libDelete(d.file).catch(() => { });
     const tab = tabs.find(t => t.kind === "local" && t.docId === id);
     if (tab) {
@@ -9444,6 +9575,8 @@ const MD = (function () {
 
     /* misc */
     document.addEventListener("keydown", onGlobalKey);
+    /* another window of the app wrote the Docs or the settings */
+    window.addEventListener("storage", e => { if (e.key === KEY && e.newValue) adoptOtherWindow(e.newValue); });
     window.addEventListener("resize", () => { mirrorStale = true; mirrorStyleStale = true; scheduleFindRepaint(120); });
 
     /* the sidebar slides over 150ms, so repaint once it has settled */

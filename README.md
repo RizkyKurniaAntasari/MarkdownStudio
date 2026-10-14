@@ -523,6 +523,12 @@ asks where to put it — it already has a place. Which means:
   right-click it in the Docs list (or its tab) → **Rename…**, or `F2` — and its file is
   renamed with it. Delete one and the file goes to the **Recycle Bin**, so a misclick
   is undoable
+- Delete or rename a document's file **anywhere else** — in Windows Explorer, or in the
+  app's Explorer pane with the documents folder open in it — and the Docs list follows:
+  a deleted one leaves the list (at once from the Explorer pane, at the next start from
+  Windows Explorer) and stays gone. Only when the folder has no notes left in it at all
+  — moved or synced away rather than one note deleted — are they written back, so a
+  folder that went missing never costs you every note
 - Right-click a document for **Reveal in File Explorer** and **Copy Path** too, which
   open or name its actual file in the library folder
 - The Docs list names each document's file, and the status bar names the full path
@@ -595,6 +601,34 @@ and the rest of the buttons keep working either way.
   being minimized. (A first attempt that also rewrote the window's style did the
   opposite of what was wanted — the browser then minimized the floating window along
   with the main one, which closed it — so only the z-order is touched)
+- **A deleted document kept coming back, however many times it was deleted.** A
+  document whose file had gone from the documents folder was written again at every
+  start — meant to save notes from a folder moved or synced away, but it also undid
+  every delete made outside the Docs list: in Windows Explorer, or in the app's own
+  Explorer pane with the documents folder open in it, where the document even stayed
+  in the Docs list and was written back as soon as it was typed in. A file deleted
+  there now takes its document with it, at once from the Explorer pane and at the next
+  start from Windows Explorer; a rename there renames the document instead of leaving a
+  second one. Only a folder with no notes left at all is still written back
+- **Two windows open at once undid each other's Docs and settings.** Every window
+  wrote its whole list of Docs and its settings to the same place, so whichever wrote
+  last won: a Doc made in one window dropped out of the list once the other saved, and
+  a setting changed in one never reached the other. Each window now takes in what
+  another one wrote as soon as it is written — new Docs, edits, renames, deletions,
+  theme, language — before it writes again. What is being typed in a window is never
+  replaced by the other's copy, and a deletion is recorded as one, so a window that
+  simply had not heard of a Doc yet can no longer make it disappear
+- **Moving a file to another folder broke its links to other documents.** Links to
+  pictures were updated, but `[Chapter 1](Chapter%201.md)` still pointed at the old
+  folder. Every relative link in a moved file — documents, pictures, reference links,
+  `src` and `href` — is now pointed at the same file from the new place; `#heading`
+  parts are kept, and links to the web and to headings in the same file are left alone
+- **Cleanup from a full check of the code** (ESLint over all 7,000+ lines of script,
+  now with no findings): 29 Indonesian translations were listed twice, five of them
+  with two different wordings where the later one silently won — each is now listed
+  once, with the wording that was already on screen; and three helpers nothing used
+  any more were removed, among them an old way of reading a file that dropped its
+  byte-order mark, so it cannot be picked up again by mistake
 - **Installed apps showed an old version** (1.10.0 next to an installed 1.14.0). The
   version there is now read from the exe itself, and the entry is refreshed whenever
   the installed copy starts
