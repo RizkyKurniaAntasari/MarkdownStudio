@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.14.0.0")]
-[assembly: AssemblyFileVersion("1.14.0.0")]
+[assembly: AssemblyVersion("1.15.0.0")]
+[assembly: AssemblyFileVersion("1.15.0.0")]
 
 static class MarkdownStudio
 {
@@ -158,6 +158,8 @@ static class MarkdownStudio
     {
         page = LoadPage();
         try { Register(); } catch { }      // never worth failing a launch over
+        // and the Installed apps entry follows the copy that is running, version and size
+        try { if (IsInstalledCopy()) ListInApps(Assembly.GetExecutingAssembly().Location, InstallDir()); } catch { }
         Workspace ws = TakeWorkspace(args);
 
         string profile = Path.Combine(
@@ -923,7 +925,10 @@ static class MarkdownStudio
         using (RegistryKey k = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             k.SetValue("DisplayName", AppName);
-            k.SetValue("DisplayVersion", "1.14.0");
+            // from the exe itself, so the entry can never say an older version than the
+            // program it points at
+            Version v = Assembly.GetExecutingAssembly().GetName().Version;
+            k.SetValue("DisplayVersion", v.Major + "." + v.Minor + "." + v.Build);
             k.SetValue("Publisher", AppName);
             k.SetValue("DisplayIcon", exe + ",0");
             k.SetValue("InstallLocation", dir);
@@ -1600,12 +1605,21 @@ static class MarkdownStudio
     // out of reach. So minimizing it closes it; the picture-in-picture button opens it
     // again. Watched from here, because the page inside cannot tell: the browser reports
     // a tool window as hidden even while it is on screen.
+    //
+    // The browser also sets a window's z-order itself now and then - on focus changes,
+    // for one - which can take "always on top" away again some time after it was given.
+    // So the same watch puts it back whenever it has gone. Only the z-order: writing
+    // the window's style again while it is up made the browser activate it and then
+    // minimize it along with the main window, which closed it the moment the main
+    // window was minimized - the very time it is meant to stay.
     static void WatchFloat(IntPtr h)
     {
         while (IsWindow(h))
         {
             lock (FloatLock) { if (FloatWin != h) return; }
             if (IsIconic(h)) { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); return; }
+            if ((ExStyle(h) & WS_EX_TOPMOST) == 0)
+                SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             Thread.Sleep(300);
         }
     }

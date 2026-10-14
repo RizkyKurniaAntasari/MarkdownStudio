@@ -213,7 +213,23 @@ drop it on any machine with a browser — it keeps working.
 - **Move tabs as in Chrome**: drag a tab along the bar and drop it where you want it;
   the others make room as it passes their middle, and the tab you carried is the one
   you see. `Ctrl+Shift+PageUp/PageDown` moves the current tab a place left or right
-  (VS Code's keys). On a touch screen a finger on the bar scrolls it instead
+  (VS Code's keys), and `Esc` while dragging puts everything back. On a touch screen
+  a finger on the bar scrolls it instead
+- **Drag a tab to move where it is stored**: carried off the bar, a tab can be dropped
+  on a **folder in the Explorer** — its file moves into that folder (dropped on a file,
+  into that file's folder) — or on the **Docs** pane or button, where the file becomes
+  a Doc. A Doc dropped on a folder leaves Docs and becomes a file there. The folder
+  under the pointer lights up and a label names it; holding over a closed folder opens
+  it, holding over the Explorer or Docs button switches to that pane, and letting go
+  anywhere else does nothing. The tab keeps its place on the bar and shows the file in
+  its new home. It is a move: the file is written in the new place with its line
+  endings and byte-order mark kept, then the old one goes — to the Recycle Bin from
+  the exe. Pictures keep showing: links to pictures in the same folder tree are
+  rewritten to reach them from the new place, pictures from another folder (a file
+  moved into Docs, or a Doc into a folder) are copied into an `assets` folder beside
+  it, and documents that linked to the moved file are offered the same link update as
+  after a rename. A file that cannot be written to (a read-only folder) is copied
+  instead, and the toast says so
 - **Copy a tab**: right-click it → **Copy Tab**, then right-click an empty part of the
   tab bar → **Paste Tab**. The paste opens a new tab with the same content, named
   "… (copy)" — but it is a **new document in a new place**, never the same file, so
@@ -562,6 +578,26 @@ starting is skipped rather than stopping everything after it, so the menu, Setti
 and the rest of the buttons keep working either way.
 
 ## Fixes
+
+**1.15.0**
+
+- **Drag a tab onto a folder or onto Docs to move where it is stored** — see *Drag a
+  tab to move where it is stored* under What it does
+- **Dragging a tab highlighted its name as text**, which looked as if the drag had not
+  taken. Tabs can no longer be text-selected, and the pointer shows a closed hand for
+  the whole drag
+- **A tab let go away from a folder could still be moved into it**: the drop used the
+  folder the pointer had last passed over, not the place it was let go. It now looks at
+  where the button is released, so letting go over the editor does nothing
+- **The floating window could lose "always on top"** some time after it opened: the
+  browser resets a window's z-order itself on some focus changes. The launcher now puts
+  it back whenever it has gone, checking as often as it already checks for the window
+  being minimized. (A first attempt that also rewrote the window's style did the
+  opposite of what was wanted — the browser then minimized the floating window along
+  with the main one, which closed it — so only the z-order is touched)
+- **Installed apps showed an old version** (1.10.0 next to an installed 1.14.0). The
+  version there is now read from the exe itself, and the entry is refreshed whenever
+  the installed copy starts
 
 **1.14.0**
 

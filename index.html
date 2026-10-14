@@ -260,6 +260,11 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .etab-ico{width:13px;height:13px;flex:0 0 auto;opacity:.7}
 #tabbar.dragging{cursor:grabbing}
 .etab.dragging{position:relative;z-index:2;cursor:grabbing;box-shadow:0 2px 10px rgba(0,0,0,.18);opacity:.95}
+.etab{user-select:none;-webkit-user-select:none}
+body.tab-dragging,body.tab-dragging *{cursor:grabbing!important;user-select:none}
+.tab-ghost{position:fixed;z-index:1000;pointer-events:none;padding:4px 9px;border-radius:6px;background:var(--bg);color:var(--fg2);border:1px solid var(--bd2);box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:12px;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.tab-ghost.ok{color:var(--fg);border-color:var(--acc)}
+.drop-on{outline:2px solid var(--acc)!important;outline-offset:-2px;background:var(--accsoft)!important}
 
 /* ---------------- file tree ---------------- */
 .root-bar{display:flex;align-items:center;gap:2px;padding:0 2px 6px;margin-bottom:2px;border-bottom:1px solid var(--bd)}
@@ -1010,7 +1015,24 @@ Right-click a tab for Close Others, Copy Tab, Copy Path and Rename.
 
 **Move a tab** the way you would in Chrome: drag it along the bar and drop it where
 you want it; the others make room as it passes. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PageUp</kbd>/<kbd>PageDown</kbd>
-moves the current tab one place left or right.
+moves the current tab one place left or right, and <kbd>Esc</kbd> while dragging puts
+everything back.
+
+**Move where a document is stored** by dragging its tab off the bar:
+- onto a **folder in the Explorer** — the file moves into that folder (onto a file, it
+  goes into that file's folder). A Doc dropped there leaves Docs and becomes a file of
+  that folder
+- onto the **Docs** pane or its button — the file becomes a Doc
+
+The folder you are over lights up and a label says where it will go; hold the tab over
+a closed folder to open it, or over the Explorer or Docs button to switch to that pane.
+The tab stays where it was on the bar and simply shows the file in its new place.
+Pictures keep showing: their links are updated to the new place, and pictures from
+another folder are copied along. If other documents linked to the file, you are asked
+whether to update those links, as after a rename.
+<!-- exe -->
+The old file goes to the Recycle Bin.
+<!-- /exe -->
 
 **Copy a tab:** right-click it → **Copy Tab**, then right-click an empty part of the
 tab bar → **Paste Tab**. You get a new tab with the same content, named "… (copy)".
@@ -1722,7 +1744,24 @@ Klik kanan sebuah tab untuk Tutup yang lain, Salin Tab, Salin lokasi, dan Ganti 
 
 **Pindahkan tab** seperti di Chrome: seret tab di sepanjang bar lalu lepaskan di tempat
 yang Anda mau; tab lain bergeser memberi tempat. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>PageUp</kbd>/<kbd>PageDown</kbd>
-memindahkan tab yang sedang dibuka satu langkah ke kiri atau ke kanan.
+memindahkan tab yang sedang dibuka satu langkah ke kiri atau ke kanan, dan <kbd>Esc</kbd>
+saat menyeret mengembalikan semuanya.
+
+**Pindahkan lokasi penyimpanan dokumen** dengan menyeret tab-nya keluar dari bar:
+- ke **folder di Explorer** — filenya pindah ke folder itu (dilepas di atas file, masuk
+  ke folder file tersebut). Doc yang dilepas di sana keluar dari Docs dan menjadi file
+  di folder itu
+- ke panel **Docs** atau tombolnya — filenya menjadi Doc
+
+Folder yang sedang dilewati menyala dan label menunjukkan tujuannya; tahan tab di atas
+folder yang tertutup untuk membukanya, atau di atas tombol Explorer/Docs untuk berpindah
+panel. Tab tetap di posisinya di bar dan langsung menampilkan file di lokasi barunya.
+Gambar tetap tampil: tautannya disesuaikan ke lokasi baru, dan gambar dari folder lain
+ikut disalin. Kalau dokumen lain menautkan ke file itu, Anda ditanya apakah tautannya
+ikut diperbarui, seperti setelah ganti nama.
+<!-- exe -->
+File lamanya masuk ke Recycle Bin.
+<!-- /exe -->
 
 **Salin tab:** klik kanan tab → **Salin Tab**, lalu klik kanan bagian kosong di bar tab →
 **Tempel Tab**. Muncul tab baru dengan isi yang sama, bernama "… (salinan)". Salinan
@@ -2831,6 +2870,10 @@ const I18N = (function () {
       "Tab disalin - klik kanan bagian kosong di bar tab untuk menempelnya",
     "Pasted as ": "Ditempel sebagai ", " (copy)": " (salinan)",
     " picture(s) could not be copied": " gambar tidak bisa disalin",
+    "Move to ": "Pindahkan ke ", "Moved to ": "Dipindahkan ke ", "Copied to ": "Disalin ke ",
+    "Moved to Docs: ": "Dipindahkan ke Dokumen: ",
+    "Copied to Docs (the original is read-only): ": "Disalin ke Dokumen (aslinya hanya-baca): ",
+    "Could not move: ": "Tidak bisa memindahkan: ",
     "Open editor 1–9": "Buka editor 1–9",
     "Open last editor": "Buka editor terakhir",
     "Show Explorer": "Tampilkan Explorer",
@@ -6469,21 +6512,33 @@ const MD = (function () {
     if (e.button !== 0 || e.pointerType === "touch" || e.target.closest("[data-close]")) return;
     const el = e.target.closest("[data-tab]");
     if (!el) return;
-    tabDrag = { id: el.dataset.tab, el: el, x0: e.clientX, grab: e.clientX - el.getBoundingClientRect().left, on: false, pid: e.pointerId };
+    tabDrag = { order0: tabs.map(t => t.id), id: el.dataset.tab, el: el, x0: e.clientX, y0: e.clientY, grab: e.clientX - el.getBoundingClientRect().left, on: false, pid: e.pointerId };
   }
   function tabDragMove(e) {
     const d = tabDrag;
     if (!d || e.pointerId !== d.pid) return;
     const bar = $("#tabbar");
     if (!d.on) {
-      if (Math.abs(e.clientX - d.x0) < 6) return;
+      if (Math.abs(e.clientX - d.x0) < 6 && Math.abs(e.clientY - d.y0) < 6) return;
       d.on = true;
       try { d.el.setPointerCapture(e.pointerId); } catch (err) { }
       d.el.classList.add("dragging");
       bar.classList.add("dragging");
+      document.body.classList.add("tab-dragging");
       hideCtx();
     }
     const br = bar.getBoundingClientRect();
+    /* Carried off the bar, the tab is on its way somewhere else: a folder in the
+       Explorer, or the Docs pane. It goes back to its place on the bar meanwhile. */
+    const wrap = $("#tabwrap").getBoundingClientRect();
+    const out = e.clientY < br.top - 18 || e.clientY > br.bottom + 18 ||
+      e.clientX < wrap.left - 12 || e.clientX > wrap.right + 12;
+    if (out) {
+      d.el.style.transform = "";
+      dropOver(d, e.clientX, e.clientY);
+      return;
+    }
+    if (d.ghost) dropClear(d);
     if (e.clientX < br.left + 24) bar.scrollLeft -= 14;
     else if (e.clientX > br.right - 24) bar.scrollLeft += 14;
     const left = Math.max(br.left, Math.min(br.right - d.el.offsetWidth, e.clientX - d.grab));
@@ -6510,10 +6565,185 @@ const MD = (function () {
     d.el.style.transform = "";
     d.el.classList.remove("dragging");
     bar.classList.remove("dragging");
+    document.body.classList.remove("tab-dragging");
     const order = Array.prototype.map.call(bar.querySelectorAll(".etab"), x => x.dataset.tab);
     tabs.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    /* where it is let go decides, not where it was last seen */
+    if (d.ghost && e && e.type === "pointerup") dropOver(d, e.clientX, e.clientY);
+    const target = d.ghost && e && e.type === "pointerup" ? d.target : null;
+    /* passing over other tabs on the way out shuffled them; a drop off the bar puts
+       them back - on a folder it is a move, anywhere else nothing happened */
+    if (d.ghost) tabs.sort((a, b) => d.order0.indexOf(a.id) - d.order0.indexOf(b.id));
+    dropClear(d);
+    const t = tabs.find(x => x.id === d.id);
+    if (target && t) { renderTabs(); moveTabTo(t, target); return; }
     /* the tab that was carried is the one you are looking at, as in Chrome */
     if (d.id !== activeTab) activateTab(d.id); else renderTabs();
+  }
+
+  /* ---------- dropping a tab somewhere else: moving where it is stored ----------
+     A tab dropped on a folder in the Explorer moves its file into that folder; one
+     dropped on the Docs pane becomes a Doc. It is a move, not a copy: the file is
+     written in the new place, its pictures still show from there, and the old file
+     goes - to the Recycle Bin from the exe. Holding a tab over a closed folder opens
+     it, and over the Explorer or Docs button switches to that pane, as in VS Code. */
+  function dropTargetAt(t, x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    if (el.closest("#paneDocs, #tabDocs"))
+      return t.kind === "local" ? null : { docs: true, el: el.closest("#tabDocs") || $("#paneDocs") };
+    const tb = el.closest("#treeBody");
+    if (!tb || !root || !canEdit()) return null;
+    const row = el.closest(".tree-row");
+    let dir = "", hit;
+    if (row) {
+      const n = nodeByPath.get(row.dataset.path);
+      if (!n) return null;
+      dir = n.kind === "dir" ? n.path : n.path.split("/").slice(0, -1).join("/");
+      hit = n.kind === "dir" ? row : (dir ? treeRowEl(dir) : tb.querySelector(".root-bar"));
+    } else hit = tb.querySelector(".root-bar");
+    /* already there */
+    if (t.kind === "file" && t.path.split("/").slice(0, -1).join("/") === dir) return null;
+    return { dir: dir, el: hit, row: row };
+  }
+  function dropOver(d, x, y) {
+    const t = tabs.find(z => z.id === d.id);
+    if (!t) return;
+    if (!d.ghost) {
+      d.ghost = document.createElement("div");
+      d.ghost.className = "tab-ghost";
+      document.body.appendChild(d.ghost);
+    }
+    const target = dropTargetAt(t, x, y);
+    const under = document.elementFromPoint(x, y);
+    const sideBtn = under && under.closest("#tabFiles, #tabDocs");
+    const key = (target ? (target.docs ? "docs" : "dir:" + target.dir + ":" + (target.row ? target.row.dataset.path : "")) : "") +
+      (sideBtn ? ":" + sideBtn.id : "");
+    if (key !== d.key) {
+      if (d.target && d.target.el) d.target.el.classList.remove("drop-on");
+      if (target && target.el) target.el.classList.add("drop-on");
+      d.key = key;
+      d.ghost.textContent = target
+        ? tr("Move to ") + (target.docs ? tr("Docs") : (target.dir || root.name))
+        : t.name;
+      clearTimeout(d.hoverTimer);
+      /* lingering on a closed folder opens it; on a sidebar button, shows that pane */
+      const n = target && target.row ? nodeByPath.get(target.row.dataset.path) : null;
+      if (sideBtn) d.hoverTimer = setTimeout(() => { showSideTab(sideBtn.id === "tabDocs" ? "docs" : "files"); d.key = null; }, 450);
+      else if (n && n.kind === "dir" && !n.open) d.hoverTimer = setTimeout(async () => {
+        n.open = true;
+        if (n.kids === null) await loadDir(n);
+        renderTree(); d.key = null;
+      }, 650);
+    }
+    d.target = target;
+    d.ghost.classList.toggle("ok", !!target);
+    d.ghost.style.left = (x + 14) + "px";
+    d.ghost.style.top = (y + 12) + "px";
+  }
+  function dropClear(d) {
+    clearTimeout(d.hoverTimer);
+    document.querySelectorAll(".drop-on").forEach(x => x.classList.remove("drop-on"));
+    if (d.ghost) d.ghost.remove();
+    d.ghost = null; d.target = null; d.key = "";
+  }
+
+  /* a tab taken off the bar with nothing asked - its content has already gone elsewhere */
+  function forgetTab(t) {
+    tabs = tabs.filter(x => x !== t);
+    if (activeTab === t.id) activeTab = null;
+    if (t.kind === "file") fileCache.delete(t.path);
+  }
+  async function removeEntryAt(path) {
+    if (root.mode === "server") {
+      const r = await fetch(entryUrl(SRV_WS, path), { method: "DELETE" });
+      if (!r.ok && r.status !== 404) throw new Error(await r.text());
+    } else await (await parentDirHandle(path)).removeEntry(path.replace(/^.*\//, ""));
+  }
+  function placeTab(nt, at) {
+    tabs.splice(tabs.indexOf(nt), 1);
+    tabs.splice(Math.max(0, Math.min(at, tabs.length)), 0, nt);
+  }
+  async function moveTabTo(t, dest) {
+    if (t.id === activeTab) stashActive();
+    const at = tabs.indexOf(t), from = imgBase(t);
+    let lost = 0;
+    const onLost = () => lost++;
+    const lostNote = () => lost ? " - " + lost + tr(" picture(s) could not be copied") : "";
+
+    if (dest.docs) {
+      if (t.kind !== "file") return;
+      const d = newDoc(t.name.replace(MD_EXT, ""), t.content, true);
+      const nt = tabs.find(x => x.kind === "local" && x.docId === d.id);
+      if (from && nt) {
+        const text = await carryImages(t.content, from, imgBase(nt), onLost);
+        if (text !== t.content) {
+          d.content = text; nt.content = text; nt.saved = text;
+          if (activeTab === nt.id) { ed.value = text; renderNow(); }
+          libFlush(d.id);
+        }
+      }
+      /* the original goes only when it can be written to; a read-only one stays */
+      let moved = false;
+      if (writable(t)) { try { await removeEntryAt(t.path); moved = true; } catch (e) { } }
+      forgetTab(t);
+      if (nt) { placeTab(nt, at); activateTab(nt.id, true); }
+      persist();
+      if (moved) { if (root.mode === "server") await loadServerWorkspace(false, true); else { await refreshTree(tree); renderTree(); } }
+      renderDocs(); renderTabs();
+      showSideTab("docs");
+      toast((moved ? tr("Moved to Docs: ") : tr("Copied to Docs (the original is read-only): ")) +
+        (d.file || d.name) + lostNote());
+      return;
+    }
+
+    /* into a folder of the open workspace */
+    const doc = t.kind === "local" ? libDocOf(t) : null;
+    const want = t.kind === "file" ? t.name
+      : (safeName((doc && doc.file ? doc.file.replace(/^.*\//, "") : t.name).replace(MD_EXT, "")) || "Untitled") + ".md";
+    const stem = want.replace(/\.[^.]+$/, ""), ext = want.slice(stem.length) || ".md";
+    const pre = dest.dir ? dest.dir + "/" : "";
+    let path = pre + want;
+    for (let n = 2; await findFileNode(path); n++) path = pre + stem + " " + n + ext;
+    const to = { ws: root.mode === "server" ? SRV_WS : "fs", doc: path, write: true };
+    const text = from ? await carryImages(t.content, from, to, onLost) : t.content;
+    const out = outText({ content: text, eol: t.eol, bom: t.bom });
+    try {
+      if (root.mode === "server") await srvWrite(path, out);
+      else {
+        const h = await (await parentDirHandle(path)).getFileHandle(path.replace(/^.*\//, ""), { create: true });
+        await writeHandle(h, out);
+      }
+    } catch (e) { toast(tr("Could not move: ") + (e.message || e.name)); return; }
+    const oldPath = t.kind === "file" ? t.path : null;
+    let removed = true;
+    try {
+      if (oldPath) {
+        if (writable(t)) await removeEntryAt(oldPath); else removed = false;
+      } else if (doc) {
+        state.docs = state.docs.filter(x => x.id !== doc.id);
+        if (doc.file && LIB.ok) await libDelete(doc.file);
+        persist();
+      }
+    } catch (e) { removed = false; }
+    forgetTab(t);
+    if (root.mode === "server") await loadServerWorkspace(false, true); else await refreshTree(tree);
+    await revealInTree(path);
+    renderTree();
+    const n = await findFileNode(path);
+    if (n) {
+      await openFileNode(n);
+      const nt = tabs.find(x => x.kind === "file" && x.path === path);
+      if (nt) placeTab(nt, at);
+    }
+    if (!state.docs.length) state.docs.push({ id: uid(), name: "Untitled", content: "", created: Date.now(), updated: Date.now() });
+    ensureTab();
+    if (oldPath) closedTabs.forEach(c => { if (c.path === oldPath) c.path = path; });
+    renderTabs(); renderDocs(); renderLibAssets(); updateSaveUI();
+    showSideTab("files");
+    toast((removed ? tr("Moved to ") : tr("Copied to ")) + path + lostNote());
+    /* other documents that linked to the old place can follow it, as after a rename */
+    if (oldPath && removed) await offerLinkUpdate(oldPath, path);
   }
 
   /* ---------- copying a tab ----------
@@ -6575,6 +6805,9 @@ const MD = (function () {
     if (!want.size) return text;
     const got = new Map();
     for (const [u, path] of want) {
+      /* moving within one folder tree: the picture stays where it is, only the link
+         changes, so it still reaches it from the new place */
+      if (to && to.ws === from.ws) { got.set(u, relFrom(to.doc, path).split("/").map(encodeURIComponent).join("/")); continue; }
       try {
         const blob = await imgFetch(from.ws + ":" + path);
         const file = new File([blob], path.replace(/^.*\//, ""), { type: blob.type || "" });
@@ -8898,6 +9131,15 @@ const MD = (function () {
     window.addEventListener("pointermove", tabDragMove);
     window.addEventListener("pointerup", tabDragEnd);
     window.addEventListener("pointercancel", tabDragEnd);
+    /* Esc while carrying a tab puts everything back where it was, as in Chrome */
+    window.addEventListener("keydown", e => {
+      if (e.key !== "Escape" || !tabDrag || !tabDrag.on) return;
+      e.preventDefault(); e.stopPropagation();
+      const d = tabDrag;
+      tabs.sort((a, b) => d.order0.indexOf(a.id) - d.order0.indexOf(b.id));
+      d.ghost = d.ghost || document.createElement("div");
+      tabDragEnd({ type: "cancel", pointerId: d.pid });
+    }, true);
     document.addEventListener("mousedown", e => { if (ctxEl && !ctxEl.contains(e.target)) hideCtx(); }, true);
     window.addEventListener("blur", hideCtx);
     window.addEventListener("resize", hideCtx);
