@@ -117,8 +117,10 @@ when the app starts and passed on the app's own URL, they refuse any path outsid
 folder, and they only ever touch what the Explorer tree shows: Markdown and text files,
 and the contents of `assets` folders. Pictures are read and saved as pictures only
 (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, ...), an SVG is never let out as anything but a
-picture, a rename stays in the same folder and never lands on another file, and a
-delete goes to the Recycle Bin. The one endpoint that touches windows, `/__float`,
+picture, a rename stays in the same folder and never lands on another file, a move
+between folders keeps the file's name and never lands on another file either (and a
+picture from an `assets` folder only goes into another one), New Folder never makes a
+hidden or skipped folder, and a delete goes to the Recycle Bin. The one endpoint that touches windows, `/__float`,
 opens the floating window on the app's own page with the app's own browser profile,
 and only ever moves, styles, closes or brings forward windows of that browser. A later launch finds that key in
 `%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
@@ -242,11 +244,19 @@ drop it on any machine with a browser — it keeps working.
 - The tab bar is always there, even with one document open, so its empty part can
   be right-clicked: **Paste Tab**, **New document** and **Reopen closed editor**
 - The folder is remembered, so you can reopen it in one click after a reload
-- **New file** and **Refresh** buttons at the top of the tree. A new file never
-  replaces one that is already there under that name
+- **New file**, **New folder** and **Refresh** buttons at the top of the tree. A new
+  file or folder never replaces one that is already there under that name, and an
+  empty folder shows in the tree straight away
+- **Drag files between folders**: drop a file on a folder to move it inside, or on the
+  top bar or the empty space below the files to take it out to the top. The folder
+  under the pointer lights up, holding over a closed folder opens it, and `Esc` puts it
+  back. A moved document's own links are rewritten to reach the same files from its
+  new folder, and documents that linked to it are offered the same update as after a
+  rename. Pictures from an `assets` folder only go into another `assets` folder
 - **Right-click, as in VS Code.** Files, folders, the contents of `assets`, Docs and
   editor tabs each have a menu: **Open**, **Reveal in File Explorer**, **Copy Path**,
-  **Copy Relative Path**, **Rename…** and **Delete**, plus **New File…** on a folder,
+  **Copy Relative Path**, **Rename…** and **Delete**, plus **New File…** and
+  **New Folder…** on a folder and on the empty space below the files,
   **Insert into document** on an asset, and **Close Others** and **Copy Tab** on a tab
 - **Rename in place**: the row becomes a box with the name selected up to its
   extension; `Enter` keeps it, `Esc` puts it back. Click a file once and `F2` renames
@@ -584,6 +594,24 @@ starting is skipped rather than stopping everything after it, so the menu, Setti
 and the rest of the buttons keep working either way.
 
 ## Fixes
+
+**1.16.0**
+
+- **New folders** — from a button at the top of the Explorer, a folder's right-click
+  menu, or a right-click on the empty space below the files. From the exe a folder
+  with nothing in it yet used to be impossible to show at all: the tree was built
+  from the list of files, so a folder only existed once a document was in it. The
+  launcher now lists folders too, and makes them (`/__entry`, `op=mkdir`)
+- **Files can be dragged between folders** in the Explorer, into a folder or out to
+  the top (`op=move` from the exe; a rename used to be the only way to touch a file's
+  place, and it stayed in the same folder)
+- **Picture-in-picture did not follow edits made in the main window**, and typing in
+  it then undid them. Its editor took itself to be the one being typed in whenever it
+  was the active element of its own window — which it stays while you work in the main
+  window — so updates from the main window were held back, and the next key pressed in
+  the floating window sent its old copy over them. It now only counts as typing there
+  while the floating window itself has the focus; otherwise it takes every change,
+  keeping its caret and scroll where they were
 
 **1.15.0**
 

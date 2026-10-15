@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.15.0.0")]
-[assembly: AssemblyFileVersion("1.15.0.0")]
+[assembly: AssemblyVersion("1.16.0.0")]
+[assembly: AssemblyFileVersion("1.16.0.0")]
 
 static class MarkdownStudio
 {
@@ -1267,6 +1267,41 @@ static class MarkdownStudio
         }
     }
 
+    // Every folder, so the Explorer shows one with nothing in it yet - a folder just
+    // made with New Folder, waiting for its first file - and not only the folders a
+    // document happens to sit in. The same folders Walk goes into, no more.
+    static void WalkDirs(string dir, string prefix, int depth, List<string> into)
+    {
+        if (depth >= MaxDepth || into.Count >= MaxFiles) return;
+        string[] subs;
+        try { subs = Directory.GetDirectories(dir); } catch { return; }
+        foreach (string s in subs)
+        {
+            string name = Path.GetFileName(s);
+            if (name.StartsWith(".") || SkipDir(name)) continue;
+            into.Add(prefix + name);
+            WalkDirs(s, prefix + name + "/", depth + 1, into);
+        }
+    }
+
+    // A folder inside the workspace ("" is the workspace itself), for New Folder and
+    // for moving a file into a folder. Held to what a file is held to: nothing that
+    // climbs out, no drive letters, no hidden or skipped folders.
+    static string ResolveDir(Workspace ws, string rel)
+    {
+        if (ws == null) return null;
+        rel = (rel ?? "").Replace('\\', '/').Trim('/');
+        if (rel.Length == 0) return ws.Root;
+        if (rel.Contains(":")) return null;
+        foreach (string seg in rel.Split('/'))
+            if (seg.Length == 0 || seg == "." || seg == ".." || seg.StartsWith(".") || SkipDir(seg)) return null;
+        string full;
+        try { full = Path.GetFullPath(Path.Combine(ws.Root, rel.Replace('/', '\\'))); }
+        catch { return null; }
+        if (!full.StartsWith(Prefix(ws), StringComparison.OrdinalIgnoreCase)) return null;
+        return full;
+    }
+
     // Resolves a relative path from the page against the workspace, refusing
     // anything that escapes it or is not a text file we handle.
     static string Resolve(Workspace ws, string rel)
@@ -1334,6 +1369,15 @@ static class MarkdownStudio
         {
             if (i > 0) b.Append(',');
             b.Append(JsonStr(pics[i]));
+        }
+        List<string> dirs = new List<string>();
+        WalkDirs(ws.Root, "", 0, dirs);
+        dirs.Sort(StringComparer.OrdinalIgnoreCase);
+        b.Append("],\"dirs\":[");
+        for (int i = 0; i < dirs.Count; i++)
+        {
+            if (i > 0) b.Append(',');
+            b.Append(JsonStr(dirs[i]));
         }
         b.Append("],\"open\":[");
         for (int i = 0; i < ws.Open.Count; i++)
@@ -1942,6 +1986,30 @@ static class MarkdownStudio
     // file. A delete goes to the Recycle Bin. Reveal opens Explorer on the file.
     static void Entry(NetworkStream ns, string method, Workspace ws, string rel, string op, string to)
     {
+        // New Folder: p is the folder it goes in ("" for the top), to is its name
+        if (op == "mkdir")
+        {
+            if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+            string parent = ResolveDir(ws, rel);
+            if (parent == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
+            if (!Directory.Exists(parent)) { SendText(ns, "404 Not Found", "That folder is not there any more."); return; }
+            if (BadName(to) || to.StartsWith(".") || SkipDir(to))
+            { SendText(ns, "400 Bad Request", "That is not a valid folder name."); return; }
+            string made = Path.Combine(parent, to);
+            if (Directory.Exists(made) || File.Exists(made))
+            { SendText(ns, "409 Conflict", "Something named " + to + " is already there."); return; }
+            try
+            {
+                Directory.CreateDirectory(made);
+                string parentRel = (rel ?? "").Replace('\\', '/').Trim('/');
+                string madeRel = (parentRel.Length > 0 ? parentRel + "/" : "") + to;
+                Send(ns, "200 OK", "application/json; charset=utf-8",
+                     Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(madeRel) + "}"));
+            }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+
         string full = Resolve(ws, rel, InTree);
         if (full == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
         if (!File.Exists(full)) { SendText(ns, "404 Not Found", "no such file"); return; }
@@ -1992,6 +2060,36 @@ static class MarkdownStudio
                     File.Move(tmp, dest);
                 }
                 else File.Move(full, dest);
+                Send(ns, "200 OK", "application/json; charset=utf-8",
+                     Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(newRel) + "}"));
+            }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+        // Dragged into another folder in the Explorer: to is that folder ("" for the
+        // top). The file keeps its name, never lands on another file, and stays
+        // something the tree shows - a picture from an assets folder only goes into an
+        // assets folder.
+        if (op == "move")
+        {
+            string destDir = ResolveDir(ws, to);
+            if (destDir == null) { SendText(ns, "400 Bad Request", "bad folder"); return; }
+            if (!Directory.Exists(destDir)) { SendText(ns, "404 Not Found", "That folder is not there any more."); return; }
+            string toRel = (to ?? "").Replace('\\', '/').Trim('/');
+            string name = Path.GetFileName(full);
+            string newRel = (toRel.Length > 0 ? toRel + "/" : "") + name;
+            string dest = Resolve(ws, newRel, InTree);
+            if (dest == null)
+            { SendText(ns, "400 Bad Request", "Pictures and other files in an assets folder can only go into an assets folder."); return; }
+            if (string.Equals(dest, full, StringComparison.OrdinalIgnoreCase))
+            {
+                Send(ns, "200 OK", "application/json; charset=utf-8", Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(newRel) + "}"));
+                return;
+            }
+            if (File.Exists(dest)) { SendText(ns, "409 Conflict", "A file named " + name + " is already there."); return; }
+            try
+            {
+                File.Move(full, dest);
                 Send(ns, "200 OK", "application/json; charset=utf-8",
                      Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(newRel) + "}"));
             }

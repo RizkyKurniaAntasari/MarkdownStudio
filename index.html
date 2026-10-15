@@ -264,6 +264,7 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 body.tab-dragging,body.tab-dragging *{cursor:grabbing!important;user-select:none}
 .tab-ghost{position:fixed;z-index:1000;pointer-events:none;padding:4px 9px;border-radius:6px;background:var(--bg);color:var(--fg2);border:1px solid var(--bd2);box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:12px;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
 .tab-ghost.ok{color:var(--fg);border-color:var(--acc)}
+.tree-row.drag-src{opacity:.45}
 .drop-on{outline:2px solid var(--acc)!important;outline-offset:-2px;background:var(--accsoft)!important}
 
 /* ---------------- file tree ---------------- */
@@ -1066,7 +1067,21 @@ never changes the original:
 Right-click a file in the Explorer for VS Code's menu: **Open**, **Reveal in File
 Explorer**, **Copy Path**, **Copy Relative Path**, **Rename…** and **Delete**. Pictures
 and other files in an `assets` folder have it too, plus **Insert into document**; a
-folder has **New File…**; a document in the Docs pane and an editor tab have their own.
+folder has **New File…** and **New Folder…**; a document in the Docs pane and an editor
+tab have their own.
+
+**Folders.** Make one with the folder button at the top of the Explorer, by
+right-clicking a folder → **New Folder…** (it goes inside), or by right-clicking the
+empty space below the files (it goes at the top). A new folder shows straight away,
+empty, ready for a file.
+
+**Move a file to another folder by dragging it** in the Explorer: drop it on a folder
+to put it inside, or on the top bar (or the empty space below the files) to take it
+out to the top. The folder you are over lights up; hold over a closed folder to open
+it, and <kbd>Esc</kbd> while dragging puts it back. A moved document keeps working: its
+own links are pointed at the same files from its new folder, and if other documents
+link to it you are asked whether to update them, as after a rename. Pictures from an
+`assets` folder can only go into another `assets` folder.
 
 **Rename** happens right in the tree, the name selected up to its extension, as in
 VS Code: type, then <kbd>Enter</kbd> to keep it or <kbd>Esc</kbd> to put it back. Click a
@@ -1796,8 +1811,22 @@ salinan tidak pernah mengubah aslinya:
 Klik kanan sebuah berkas di Explorer untuk menu ala VS Code: **Buka**, **Tampilkan di File
 Explorer**, **Salin lokasi**, **Salin lokasi relatif**, **Ganti nama…** dan **Hapus**.
 Gambar dan berkas lain di folder `assets` juga punya menu ini, ditambah **Sisipkan ke
-dokumen**; folder punya **Berkas baru…**; dokumen di panel Docs dan tab editor punya
-menunya sendiri.
+dokumen**; folder punya **Berkas baru…** dan **Folder baru…**; dokumen di panel Docs dan
+tab editor punya menunya sendiri.
+
+**Folder.** Buat folder lewat tombol folder di bagian atas Explorer, klik kanan sebuah
+folder → **Folder baru…** (dibuat di dalamnya), atau klik kanan area kosong di bawah
+daftar berkas (dibuat di tingkat paling atas). Folder baru langsung tampil walaupun
+masih kosong.
+
+**Pindahkan berkas ke folder lain dengan menyeretnya** di Explorer: lepaskan di atas
+sebuah folder untuk memasukkannya, atau di bar paling atas (atau area kosong di bawah
+daftar) untuk mengeluarkannya ke tingkat paling atas. Folder yang dilewati menyala;
+tahan di atas folder yang tertutup untuk membukanya, dan <kbd>Esc</kbd> saat menyeret
+membatalkannya. Dokumen yang dipindah tetap berfungsi: tautan di dalamnya diarahkan
+ulang ke berkas yang sama dari folder barunya, dan kalau dokumen lain menautkan ke
+sana, Anda ditanya apakah tautannya ikut diperbarui, seperti setelah ganti nama. Gambar
+dari folder `assets` hanya bisa dipindah ke folder `assets` lain.
 
 **Ganti nama** dilakukan langsung di pohon, dengan nama terpilih sampai sebelum
 ekstensinya, seperti di VS Code: ketik, lalu <kbd>Enter</kbd> untuk menyimpan atau
@@ -2869,6 +2898,12 @@ const I18N = (function () {
     "Pasted as ": "Ditempel sebagai ", " (copy)": " (salinan)",
     " picture(s) could not be copied": " gambar tidak bisa disalin",
     "Move to ": "Pindahkan ke ", "Moved to ": "Dipindahkan ke ", "Copied to ": "Disalin ke ",
+    "New folder": "Folder baru", "New Folder…": "Folder baru…", "New folder name:": "Nama folder baru:",
+    "That is not a valid folder name.": "Nama folder itu tidak bisa dipakai.",
+    "Something named ": "Sudah ada yang bernama ", "Could not create folder: ": "Tidak bisa membuat folder: ",
+    "Folder created: ": "Folder dibuat: ",
+    "Pictures and other files in an assets folder can only go into an assets folder.":
+      "Gambar dan berkas lain di folder assets hanya bisa dipindah ke folder assets.",
     "Moved to Docs: ": "Dipindahkan ke Dokumen: ",
     "Copied to Docs (the original is read-only): ": "Disalin ke Dokumen (aslinya hanya-baca): ",
     "Could not move: ": "Tidak bisa memindahkan: ",
@@ -5157,10 +5192,24 @@ const MD = (function () {
   }
 
   /* the same tree shape loadDir() builds, from the flat list of paths the exe sends */
-  function treeFromPaths(rootName, paths, pics) {
+  function treeFromPaths(rootName, paths, pics, folders) {
     const rootNode = { name: rootName, path: "", kind: "dir", kids: [], open: true };
     const dirs = { "": rootNode };
     const isPic = new Set(pics || []);
+    /* every folder, so one with nothing in it yet still shows */
+    (folders || []).forEach(f => {
+      let cur = rootNode, prefix = "";
+      String(f).split("/").forEach(part => {
+        prefix = prefix ? prefix + "/" + part : part;
+        let node = dirs[prefix];
+        if (!node) {
+          node = { name: part, path: prefix, kind: "dir", kids: [], open: false };
+          dirs[prefix] = node;
+          cur.kids.push(node);
+        }
+        cur = node;
+      });
+    });
     paths.concat(pics || []).forEach(p => {
       const parts = String(p).split("/");
       let cur = rootNode, prefix = "";
@@ -5201,7 +5250,7 @@ const MD = (function () {
 
     if (!keepCache) dropSearchCache();
     root = { name: ws.root, handle: null, mode: "server", readonly: false, disk: ws.path || "" };
-    tree = treeFromPaths(ws.root, ws.files || [], ws.assets || []);
+    tree = treeFromPaths(ws.root, ws.files || [], ws.assets || [], ws.dirs || []);
     (function walk(n) {
       if (n.kind === "dir" && wasOpen[n.path] !== undefined) n.open = wasOpen[n.path];
       (n.kids || []).forEach(walk);
@@ -5272,6 +5321,52 @@ const MD = (function () {
     } catch (e) { toast(tr("Could not create file: ") + (e.message || e.name)); }
   }
 
+  /* New Folder, from the button at the top of the tree or a right-click on a folder
+     (or on the empty part of the tree, for the top). A name already there is
+     refused. The new folder opens, ready for a file to be made or dragged into it. */
+  async function newFolderIn(dir) {
+    if (!root || root.readonly || (root.mode !== "fs" && root.mode !== "server")) return;
+    let name = prompt(tr("New folder name:"), tr("New folder"));
+    if (!name) return;
+    name = name.trim().replace(/[\\/:*?"<>|]/g, "-").replace(/[. ]+$/, "");
+    if (!name || name.charAt(0) === "." || SKIP_DIR.test(name)) { toast(tr("That is not a valid folder name.")); return; }
+    const path = (dir ? dir + "/" : "") + name;
+    try {
+      if (root.mode === "server") {
+        const r = await fetch(entryUrl(SRV_WS, dir || "", "mkdir", name), { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+        await loadServerWorkspace(false, true);
+      } else {
+        const parent = dir ? await dirHandleAt(dir) : root.handle;
+        let taken = false;
+        try { await parent.getDirectoryHandle(name); taken = true; } catch (e) { }
+        try { await parent.getFileHandle(name); taken = true; } catch (e) { }
+        if (taken) throw new Error(tr("Something named ") + name + tr(" is already there."));
+        await parent.getDirectoryHandle(name, { create: true });
+        await refreshTree(tree);
+      }
+    } catch (e) { toast(tr("Could not create folder: ") + (e.message || e.name)); return; }
+    /* show it: every folder on the way opened */
+    const parts = path.split("/");
+    for (let i = 1; i <= parts.length; i++) {
+      const n = nodeByPath.get(parts.slice(0, i).join("/")) || findDirNode(parts.slice(0, i).join("/"));
+      if (n && n.kind === "dir") { n.open = true; if (n.kids === null && n.handle) await loadDir(n); }
+    }
+    renderTree();
+    selectRow(path);
+    toast(tr("Folder created: ") + path);
+  }
+  function findDirNode(path) {
+    let hit = null;
+    (function walk(n) { if (hit || !n) return; if (n.kind === "dir" && n.path === path) { hit = n; return; } (n.kids || []).forEach(walk); })(tree);
+    return hit;
+  }
+  async function dirHandleAt(path) {
+    let h = root.handle;
+    for (const seg of path.split("/").filter(Boolean)) h = await h.getDirectoryHandle(seg);
+    return h;
+  }
+
   /* ---------- tree rendering ---------- */
   function renderTree() {
     const el = $("#treeBody");
@@ -5293,7 +5388,8 @@ const MD = (function () {
       '<div class="root-bar"><span class="root-name" title="' + esc(root.disk || root.name) + '">' + esc(root.name) +
       (root.readonly ? tr(" (read-only)") : "") + "</span>" +
       ((root.mode === "fs" || root.mode === "server") && !root.readonly
-        ? '<button class="ibtn" data-fs="new" title="' + esc(tr("New file")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>'
+        ? '<button class="ibtn" data-fs="new" title="' + esc(tr("New file")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>' +
+          '<button class="ibtn" data-fs="newdir" title="' + esc(tr("New folder")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg></button>'
         : "") +
       (root.mode === "fs" || root.mode === "server"
         ? '<button class="ibtn" data-fs="refresh" title="' + esc(tr("Refresh")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.6-6.4M21 3v6h-6"/></svg></button>'
@@ -6256,7 +6352,8 @@ const MD = (function () {
       { label: "Copy Relative Path", keys: "Ctrl+Shift+Alt+C", run: () => copyOut(relPathOf(n), "Copied") }
     ];
     if (n.kind === "dir") {
-      return [{ label: "New File…", run: () => newFileInFolder(n.path), disabled: !canEdit() }, "-"].concat(common.slice(2));
+      return [{ label: "New File…", run: () => newFileInFolder(n.path), disabled: !canEdit() },
+        { label: "New Folder…", run: () => newFolderIn(n.path), disabled: !canEdit() }, "-"].concat(common.slice(2));
     }
     const head = n.kind === "img"
       ? [{ label: "Open", run: () => showImage(treeImgKey(n), n.path) },
@@ -6545,6 +6642,177 @@ const MD = (function () {
     persist();
     renderDocs(); renderTabs();
   }
+  /* The folder a point in the Explorer stands for: a folder row is that folder, a
+     file row is the folder it is in, and the top bar or the empty space below the
+     rows is the top. `el` is what lights up while something is held over it. */
+  function treeDirAt(x, y) {
+    const under = document.elementFromPoint(x, y);
+    const tb = under && under.closest("#treeBody");
+    if (!tb || !root || !tree) return null;
+    const row = under.closest(".tree-row");
+    if (!row) return { dir: "", el: tb.querySelector(".root-bar"), row: null };
+    const n = nodeByPath.get(row.dataset.path);
+    if (!n) return null;
+    const dir = n.kind === "dir" ? n.path : n.path.split("/").slice(0, -1).join("/");
+    return { dir: dir, el: n.kind === "dir" ? row : (dir ? treeRowEl(dir) : tb.querySelector(".root-bar")), row: row };
+  }
+
+  /* ---------- dragging files between folders in the Explorer ----------
+     Pick up a file in the tree and drop it on a folder to move it there - or on
+     the top bar, or the space below the rows, to take it out to the top. Held over a
+     closed folder, the folder opens; Esc puts it back. A document keeps working where
+     it lands: its own links are pointed at the same files from the new folder, and
+     other documents that linked to it are offered the same update as after a rename. */
+  let treeDrag = null, treeDraggedAt = 0;
+  function treeDragStart(e) {
+    if (e.button !== 0 || e.pointerType === "touch" || !canEdit()) return;
+    const row = e.target.closest(".tree-row");
+    if (!row || row.querySelector("input")) return;
+    const n = nodeByPath.get(row.dataset.path);
+    if (!n || n.kind === "dir") return;
+    treeDrag = { n: n, row: row, x0: e.clientX, y0: e.clientY, on: false, pid: e.pointerId, key: "", target: null, ghost: null, timer: null };
+  }
+  function treeDragTarget(d, x, y) {
+    const at = treeDirAt(x, y);
+    if (!at) return null;
+    const from = d.n.path.split("/").slice(0, -1).join("/");
+    if (at.dir === from) return null;
+    if (d.n.kind === "img" && !inAssets(at.dir + "/x")) return null;
+    return at;
+  }
+  function treeDragMove(e) {
+    const d = treeDrag;
+    if (!d || e.pointerId !== d.pid) return;
+    if (!d.on) {
+      if (Math.abs(e.clientX - d.x0) < 6 && Math.abs(e.clientY - d.y0) < 6) return;
+      d.on = true;
+      try { d.row.setPointerCapture(e.pointerId); } catch (err) { }
+      d.row.classList.add("drag-src");
+      document.body.classList.add("tab-dragging");
+      d.ghost = document.createElement("div");
+      d.ghost.className = "tab-ghost";
+      document.body.appendChild(d.ghost);
+      hideCtx();
+    }
+    /* near the top or bottom edge, the tree scrolls */
+    const tb = $("#treeBody"), r = tb.getBoundingClientRect();
+    if (e.clientY < r.top + 24) tb.scrollTop -= 12;
+    else if (e.clientY > r.bottom - 24) tb.scrollTop += 12;
+    const target = treeDragTarget(d, e.clientX, e.clientY);
+    const key = target ? target.dir + "|" + (target.row ? target.row.dataset.path : "") : "";
+    if (key !== d.key) {
+      document.querySelectorAll(".drop-on").forEach(x => x.classList.remove("drop-on"));
+      if (target && target.el) target.el.classList.add("drop-on");
+      d.key = key;
+      d.ghost.textContent = target ? tr("Move to ") + (target.dir || root.name) : d.n.name;
+      clearTimeout(d.timer);
+      const n = target && target.row ? nodeByPath.get(target.row.dataset.path) : null;
+      if (n && n.kind === "dir" && !n.open) d.timer = setTimeout(async () => {
+        n.open = true;
+        if (n.kids === null && n.handle) await loadDir(n);
+        renderTree();
+        d.key = null;
+        const again = treeRowEl(d.n.path);
+        if (again) again.classList.add("drag-src");
+      }, 650);
+    }
+    d.target = target;
+    d.ghost.classList.toggle("ok", !!target);
+    d.ghost.style.left = (e.clientX + 14) + "px";
+    d.ghost.style.top = (e.clientY + 12) + "px";
+  }
+  function treeDragEnd(e) {
+    const d = treeDrag;
+    if (!d || (e && e.pointerId !== d.pid)) return;
+    treeDrag = null;
+    if (!d.on) return;
+    /* where it is let go decides */
+    const target = e && e.type === "pointerup" ? treeDragTarget(d, e.clientX, e.clientY) : null;
+    clearTimeout(d.timer);
+    document.querySelectorAll(".drop-on, .drag-src").forEach(x => x.classList.remove("drop-on", "drag-src"));
+    document.body.classList.remove("tab-dragging");
+    if (d.ghost) d.ghost.remove();
+    treeDraggedAt = Date.now();          /* the click that ends a drag is not an "open" */
+    if (target) moveEntry(d.n, target.dir);
+  }
+
+  async function moveEntry(n, dir) {
+    if (!canEdit()) return;
+    const oldPath = n.path, name = n.name;
+    const newPath = (dir ? dir + "/" : "") + name;
+    if (oldPath === newPath) return;
+    if (n.kind === "img" && !inAssets(newPath)) {
+      toast(tr("Pictures and other files in an assets folder can only go into an assets folder.")); return;
+    }
+    if (nodeByPath.get(newPath) || await findFileNode(newPath)) {
+      toast(tr("A file named ") + name + tr(" is already there.")); return;
+    }
+    const t = tabs.find(x => x.kind === "file" && x.path === oldPath);
+    if (t && t.id === activeTab) stashActive();
+    let newHandle = null;
+    try {
+      if (root.mode === "server") {
+        const r = await fetch(entryUrl(SRV_WS, oldPath, "move", dir || ""), { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+      } else {
+        const dest = dir ? await dirHandleAt(dir) : root.handle;
+        let taken = false;
+        try { await dest.getFileHandle(name); taken = true; } catch (e) { }
+        if (taken) throw new Error(tr("A file named ") + name + tr(" is already there."));
+        if (n.handle && n.handle.move) { await n.handle.move(dest); newHandle = n.handle; }
+        else {
+          newHandle = await dest.getFileHandle(name, { create: true });
+          const w = await newHandle.createWritable();
+          await w.write(await n.handle.getFile());
+          await w.close();
+          await (await parentDirHandle(oldPath)).removeEntry(name);
+        }
+      }
+    } catch (e) { toast(tr("Could not move: ") + (e.message || e.name)); return; }
+
+    /* a document's own links still reach the same files from its new folder */
+    if (n.kind === "file") {
+      try {
+        const node = root.mode === "server" ? { srv: true, path: newPath } : { handle: newHandle, path: newPath };
+        const raw = await readNodeText(node);
+        const fixed = relinkAll(raw, oldPath, newPath);
+        if (fixed !== raw) {
+          if (root.mode === "server") await srvWrite(newPath, fixed); else await writeHandle(newHandle, fixed);
+        }
+        if (t) {
+          const was = t.content;
+          t.saved = normText(fixed);
+          t.content = relinkAll(t.content, oldPath, newPath);
+          if (t.id === activeTab && t.content !== was) {
+            const a = ed.selectionStart, top = ed.scrollTop;
+            ed.value = t.content;
+            try { ed.setSelectionRange(Math.min(a, ed.value.length), Math.min(a, ed.value.length)); } catch (e) { }
+            ed.scrollTop = top;
+          }
+        }
+      } catch (e) { }
+    }
+    /* everything that knew the old place follows */
+    libTreeRenamed(oldPath, newPath);
+    if (t) {
+      t.path = newPath;
+      if (newHandle) t.handle = newHandle;
+      if (t.id === activeTab) $("#docTitle").title = newPath;
+    }
+    closedTabs.forEach(c => { if (c.path === oldPath) c.path = newPath; });
+    if (fileCache.has(oldPath)) { fileCache.delete(oldPath); }
+    const ws = root.mode === "server" ? SRV_WS : "fs", pic = imgs.get(ws + ":" + oldPath);
+    if (pic) { imgs.set(ws + ":" + newPath, pic); imgs.delete(ws + ":" + oldPath); }
+    if (root.mode === "server") await loadServerWorkspace(false, true); else { await refreshTree(tree); }
+    await revealInTree(newPath);
+    renderTree();
+    selectRow(newPath);
+    renderTabs(); updateSaveUI();
+    toast(tr("Moved to ") + (dir || root.name));
+    await offerLinkUpdate(oldPath, newPath);
+    renderNow();
+  }
+
   async function deleteEntry(n) {
     if (!canEdit()) return;
     const exe = root.mode === "server";
@@ -7500,9 +7768,15 @@ const MD = (function () {
       pv.querySelectorAll("mark.pv-hit").forEach(mk => mk.replaceWith(d.createTextNode(mk.textContent)));
       main.scrollTop = line >= 0 ? floatPvTop(pv, main, line) : top;
     } else {
-      if ((full || d.activeElement !== ta) && ta.value !== s.text) {
-        const top = ta.scrollTop;
+      /* Typing here is only when this window has the focus. The editor stays the
+         active element of its own window while you work in the main one, so asking
+         only that kept every edit made in the main window out of this one - and the
+         next key pressed here sent its stale copy back over them. */
+      const typingHere = d.hasFocus() && d.activeElement === ta;
+      if ((full || !typingHere) && ta.value !== s.text) {
+        const top = ta.scrollTop, a = ta.selectionStart, b = ta.selectionEnd;
         ta.value = s.text;
+        try { ta.setSelectionRange(Math.min(a, ta.value.length), Math.min(b, ta.value.length)); } catch (e) { }
         ta.scrollTop = top;
       }
       if (line >= 0) {
@@ -9206,6 +9480,7 @@ const MD = (function () {
 
     /* file tree */
     $("#treeBody").addEventListener("click", async e => {
+      if (Date.now() - treeDraggedAt < 350) return;
       const fs = e.target.closest("[data-fs]");
       if (fs) {
         const a = fs.dataset.fs;
@@ -9214,6 +9489,7 @@ const MD = (function () {
           try { await useFolder(reopen.handle); idbSet("root", reopen.handle); }
           catch (err) { toast(tr("Could not reopen that folder")); }
         } else if (a === "new") newFileInFolder();
+        else if (a === "newdir") newFolderIn("");
         else if (a === "refresh") { if (tree) { dropSearchCache(); await refreshTree(tree); renderTree(); toast(tr("Refreshed")); } }
         else if (a === "close") closeFolder();
         return;
@@ -9236,6 +9512,16 @@ const MD = (function () {
     /* right-click menus, VS Code's: on the tree, on Docs, on editor tabs */
     $("#treeBody").addEventListener("contextmenu", e => {
       const row = e.target.closest(".tree-row");
+      if (!row && root && !e.target.closest("input")) {
+        e.preventDefault();
+        showCtx(e.clientX, e.clientY, [
+          { label: "New File…", run: () => newFileInFolder(""), disabled: !canEdit() },
+          { label: "New Folder…", run: () => newFolderIn(""), disabled: !canEdit() },
+          "-",
+          { label: "Refresh", run: async () => { if (tree) { dropSearchCache(); await refreshTree(tree); renderTree(); } } }
+        ]);
+        return;
+      }
       if (!row || !root) return;
       const n = nodeByPath.get(row.dataset.path);
       if (!n) return;
@@ -9259,11 +9545,20 @@ const MD = (function () {
       showCtx(e.clientX, e.clientY, t ? tabItems(t) : tabBarItems());
     });
     $("#tabbar").addEventListener("pointerdown", tabDragStart);
+    $("#treeBody").addEventListener("pointerdown", treeDragStart);
+    window.addEventListener("pointermove", treeDragMove);
+    window.addEventListener("pointerup", treeDragEnd);
+    window.addEventListener("pointercancel", treeDragEnd);
     window.addEventListener("pointermove", tabDragMove);
     window.addEventListener("pointerup", tabDragEnd);
     window.addEventListener("pointercancel", tabDragEnd);
     /* Esc while carrying a tab puts everything back where it was, as in Chrome */
     window.addEventListener("keydown", e => {
+      if (e.key === "Escape" && treeDrag && treeDrag.on) {
+        e.preventDefault(); e.stopPropagation();
+        treeDragEnd({ type: "cancel", pointerId: treeDrag.pid });
+        return;
+      }
       if (e.key !== "Escape" || !tabDrag || !tabDrag.on) return;
       e.preventDefault(); e.stopPropagation();
       const d = tabDrag;
