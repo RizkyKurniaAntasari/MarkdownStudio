@@ -1952,7 +1952,11 @@ static class MarkdownStudio
                         try
                         {
                             if (!File.Exists(full)) { SendText(ns, "404 Not Found", "no such file"); return; }
-                            Recycle(full);
+                            // purge=1: the old name left behind by renaming a document,
+                            // whose text is already under the new name - not a delete
+                            // anyone asked for, so it does not fill the Recycle Bin
+                            if (QueryValue(query, "purge") == "1") File.Delete(full);
+                            else Recycle(full);
                             SendText(ns, "200 OK", "ok");
                         }
                         catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
@@ -2005,6 +2009,84 @@ static class MarkdownStudio
                 string madeRel = (parentRel.Length > 0 ? parentRel + "/" : "") + to;
                 Send(ns, "200 OK", "application/json; charset=utf-8",
                      Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(madeRel) + "}"));
+            }
+            catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+            return;
+        }
+
+        // A whole folder, with everything in it: dragged into another folder (movedir,
+        // to = that folder, "" for the top), or sent to the Recycle Bin (rmdir). The top
+        // folder itself is neither; a folder never goes inside itself or onto another,
+        // and one inside an assets folder stays inside one, where its pictures show.
+        if (op == "movedir" || op == "rmdir" || op == "renamedir")
+        {
+            if (method != "POST") { SendText(ns, "405 Method Not Allowed", "no"); return; }
+            string relN = (rel ?? "").Replace('\\', '/').Trim('/');
+            if (relN.Length == 0) { SendText(ns, "400 Bad Request", "The top folder itself cannot be moved or deleted."); return; }
+            string src = ResolveDir(ws, relN);
+            if (src == null) { SendText(ns, "400 Bad Request", "bad path"); return; }
+            if (!Directory.Exists(src)) { SendText(ns, "404 Not Found", "That folder is not there any more."); return; }
+            if (op == "rmdir")
+            {
+                if (RecycleDir(src)) SendText(ns, "200 OK", "ok");
+                else SendText(ns, "500 Internal Server Error", "The folder could not be sent to the Recycle Bin, so nothing was deleted.");
+                return;
+            }
+            // a new name in the same place, never another folder's or file's
+            if (op == "renamedir")
+            {
+                if (BadName(to) || to.StartsWith(".") || SkipDir(to))
+                { SendText(ns, "400 Bad Request", "That is not a valid folder name."); return; }
+                // its pictures only show while it is called assets
+                if (string.Equals(Path.GetFileName(src), AssetDir, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(to, AssetDir, StringComparison.OrdinalIgnoreCase))
+                { SendText(ns, "400 Bad Request", "An assets folder keeps its name, or the pictures in it would no longer show."); return; }
+                int cut = relN.LastIndexOf('/');
+                string parentRel = cut >= 0 ? relN.Substring(0, cut) : "";
+                string renamedRel = (parentRel.Length > 0 ? parentRel + "/" : "") + to;
+                string renamed = Path.Combine(Path.GetDirectoryName(src), to);
+                bool caseOnly = string.Equals(renamed, src, StringComparison.OrdinalIgnoreCase);
+                if (!caseOnly && (Directory.Exists(renamed) || File.Exists(renamed)))
+                { SendText(ns, "409 Conflict", "Something named " + to + " is already there."); return; }
+                try
+                {
+                    if (caseOnly)
+                    {
+                        // only the letter case changes, which Windows will not do in one move
+                        string tmp = src + ".rename-" + NewKey().Substring(0, 6);
+                        Directory.Move(src, tmp);
+                        Directory.Move(tmp, renamed);
+                    }
+                    else Directory.Move(src, renamed);
+                    Send(ns, "200 OK", "application/json; charset=utf-8",
+                         Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(renamedRel) + "}"));
+                }
+                catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
+                return;
+            }
+            string toN = (to ?? "").Replace('\\', '/').Trim('/');
+            string destParent = ResolveDir(ws, toN);
+            if (destParent == null) { SendText(ns, "400 Bad Request", "bad folder"); return; }
+            if (!Directory.Exists(destParent)) { SendText(ns, "404 Not Found", "That folder is not there any more."); return; }
+            if (toN.Equals(relN, StringComparison.OrdinalIgnoreCase) || toN.StartsWith(relN + "/", StringComparison.OrdinalIgnoreCase))
+            { SendText(ns, "400 Bad Request", "A folder cannot go inside itself."); return; }
+            string dirName = Path.GetFileName(src);
+            string movedRel = (toN.Length > 0 ? toN + "/" : "") + dirName;
+            if (InAssets(relN + "/x") && !InAssets(movedRel + "/x"))
+            { SendText(ns, "400 Bad Request", "A folder inside an assets folder can only go into an assets folder."); return; }
+            string moved = Path.Combine(destParent, dirName);
+            if (string.Equals(moved, src, StringComparison.OrdinalIgnoreCase))
+            {
+                Send(ns, "200 OK", "application/json; charset=utf-8", Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(movedRel) + "}"));
+                return;
+            }
+            if (Directory.Exists(moved) || File.Exists(moved))
+            { SendText(ns, "409 Conflict", "Something named " + dirName + " is already there."); return; }
+            try
+            {
+                Directory.Move(src, moved);
+                Send(ns, "200 OK", "application/json; charset=utf-8",
+                     Encoding.UTF8.GetBytes("{\"path\":" + JsonStr(movedRel) + "}"));
             }
             catch (Exception ex) { SendText(ns, "500 Internal Server Error", ex.Message); }
             return;
@@ -2143,8 +2225,14 @@ static class MarkdownStudio
         SendText(ns, "405 Method Not Allowed", "no");
     }
 
+    // SHFILEOPSTRUCT is byte-packed in 32-bit Windows and naturally aligned in 64-bit
+    // Windows (shellapi.h switches its packing on _WIN64). This exe is AnyCPU, so it
+    // runs as either. It used to declare only the packed one: run as 64-bit - which it
+    // is on any 64-bit Windows - SHFileOperation refused it (error 0x57) every time,
+    // and every "delete to the Recycle Bin" fell through to File.Delete and was gone
+    // for good. Both layouts now, picked by how the process runs.
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
-    struct SHFILEOPSTRUCT
+    struct SHFILEOPSTRUCT32
     {
         public IntPtr hwnd;
         public uint wFunc;
@@ -2155,20 +2243,57 @@ static class MarkdownStudio
         public IntPtr hNameMappings;
         [MarshalAs(UnmanagedType.LPWStr)] public string lpszProgressTitle;
     }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct SHFILEOPSTRUCT64
+    {
+        public IntPtr hwnd;
+        public uint wFunc;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pFrom;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pTo;
+        public ushort fFlags;
+        public int fAnyOperationsAborted;
+        public IntPtr hNameMappings;
+        [MarshalAs(UnmanagedType.LPWStr)] public string lpszProgressTitle;
+    }
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHFileOperationW")]
+    static extern int SHFileOperation32(ref SHFILEOPSTRUCT32 op);
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHFileOperationW")]
+    static extern int SHFileOperation64(ref SHFILEOPSTRUCT64 op);
 
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    static extern int SHFileOperation(ref SHFILEOPSTRUCT op);
+    // Sends a file or a folder to the Recycle Bin. True only when it really went.
+    static bool ToRecycleBin(string path)
+    {
+        const uint FO_DELETE = 3;
+        const ushort flags = 0x0040 | 0x0010 | 0x0004 | 0x0400;  // ALLOWUNDO | NOCONFIRMATION | SILENT | NOERRORUI
+        int r, aborted;
+        if (Environment.Is64BitProcess)
+        {
+            SHFILEOPSTRUCT64 op = new SHFILEOPSTRUCT64();
+            op.wFunc = FO_DELETE; op.pFrom = path + "\0\0"; op.fFlags = flags;
+            r = SHFileOperation64(ref op); aborted = op.fAnyOperationsAborted;
+        }
+        else
+        {
+            SHFILEOPSTRUCT32 op = new SHFILEOPSTRUCT32();
+            op.wFunc = FO_DELETE; op.pFrom = path + "\0\0"; op.fFlags = flags;
+            r = SHFileOperation32(ref op); aborted = op.fAnyOperationsAborted;
+        }
+        return r == 0 && aborted == 0 && !File.Exists(path) && !Directory.Exists(path);
+    }
 
     // A deleted document goes to the Recycle Bin rather than being wiped. These are
     // the user's own notes in their own Documents folder, so a delete clicked by
-    // mistake should be something Windows can undo.
+    // mistake should be something Windows can undo - and if the Recycle Bin will not
+    // take it, it is not quietly wiped instead: the delete fails and the page says so.
     static void Recycle(string path)
     {
-        SHFILEOPSTRUCT op = new SHFILEOPSTRUCT();
-        op.wFunc = 3;                          // FO_DELETE
-        op.pFrom = path + "\0\0";
-        op.fFlags = 0x0040 | 0x0010 | 0x0004;  // ALLOWUNDO | NOCONFIRMATION | SILENT
-        if (SHFileOperation(ref op) != 0) File.Delete(path);
+        if (!ToRecycleBin(path)) throw new IOException("It could not be sent to the Recycle Bin, so it was not deleted.");
+    }
+
+    // A folder likewise, and it may hold far more than the tree shows.
+    static bool RecycleDir(string path)
+    {
+        return ToRecycleBin(path);
     }
 
     static void SendText(NetworkStream ns, string status, string text)

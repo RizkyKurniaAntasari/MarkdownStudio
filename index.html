@@ -1083,6 +1083,23 @@ own links are pointed at the same files from its new folder, and if other docume
 link to it you are asked whether to update them, as after a rename. Pictures from an
 `assets` folder can only go into another `assets` folder.
 
+**Folders move, rename and delete the same way.** Drag a folder onto another to move it with
+everything in it, or onto the top bar to take it out. Links between the documents
+inside keep working as they are, their links to files outside are pointed at the same
+files from the new place, and documents elsewhere that link into the folder are
+offered the update once. Right-click a folder → **Rename…** (or select it and press
+<kbd>F2</kbd>) to rename it in place; links into it from other documents are offered the
+same update. An `assets` folder keeps its name, since its pictures only show while it
+is called that. Right-click a folder → **Delete** (or select it and press
+<kbd>Delete</kbd>) to delete it with everything in it — you are told how many documents
+are inside first.
+<!-- exe -->
+A deleted folder goes to the Recycle Bin, like a deleted file.
+<!-- /exe -->
+<!-- web -->
+In a folder opened in the browser it is gone for good — there is no Recycle Bin there.
+<!-- /web -->
+
 **Rename** happens right in the tree, the name selected up to its extension, as in
 VS Code: type, then <kbd>Enter</kbd> to keep it or <kbd>Esc</kbd> to put it back. Click a
 file once and <kbd>F2</kbd> renames it, <kbd>Delete</kbd> deletes it. When other
@@ -1827,6 +1844,24 @@ membatalkannya. Dokumen yang dipindah tetap berfungsi: tautan di dalamnya diarah
 ulang ke berkas yang sama dari folder barunya, dan kalau dokumen lain menautkan ke
 sana, Anda ditanya apakah tautannya ikut diperbarui, seperti setelah ganti nama. Gambar
 dari folder `assets` hanya bisa dipindah ke folder `assets` lain.
+
+**Folder juga bisa dipindah, diganti nama, dan dihapus.** Seret sebuah folder ke folder lain untuk
+memindahkannya beserta seluruh isinya, atau ke bar paling atas untuk mengeluarkannya.
+Tautan antar-dokumen di dalamnya tetap berfungsi apa adanya, tautan ke berkas di luar
+diarahkan ulang dari lokasi barunya, dan dokumen lain yang menautkan ke dalam folder itu
+ditawari pembaruan sekali saja. Klik kanan folder → **Ganti nama…** (atau pilih lalu tekan
+<kbd>F2</kbd>) untuk mengganti namanya langsung di pohon; tautan dari dokumen lain ke dalamnya
+ditawari pembaruan yang sama. Folder `assets` harus tetap bernama `assets`, karena gambar di
+dalamnya hanya tampil selama namanya begitu. Klik kanan folder → **Hapus** (atau pilih lalu tekan
+<kbd>Delete</kbd>) untuk menghapusnya beserta seluruh isinya — jumlah dokumen di dalamnya
+disebutkan dulu sebelum dihapus.
+<!-- exe -->
+Folder yang dihapus masuk ke Recycle Bin, sama seperti berkas.
+<!-- /exe -->
+<!-- web -->
+Di folder yang dibuka lewat browser, folder itu terhapus permanen — browser tidak punya
+Recycle Bin.
+<!-- /web -->
 
 **Ganti nama** dilakukan langsung di pohon, dengan nama terpilih sampai sebelum
 ekstensinya, seperti di VS Code: ketik, lalu <kbd>Enter</kbd> untuk menyimpan atau
@@ -2902,6 +2937,11 @@ const I18N = (function () {
     "That is not a valid folder name.": "Nama folder itu tidak bisa dipakai.",
     "Something named ": "Sudah ada yang bernama ", "Could not create folder: ": "Tidak bisa membuat folder: ",
     "Folder created: ": "Folder dibuat: ",
+    "An assets folder keeps its name, or the pictures in it would no longer show.":
+      "Folder assets harus tetap bernama assets, kalau tidak gambar di dalamnya tidak akan tampil lagi.",
+    "Delete the folder": "Hapus folder", "and everything in it": "beserta seluruh isinya",
+    "document": "dokumen", "documents": "dokumen", "other file": "berkas lain", "other files": "berkas lain",
+    "Open files in it have unsaved changes, which will be lost. ": "Ada berkas terbuka di dalamnya dengan perubahan yang belum disimpan, dan perubahan itu akan hilang. ",
     "Pictures and other files in an assets folder can only go into an assets folder.":
       "Gambar dan berkas lain di folder assets hanya bisa dipindah ke folder assets.",
     "Moved to Docs: ": "Dipindahkan ke Dokumen: ",
@@ -4943,10 +4983,12 @@ const MD = (function () {
     if (!r.ok) throw new Error((await r.text()) || r.status);
     if (LIB.files.indexOf(file) < 0) LIB.files.push(file);
   }
-  async function libDelete(file) {
+  /* purge: the old name a rename leaves behind, whose text is already under the new
+     one - deleted outright instead of piling copies up in the Recycle Bin */
+  async function libDelete(file, purge) {
     LIB.files = LIB.files.filter(f => f !== file);
-    const r = await fetch(libUrl("/__file", file), { method: "DELETE" });
-    if (!r.ok && r.status !== 404) throw new Error((await r.text()) || r.status);
+    const r = await fetch(libUrl("/__file", file) + (purge ? "&purge=1" : ""), { method: "DELETE" });
+    if (!r.ok && r.status !== 404) { LIB.files.push(file); throw new Error((await r.text()) || r.status); }
   }
 
   /* A file name for a document, from its title. Collisions get a number rather
@@ -5168,7 +5210,7 @@ const MD = (function () {
     try {
       await libWrite(want, d.content || "");
       d.file = want;
-      await libDelete(old);
+      await libDelete(old, true);
       renderDocs();
       updateSaveUI();
     } catch (e) { toast(tr("Could not rename the file on disk")); }
@@ -6353,7 +6395,9 @@ const MD = (function () {
     ];
     if (n.kind === "dir") {
       return [{ label: "New File…", run: () => newFileInFolder(n.path), disabled: !canEdit() },
-        { label: "New Folder…", run: () => newFolderIn(n.path), disabled: !canEdit() }, "-"].concat(common.slice(2));
+        { label: "New Folder…", run: () => newFolderIn(n.path), disabled: !canEdit() }, "-"].concat(common.slice(2),
+        ["-", { label: "Rename…", keys: "F2", run: () => startRename(n.path), disabled: !canEdit() || !n.path },
+          { label: "Delete", keys: "Delete", run: () => deleteDirEntry(n), disabled: !canEdit() || !n.path }]);
     }
     const head = n.kind === "img"
       ? [{ label: "Open", run: () => showImage(treeImgKey(n), n.path) },
@@ -6443,8 +6487,8 @@ const MD = (function () {
   async function startRename(path) {
     if (!canEdit()) return;
     await revealInTree(path);
-    const row = treeRowEl(path), n = nodeOfPath(path);
-    if (!row || !n) return;
+    const row = treeRowEl(path), n = nodeOfPath(path) || findDirNode(path);
+    if (!row || !n || (n.kind === "dir" && !n.path)) return;
     selectRow(path);
     const name = row.querySelector(".tree-name");
     const box = document.createElement("input");
@@ -6453,7 +6497,8 @@ const MD = (function () {
     box.spellcheck = false;
     name.replaceWith(box);
     box.focus();
-    const dot = n.name.lastIndexOf(".");
+    /* a file's name up to its extension; a folder's whole name */
+    const dot = n.kind === "dir" ? -1 : n.name.lastIndexOf(".");
     box.setSelectionRange(0, dot > 0 ? dot : n.name.length);
     let done = false;
     const finish = keep => {
@@ -6479,6 +6524,7 @@ const MD = (function () {
   }
 
   async function renameEntry(n, name) {
+    if (n.kind === "dir") return renameDirEntry(n, name);
     if (/[\\/:*?"<>|]/.test(name) || /[. ]$/.test(name)) {
       toast(tr("That is not a valid file name.")); renderTree(); return;
     }
@@ -6669,8 +6715,9 @@ const MD = (function () {
     const row = e.target.closest(".tree-row");
     if (!row || row.querySelector("input")) return;
     const n = nodeByPath.get(row.dataset.path);
-    if (!n || n.kind === "dir") return;
-    treeDrag = { n: n, row: row, x0: e.clientX, y0: e.clientY, on: false, pid: e.pointerId, key: "", target: null, ghost: null, timer: null };
+    /* files and folders alike; the top folder itself stays put */
+    if (!n || (n.kind === "dir" && !n.path)) return;
+    treeDrag = { n: n, row: row, x0: e.clientX, y0: e.clientY, on: false, pid: e.pointerId, key: null, target: null, ghost: null, timer: null };
   }
   function treeDragTarget(d, x, y) {
     const at = treeDirAt(x, y);
@@ -6678,6 +6725,12 @@ const MD = (function () {
     const from = d.n.path.split("/").slice(0, -1).join("/");
     if (at.dir === from) return null;
     if (d.n.kind === "img" && !inAssets(at.dir + "/x")) return null;
+    if (d.n.kind === "dir") {
+      /* never into itself or one of its own folders */
+      const lo = d.n.path.toLowerCase(), to = at.dir.toLowerCase();
+      if (to === lo || to.startsWith(lo + "/")) return null;
+      if (inAssets(d.n.path + "/x") && !inAssets((at.dir ? at.dir + "/" : "") + d.n.name + "/x")) return null;
+    }
     return at;
   }
   function treeDragMove(e) {
@@ -6733,7 +6786,7 @@ const MD = (function () {
     document.body.classList.remove("tab-dragging");
     if (d.ghost) d.ghost.remove();
     treeDraggedAt = Date.now();          /* the click that ends a drag is not an "open" */
-    if (target) moveEntry(d.n, target.dir);
+    if (target) { if (d.n.kind === "dir") moveDirEntry(d.n, target.dir); else moveEntry(d.n, target.dir); }
   }
 
   async function moveEntry(n, dir) {
@@ -6813,7 +6866,263 @@ const MD = (function () {
     renderNow();
   }
 
+  /* Links pointing into a folder that moved, in every document of the tree:
+     [x](old/a.md) becomes [x](new/a.md) - offered once for the whole folder. */
+  function rewriteIntoFolder(text, docPath, oldDir, newDir) {
+    let count = 0;
+    const lo = oldDir.toLowerCase() + "/";
+    const fix = url => {
+      let u = url, angle = false;
+      if (u.startsWith("<") && u.endsWith(">")) { u = u.slice(1, -1); angle = true; }
+      if (!isRelUrl(u)) return url;
+      const cut = u.search(/[?#]/), tail = cut >= 0 ? u.slice(cut) : "", p = cut >= 0 ? u.slice(0, cut) : u;
+      if (!p) return url;
+      let dec = p;
+      try { dec = decodeURIComponent(p); } catch (e) { }
+      const res = resolveRel(docPath, dec);
+      if (!res.toLowerCase().startsWith(lo)) return url;
+      let nu = relFrom(docPath, newDir + res.slice(oldDir.length));
+      if (!angle) nu = nu.split("/").map(s => s === ".." ? s : encodeURIComponent(s)).join("/");
+      count++;
+      return (angle ? "<" + nu + tail + ">" : nu + tail);
+    };
+    const out = text
+      .replace(/(\]\()(<[^>]*>|[^)\s]+)/g, (m, a, u) => a + fix(u))
+      .replace(/^( {0,3}\[[^\]^][^\]]*\]:[ \t]*)(<[^>]*>|\S+)/gm, (m, a, u) => a + fix(u))
+      .replace(/(\s(?:src|href)=")([^"]+)(")/gi, (m, a, u, b) => a + fix(u) + b);
+    return { text: out, count: count };
+  }
+  async function offerFolderLinkUpdate(oldDir, newDir) {
+    let nodes;
+    try { nodes = await allFileNodes(); } catch (e) { return; }
+    const inside = newDir.toLowerCase() + "/";
+    const edits = [];
+    for (const f of nodes) {
+      if (f.path.toLowerCase().startsWith(inside)) continue;      /* already pointed at the new place */
+      let text;
+      try { text = await searchText(f); } catch (e) { continue; }
+      const r = rewriteIntoFolder(text, f.path, oldDir, newDir);
+      if (r.count) edits.push({ f: f, count: r.count });
+    }
+    if (!edits.length) return;
+    const links = edits.reduce((a, e) => a + e.count, 0);
+    if (!confirm(tr("Update %n links in %m files to the new name?").replace("%n", links).replace("%m", edits.length))) return;
+    let done = 0;
+    for (const e of edits) {
+      const t = tabs.find(x => x.kind === "file" && x.path === e.f.path);
+      try {
+        if (t) {
+          if (t.id === activeTab) {
+            const r = rewriteIntoFolder(ed.value, t.path, oldDir, newDir);
+            const top = ed.scrollTop, at = ed.selectionStart;
+            ed.focus(); ed.setSelectionRange(0, ed.value.length); insert(r.text);
+            ed.setSelectionRange(Math.min(at, ed.value.length), Math.min(at, ed.value.length)); ed.scrollTop = top;
+          } else t.content = rewriteIntoFolder(t.content, t.path, oldDir, newDir).text;
+        } else {
+          const raw = await readNodeText(e.f);
+          const r = rewriteIntoFolder(raw, e.f.path, oldDir, newDir);
+          if (e.f.srv) await srvWrite(e.f.path, r.text); else await writeHandle(e.f.handle, r.text);
+          fileCache.set(e.f.path, normText(r.text));
+        }
+        done++;
+      } catch (err) { }
+    }
+    renderTabs(); renderTree(); updateSaveUI();
+    toast(tr("Updated links in ") + done + " " + tr(done === 1 ? "file" : "files"));
+  }
+
+  /* every file under a folder, as the tree knows them */
+  function filesUnder(n) {
+    const out = [];
+    (function walk(x) { (x.kids || []).forEach(k => { if (k.kind === "dir") walk(k); else out.push(k); }); })(n);
+    return out;
+  }
+  async function loadAllUnder(n) {
+    if (n.kind !== "dir") return;
+    if (n.kids === null && n.handle) await loadDir(n);
+    for (const k of n.kids || []) if (k.kind === "dir") await loadAllUnder(k);
+  }
+  /* the browser's folder handles have no dependable move for folders: copied, then removed */
+  async function copyDirHandle(src, destParent, name) {
+    const dest = await destParent.getDirectoryHandle(name, { create: true });
+    for await (const h of src.values()) {
+      if (h.kind === "directory") await copyDirHandle(h, dest, h.name);
+      else {
+        const fh = await dest.getFileHandle(h.name, { create: true });
+        const w = await fh.createWritable();
+        await w.write(await h.getFile());
+        await w.close();
+      }
+    }
+  }
+
+  /* A folder dragged onto another moves with everything in it. The documents inside
+     keep working: links between them are left as they are (they moved together),
+     links out of the folder are pointed at the same files from the new place, and
+     documents elsewhere that link into it are offered the update, once. */
+  async function moveDirEntry(n, dir) {
+    if (!canEdit() || !n.path) return;
+    const oldDir = n.path, name = n.name;
+    const newDir = (dir ? dir + "/" : "") + name;
+    if (oldDir === newDir) return;
+    if (findDirNode(newDir) || nodeByPath.get(newDir) || await findFileNode(newDir)) {
+      toast(tr("Something named ") + name + tr(" is already there.")); return;
+    }
+    await loadAllUnder(n);
+    const docs = filesUnder(n).filter(f => f.kind === "file");
+    stashActive();
+    try {
+      if (root.mode === "server") {
+        const r = await fetch(entryUrl(SRV_WS, oldDir, "movedir", dir || ""), { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+      } else {
+        const dest = dir ? await dirHandleAt(dir) : root.handle;
+        let taken = false;
+        try { await dest.getDirectoryHandle(name); taken = true; } catch (e) { }
+        try { await dest.getFileHandle(name); taken = true; } catch (e) { }
+        if (taken) throw new Error(tr("Something named ") + name + tr(" is already there."));
+        await copyDirHandle(n.handle, dest, name);
+        await (await parentDirHandle(oldDir)).removeEntry(name, { recursive: true });
+      }
+    } catch (e) { toast(tr("Could not move: ") + (e.message || e.name)); return; }
+    await afterFolderMoved(n, oldDir, newDir, docs, tr("Moved to ") + (dir || root.name));
+  }
+
+  /* Everything that knew a folder's old path follows it to the new one - after a move
+     or a rename alike: each document inside keeps its links working (ones between the
+     documents inside are left alone, ones out of the folder are pointed at the same
+     files), open tabs, closed-tab history and Docs take the new paths, and documents
+     elsewhere that link into the folder are offered the update once. */
+  async function afterFolderMoved(n, oldDir, newDir, docs, message) {
+    const lo = oldDir.toLowerCase() + "/";
+    const moved = p => p.toLowerCase().startsWith(lo) ? newDir + p.slice(oldDir.length) : null;
+    if (root.mode === "server") await loadServerWorkspace(false, true); else await refreshTree(tree);
+    /* each document inside: its links out of the folder follow it */
+    for (const f of docs) {
+      const np = moved(f.path);
+      try {
+        const node = await findFileNode(np);
+        if (!node) continue;
+        const raw = await readNodeText(node);
+        const fixed = relinkAll(raw, f.path, np, moved);
+        if (fixed !== raw) { if (node.srv) await srvWrite(np, fixed); else await writeHandle(node.handle, fixed); }
+        const t = tabs.find(x => x.kind === "file" && x.path === f.path);
+        if (t) {
+          const was = t.content;
+          t.path = np;
+          if (node.handle) t.handle = node.handle;
+          t.saved = normText(fixed);
+          t.content = relinkAll(t.content, f.path, np, moved);
+          if (t.id === activeTab) {
+            $("#docTitle").title = np;
+            if (t.content !== was) {
+              const a = ed.selectionStart, top = ed.scrollTop;
+              ed.value = t.content;
+              try { ed.setSelectionRange(Math.min(a, ed.value.length), Math.min(a, ed.value.length)); } catch (e) { }
+              ed.scrollTop = top;
+            }
+          }
+        }
+      } catch (e) { }
+    }
+    /* everything else that knew a path inside */
+    filesUnder(n).forEach(f => libTreeRenamed(f.path, moved(f.path)));
+    tabs.forEach(t => { if (t.kind === "file" && moved(t.path)) t.path = moved(t.path); });
+    closedTabs.forEach(c => { if (c.path && moved(c.path)) c.path = moved(c.path); });
+    dropSearchCache();
+    const opened = findDirNode(newDir);
+    if (opened) opened.open = true;
+    await revealInTree(newDir + "/x").catch(() => { });
+    renderTree();
+    selectRow(newDir);
+    renderTabs(); updateSaveUI();
+    toast(message);
+    await offerFolderLinkUpdate(oldDir, newDir);
+    renderNow();
+  }
+
+  /* Rename a folder in place, as a file is: F2, or right-click → Rename…. Only the
+     name changes, so links inside it all still work as written; documents elsewhere
+     that link into it are offered the update. An assets folder keeps its name - its
+     pictures only show while it is called that. */
+  async function renameDirEntry(n, name) {
+    if (!canEdit() || !n.path) { renderTree(); return; }
+    name = name.trim();
+    if (!name || /[\\/:*?"<>|]/.test(name) || /[. ]$/.test(name) || name.charAt(0) === "." || SKIP_DIR.test(name)) {
+      toast(tr("That is not a valid folder name.")); renderTree(); return;
+    }
+    if (n.name.toLowerCase() === ASSET_DIR && name.toLowerCase() !== ASSET_DIR) {
+      toast(tr("An assets folder keeps its name, or the pictures in it would no longer show.")); renderTree(); return;
+    }
+    const oldDir = n.path, parent = oldDir.split("/").slice(0, -1).join("/");
+    const newDir = (parent ? parent + "/" : "") + name;
+    if (newDir === oldDir) { renderTree(); return; }
+    const caseOnly = newDir.toLowerCase() === oldDir.toLowerCase();
+    if (!caseOnly && (findDirNode(newDir) || nodeByPath.get(newDir) || await findFileNode(newDir))) {
+      toast(tr("Something named ") + name + tr(" is already there.")); renderTree(); return;
+    }
+    await loadAllUnder(n);
+    const docs = filesUnder(n).filter(f => f.kind === "file");
+    stashActive();
+    try {
+      if (root.mode === "server") {
+        const r = await fetch(entryUrl(SRV_WS, oldDir, "renamedir", name), { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+      } else {
+        const ph = await parentDirHandle(oldDir);
+        if (n.handle && n.handle.move) await n.handle.move(name);
+        else {
+          /* copied under the new name, then the old one removed - through a spare name
+             when only the letter case changes */
+          const via = caseOnly ? name + ".rename-" + Date.now().toString(36) : name;
+          await copyDirHandle(n.handle, ph, via);
+          await ph.removeEntry(n.name, { recursive: true });
+          if (caseOnly) {
+            await copyDirHandle(await ph.getDirectoryHandle(via), ph, name);
+            await ph.removeEntry(via, { recursive: true });
+          }
+        }
+      }
+    } catch (e) { toast(tr("Could not rename: ") + (e.message || e.name)); renderTree(); return; }
+    await afterFolderMoved(n, oldDir, newDir, docs, tr("Renamed to ") + name);
+  }
+
+  /* A folder deleted goes with everything in it - to the Recycle Bin from the exe,
+     and for good from a folder opened in the browser, which has no Recycle Bin. You
+     are told how many documents are in it, and if any open one has unsaved changes. */
+  async function deleteDirEntry(n) {
+    if (!canEdit() || !n.path) return;
+    await loadAllUnder(n);
+    const all = filesUnder(n), docs = all.filter(f => f.kind === "file");
+    const lo = n.path.toLowerCase() + "/";
+    const open = tabs.filter(t => t.kind === "file" && t.path.toLowerCase().startsWith(lo));
+    const exe = root.mode === "server";
+    let msg = tr("Delete the folder") + ' "' + n.name + '" ' + tr("and everything in it") +
+      " (" + docs.length + " " + tr(docs.length === 1 ? "document" : "documents") +
+      (all.length > docs.length ? ", " + (all.length - docs.length) + " " + tr(all.length - docs.length === 1 ? "other file" : "other files") : "") + ")? ";
+    if (open.some(isDirty)) msg += tr("Open files in it have unsaved changes, which will be lost. ");
+    msg += tr(exe ? "It goes to the Recycle Bin." : "This cannot be undone.");
+    if (!confirm(msg)) return;
+    try {
+      if (exe) {
+        const r = await fetch(entryUrl(SRV_WS, n.path, "rmdir"), { method: "POST" });
+        if (!r.ok) throw new Error(await r.text());
+      } else {
+        await (await parentDirHandle(n.path)).removeEntry(n.name, { recursive: true });
+      }
+    } catch (e) { toast(tr("Could not delete: ") + (e.message || e.name)); return; }
+    all.forEach(f => libTreeDeleted(f.path));
+    const wasActive = open.some(t => t.id === activeTab);
+    tabs = tabs.filter(t => open.indexOf(t) < 0);
+    open.forEach(t => fileCache.delete(t.path));
+    if (wasActive) { activeTab = null; if (tabs.length) activateTab(tabs[0].id, true); else ensureTab(); }
+    if (exe) await loadServerWorkspace(false, true); else { await refreshTree(tree); }
+    renderTree(); renderTabs(); updateSaveUI();
+    toast(tr("Deleted ") + n.name + (exe ? tr(" (in the Recycle Bin)") : ""));
+  }
+
   async function deleteEntry(n) {
+    if (n && n.kind === "dir") return deleteDirEntry(n);
     if (!canEdit()) return;
     const exe = root.mode === "server";
     if (!confirm(tr("Delete") + ' "' + n.name + '"? ' +
@@ -7171,7 +7480,7 @@ const MD = (function () {
      src="..." and href="..." - is rewritten to reach the same file from the new place.
      Links to the open web and to #headings are left alone, and so is anything after a
      ? or # in the link. */
-  function relinkAll(text, fromDoc, toDoc) {
+  function relinkAll(text, fromDoc, toDoc, moved) {
     const fix = url => {
       let u = url, angle = false;
       if (u.startsWith("<") && u.endsWith(">")) { u = u.slice(1, -1); angle = true; }
@@ -7180,9 +7489,13 @@ const MD = (function () {
       if (!p) return url;
       let dec = p;
       try { dec = decodeURIComponent(p); } catch (e) { }
-      const target = resolveRel(fromDoc, dec);
+      let target = resolveRel(fromDoc, dec);
       if (!target) return url;
+      /* a file that moved along with this one (a whole folder moved) is where it went */
+      if (moved) target = moved(target) || target;
       let nu = relFrom(toDoc, target);
+      /* still the same file from here: the link stays exactly as it was written */
+      if (resolveRel(toDoc, nu).toLowerCase() === resolveRel(toDoc, dec).toLowerCase()) return url;
       if (!angle) nu = nu.split("/").map(s => s === ".." ? s : encodeURIComponent(s)).join("/");
       return (angle ? "<" + nu + tail + ">" : nu + tail);
     };
@@ -7989,14 +8302,19 @@ const MD = (function () {
     if (!silent) { $("#docTitle").focus(); $("#docTitle").select(); }
     return d;
   }
-  function deleteDoc(id) {
+  async function deleteDoc(id) {
     const d = state.docs.find(x => x.id === id);
     if (!d) return;
     if (!confirm(tr("Delete") + ' "' + (d.name || tr("Untitled")) + '"? ' +
       (d.file && LIB.ok ? d.file + tr(" goes to the Recycle Bin.")
         : tr("This cannot be undone.")))) return;
+    /* the file first: a document whose file could not be deleted stays in the list,
+       rather than vanishing from it and coming back at the next start */
+    if (d.file && LIB.ok) {
+      try { await libDelete(d.file); }
+      catch (e) { toast(tr("Could not delete: ") + (e.message || e.name)); return; }
+    }
     forgetDoc(id);
-    if (d.file && LIB.ok) libDelete(d.file).catch(() => { });
     const tab = tabs.find(t => t.kind === "local" && t.docId === id);
     if (tab) {
       const wasActive = tab.id === activeTab;
@@ -9584,8 +9902,8 @@ const MD = (function () {
     $("#treeBody").addEventListener("keydown", e => {
       if (!treeSel || e.target !== $("#treeBody")) return;
       const n = nodeOfPath(treeSel) || nodeByPath.get(treeSel);
-      if (e.key === "F2" && n && n.kind !== "dir") { e.preventDefault(); e.stopPropagation(); startRename(treeSel); return; }
-      if (e.key === "Delete" && n && n.kind !== "dir") { e.preventDefault(); deleteEntry(n); return; }
+      if (e.key === "F2" && n && (n.kind !== "dir" || n.path)) { e.preventDefault(); e.stopPropagation(); startRename(treeSel); return; }
+      if (e.key === "Delete" && n && (n.kind !== "dir" || n.path)) { e.preventDefault(); deleteEntry(n); return; }
       if (e.key === "Enter" && n) { e.preventDefault(); treeRowEl(treeSel).click(); return; }
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();

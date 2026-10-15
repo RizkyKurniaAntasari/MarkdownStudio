@@ -1,777 +1,433 @@
 # Markdown Studio
 
-A complete offline Markdown editor with live preview. One HTML file, no build step,
-no dependencies, no internet connection required.
+An offline Markdown editor for Windows with live preview, a file explorer, and a
+picture-in-picture window. The whole application is a single HTML file, wrapped in a
+small launcher (`MarkdownStudio.exe`) that gives it a real app window and access to the
+file system. No build step, no dependencies, no internet connection.
 
-## Running it
+## Contents
 
-**Double-click `MarkdownStudio.exe`.** This is the best way to use it: you get a real
-app window with no address bar, its own taskbar icon, and — because it serves the page
-over `http://127.0.0.1` instead of `file://` — **Open Folder and saving to disk work
-fully, with no laragon needed**.
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Markdown support](#markdown-support)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Where documents are stored](#where-documents-are-stored)
+- [How it works](#how-it-works)
+- [Building](#building)
+- [Troubleshooting](#troubleshooting)
+- [Changelog](#changelog)
 
-**`MarkdownStudio.exe` is the whole product — one file.** The entire `index.html` is
-baked into it, so you can copy just that exe to the Desktop, a USB stick, a colleague's
-machine, anywhere. Nothing else has to travel with it: the other files in this
-repository are how the exe is built, not part of it.
+## Features
 
-One thing to know if you ship both: an `index.html` sitting next to the exe **wins**
-over the copy inside it. That is on purpose — it is how you can change the app without
-rebuilding — but it also means a stale `index.html` beside the exe would silently
-override a newer one baked in. For handing the app to someone, send the exe alone.
+| Area | Highlights |
+| ---- | ---------- |
+| Editing | Live preview with synced scrolling, formatting toolbar, find and replace with regex, smart list continuation |
+| Files | Explorer tree for any folder, tabs, create, rename, move and delete files and folders, Recycle Bin on delete |
+| Documents | A personal library ("Docs") stored as real `.md` files in `Documents\Markdown Studio` |
+| Pictures | Paste a screenshot with `Ctrl+V`; it is saved to an `assets` folder and linked automatically |
+| Links | Relative links open as tabs; moving or renaming files offers to update links |
+| Picture-in-picture | A small always-on-top window for reading or editing while another app has the screen |
+| Diagrams | Built-in Mermaid flowchart renderer, exportable as PNG or SVG |
+| Keyboard | VS Code key bindings, command palette, Go to file |
+| Language | English and Bahasa Indonesia interface |
+| Mobile | Responsive single-pane layout below 780 px |
+
+## Installation
+
+### Requirements
+
+- Windows 10 or 11
+- Microsoft Edge or Google Chrome (used as the app window)
 
 ### Installing
 
-The exe is its own installer, and **setup is not optional**. Double-click a copy that
-has not been installed and you get setup — install, or nothing opens. Cancel and the
-program simply exits: no window, no server, nothing left behind.
+Run `MarkdownStudio.exe`. An uninstalled copy always opens setup first; cancelling exits
+without leaving anything behind.
 
-That is deliberate. Left to run from wherever it was downloaded to, the Start menu
-entry and the file associations it registers would point into your Downloads folder and
-break the first time you tidied it up. Setup puts it somewhere that stays:
+Setup does the following:
 
-- Copies itself to a folder you choose. Setup suggests
-  `%LOCALAPPDATA%\Programs\Markdown Studio`, which always works without administrator
-  rights; type another path or press **Browse…** for anywhere else your account can
-  write — another drive, a tools folder, a USB stick
-- Points the Start menu entry and the "Open with" registration at *that* copy,
-  wherever it went, not at wherever you happened to double-click
-- Lists itself in **Settings → Apps → Installed apps**, with an uninstaller
+1. Copies the exe to a folder you choose. The default, `%LOCALAPPDATA%\Programs\Markdown Studio`,
+   needs no administrator rights. A folder that requires them is rejected with an explanation.
+2. Registers **Open with → Markdown Studio** for `.md`, `.markdown`, `.mdown`, `.mkd` and `.mdwn`.
+   It does not make itself the default app.
+3. Adds a Start menu entry, so the Windows search box finds it.
+4. Adds an entry under **Settings → Apps → Installed apps** with an uninstaller.
 
-The folder you picked is recorded as the install location in that Apps entry, which is
-where Windows keeps one anyway — so it is read back from there, and it goes when the
-uninstall does. Pick a folder that needs administrator rights, such as
-`C:\Program Files`, and setup says so and asks again rather than failing halfway.
+All registration is per user. The installed copy opens directly into the editor.
 
-Once installed, that copy opens straight into the editor and never shows setup again.
+### Command-line options
 
-`--install` and `--uninstall` do the same from the command line without the window, and
-`--install "D:\Apps\Markdown Studio"` installs to a folder you name.
+| Option | Effect |
+| ------ | ------ |
+| `--install [folder]` | Install without the setup window, optionally to the given folder |
+| `--uninstall` | Remove the program, Start menu entry and file associations |
+| `--register` / `--unregister` | Add or remove the Open with entry and Start menu shortcut |
+| `--portable` | Run without installing (for development) |
+| `<file or folder>` | Open that file, or that folder as the workspace |
 
-**`--portable` runs without installing.** That exists for working on the app itself,
-where the whole point is to run the copy you just built (and to pick up an `index.html`
-sitting beside it). It is not the way to use the program day to day.
+Uninstalling keeps your documents and your settings (`%LOCALAPPDATA%\MarkdownStudio`), so a
+later reinstall continues where you left off.
 
-Uninstalling removes the program, the Start menu entry and the file associations —
-**and nothing else**. Your documents stay in their folder, and your settings, open
-documents and chosen library folder stay in `%LOCALAPPDATA%\MarkdownStudio`, so
-installing again picks up exactly where you left off.
+### Running without the exe
 
-It serves on a fixed loopback port, `127.0.0.1:41873`, opens Edge (or Chrome) in app
-mode with its own profile in `%LOCALAPPDATA%\MarkdownStudio`, and shuts the server down
-when you close the last window. Nothing listens on the network — only `127.0.0.1`.
+`index.html` also works on its own. What it can do depends on how it is opened:
 
-The port is fixed on purpose: the browser files everything it stores (your Docs,
-settings, the remembered folder) under the page's origin, and the origin includes the
-port. A random port per launch meant every session quietly started empty. If some
-other program already holds 41873 the app still starts on a free port, just without
-that memory for the session.
+| Opened via | Open Folder | Docs | `Ctrl+S` on a folder file |
+| ---------- | ----------- | ---- | ------------------------- |
+| `MarkdownStudio.exe` | Read and write | Files in `Documents\Markdown Studio` | Saves in place |
+| `http://localhost/...` (local web server) | Read and write | Browser storage | Saves in place |
+| Double-clicked `index.html` (`file://`) | Read-only | Browser storage | Downloads a copy |
 
-The window is sized to your screen the first time it runs; after that it reopens at
-whatever size you last left it.
+Features that require the exe (the documents folder, Open with, the Recycle Bin) are hidden
+in the other modes rather than shown as unavailable. An `index.html` placed next to the exe
+takes precedence over the copy built into it; distribute the exe on its own.
 
-### Open with
+## Usage
 
-Right-click any `.md` file → **Open with** → **Markdown Studio**, and it opens that
-file straight away — no Open Folder step. The **folder that file lives in becomes the
-workspace**, so the Explorer tree is filled in, links to sibling files work, and
-`Ctrl+S` writes back to the real file on disk.
+### Documents and folders
 
-Run the exe once and it registers itself for **Open with** on `.md`, `.markdown`,
-`.mdown`, `.mkd` and `.mdwn` files, so it stays in that menu for good. Picking an exe
-through "Choose another app" only lands it in a short recently-used list, and Windows
-drops it again once other apps push it out, which is why it used to vanish. This goes
-in your own user's registry only (no admin), it does not make itself the default app,
-and it follows the exe if you move it — just run it once from the new place.
-`MarkdownStudio.exe --unregister` removes it; `--register` re-adds it without opening
-a window. To have `.md` files open in it on a double-click, pick it once in
-**Open with → Choose another app** and tick **Always**.
+The sidebar has four panes:
 
-You can hand it a folder the same way, or drag a file or folder onto the exe.
+| Pane | Contents |
+| ---- | -------- |
+| Explorer | The opened folder (`Ctrl+K Ctrl+O`). Lists Markdown and text files, everything inside `assets` folders, and all subfolders. `node_modules`, `.git`, `vendor`, `dist` and hidden folders are skipped |
+| Docs | Your personal documents, with search |
+| Outline | Headings of the current document |
+| Search | Full-text search across the opened folder (`Ctrl+Shift+F`), with case and regex options |
 
-### In the Windows search box
+Files from a folder are saved with `Ctrl+S` and marked as unsaved until then, as in VS Code.
+Docs save automatically as you type. Line endings (CRLF or LF) and byte-order marks are
+preserved on save.
 
-The same first run also puts **Markdown Studio** in your Start menu, so pressing the
-Windows key and typing `markdown` finds it the way typing `chrome` finds Chrome. That
-shortcut is what the search box actually looks at — an "Open with" registration alone
-never shows up there. It goes in your own Start menu folder only, follows the exe if
-you move it (run it once from the new place), and `--unregister` takes it away again.
+### Working with files and folders
 
-Your documents turn up there too. By default they live in
-**`Documents\Markdown Studio`**, which Windows indexes out of the box, so a note's
-*name* is searchable straight away. The
-first run also asks the indexer to read *inside* `.md` files, using the plain-text
-reader Windows already ships with, so a phrase from the middle of a note finds it as
-well. That is one value per extension in your own registry; it does not change which
-app opens `.md` files. Windows may take a few minutes to index a folder the first
-time it sees it.
+All operations are available from the right-click menu in the Explorer.
 
-Doing this again while the app is already open gives you a second window rather than
-replacing the one you are working in. The new launch hands its file to the copy that
-is already running and exits, so both windows share one server and one origin.
+| Action | Files | Folders |
+| ------ | ----- | ------- |
+| Create | **New File…** or the **+** button | **New Folder…** or the folder button. Empty folders are shown |
+| Rename | **Rename…** or `F2`, edited in place | **Rename…** or `F2`, edited in place |
+| Move | Drag onto a folder, or onto the top bar to move it to the top level | Drag onto another folder; moves everything inside |
+| Delete | **Delete** or the `Delete` key | **Delete** or the `Delete` key; the dialog lists what it contains |
+| Other | Reveal in File Explorer, Copy Path, Copy Relative Path, Insert into document (assets) | Copy Path, Copy Relative Path |
 
-Under the hood: a browser cannot read a path just because it was named on a command
-line, so the launcher serves that folder over the same loopback connection and the app
-reads and writes through it. Those endpoints are guarded by a random key generated
-when the app starts and passed on the app's own URL, they refuse any path outside the
-folder, and they only ever touch what the Explorer tree shows: Markdown and text files,
-and the contents of `assets` folders. Pictures are read and saved as pictures only
-(`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, ...), an SVG is never let out as anything but a
-picture, a rename stays in the same folder and never lands on another file, a move
-between folders keeps the file's name and never lands on another file either (and a
-picture from an `assets` folder only goes into another one), New Folder never makes a
-hidden or skipped folder, and a delete goes to the Recycle Bin. The one endpoint that touches windows, `/__float`,
-opens the floating window on the app's own page with the app's own browser profile,
-and only ever moves, styles, closes or brings forward windows of that browser. A later launch finds that key in
-`%LOCALAPPDATA%\MarkdownStudio\instance`, inside your own profile.
+Rules applied to every operation:
 
-To rebuild it after editing `index.html`, run `build-exe.cmd` (from PowerShell:
-`.\build-exe.cmd`). It uses the C# compiler that already ships with Windows, so there
-is nothing to install. It is fine to build while Markdown Studio is open: the running
-copy is moved aside as `MarkdownStudio.old.exe` and keeps working, the build tells you
-to restart it, and the next build deletes the old copy. A failed build never touches
-the working exe.
+- An existing file or folder is never overwritten. The operation is refused instead.
+- A document keeps a Markdown extension; typing a name without one adds `.md`.
+- A folder cannot be moved into itself. Changing only the letter case of a name is supported.
+- Files inside an `assets` folder can only move to another `assets` folder, and an `assets`
+  folder cannot be renamed, because pictures are only listed inside folders with that name.
+- During a drag, the target folder is highlighted, holding over a closed folder opens it,
+  and `Esc` cancels.
+- Deleted files and folders go to the Recycle Bin. If the Recycle Bin refuses, nothing is
+  deleted and an error is shown. In a folder opened in a browser (no exe) deletion is permanent,
+  and the confirmation says so.
 
-### The icon
+### Links after moving or renaming
 
-The icon is the gradient **M** with a downward arrow — the Markdown mark — on a dark
-rounded square. It lives in two places, and both have to change together:
+| Situation | What happens |
+| --------- | ------------ |
+| A file is moved | Its relative links are rewritten so they reach the same targets from the new location |
+| A folder is moved | Links between files inside the folder are left unchanged; links to files outside are rewritten |
+| A file or folder is renamed or moved | Other documents that link to it are found, and you are asked once whether to update them |
 
-- **`icon.ico`** is baked into the exe by `build-exe.cmd`. It is what Windows shows for
-  the exe itself, the Start menu entry, the desktop shortcut, Installed apps and `.md`
-  files opened with it. It holds nine sizes — 16, 20, 24, 32, 40, 48, 64, 128 and 256
-  px — so Windows picks the one drawn for the taskbar, Alt+Tab, the desktop or the
-  display scale in use, instead of resizing a single picture for all of them
-- **`index.html`** carries the same picture as PNGs written into the page: the page's
-  icon (32 and 256 px) and the logo at the top left of the app (64 px, so it is still
-  sharp on a high-DPI screen). The app window and the floating window take their icon
-  from the page, not from the exe, which is why the page needs its own copy
+Links that still point to the right file are left exactly as written. Open files receive
+the update in the editor and are left unsaved; closed files are written directly, keeping
+their line endings. Anchors (`#heading`) and external URLs are never changed.
 
-`icon-v2.jpg` is the 2048×2048 source. The mark sits small in the middle of it, so the
-icon is cut from it rather than shrunk whole: the **sharp point of the M's V** is put
-exactly on the vertical centre line of the square, and the mark is centred top to
-bottom. The arrow then reaches further left than the M does right — on purpose: it is
-the M that the eye reads as the middle. The mark fills enough of the square to stay
-readable at 16 px, with room left around the arrow.
+### Tabs
 
-After changing the icon, rebuild the exe, then close Markdown Studio and run the new
-exe's setup again so the installed copy and its shortcuts pick it up. If a shortcut
-still shows the old picture, that is Windows' icon cache; it refreshes after signing
-out and back in.
+- Each open file gets a tab. Drag tabs to reorder them, or use `Ctrl+Shift+PageUp/PageDown`.
+- Drag a tab onto a folder in the Explorer to move its file there, or onto the Docs pane to
+  turn it into a Doc. A Doc dropped on a folder becomes a file in that folder.
+- **Copy Tab** (right-click a tab) and **Paste Tab** (right-click an empty part of the tab bar)
+  create a new Doc with the same content. The original is not affected.
+- Pictures referenced by a moved or copied document are copied along when they would
+  otherwise be out of reach, and the links are adjusted.
 
-### Or just open the HTML
+### Pictures and the assets folder
 
-**Double-click `index.html`.** It opens in your default browser and works fully
-offline, but browsers refuse disk access to `file://` pages, so Open Folder is
-read-only and `Ctrl+S` downloads instead of saving in place.
+Take a screenshot (`Win+Shift+S`) and press `Ctrl+V` in the editor. The image is saved as
+`assets/<document>-<date>-<time>.png` next to the document and a link is inserted on its own
+line. Dropped image files keep their original names. Existing names are never overwritten.
 
-But if you want to **edit files on your disk in place**, start laragon and open it at
-`http://localhost/MDpreviewer/` instead. Browsers only hand out write access to a real
-folder on an `http(s)` origin — never on a `file://` page. Both modes are offline; the
-difference is only what saving does:
+Without a writable folder (a browser-only document or a read-only folder), the image is
+embedded in the document as a reference at the end of the file.
 
-| Opened via | Open Folder | Docs | First `Ctrl+S` on a folder file |
-| ---------- | ----------- | ---- | ------------------------------- |
-| **`MarkdownStudio.exe`, Open with** | Folder is already loaded | Real files in `Documents\Markdown Studio` | Writes to that file, no dialog |
-| **`MarkdownStudio.exe`** | Full read/write tree | Real files in `Documents\Markdown Studio` | Writes to that file, no dialog |
-| `http://localhost/MDpreviewer/` (laragon) | Full read/write tree | Browser storage only | Writes to that file, no dialog |
-| Double-clicked `index.html` | Read-only tree | Browser storage only | Downloads a copy |
+`assets` folders show all of their contents in the Explorer. The Docs pane lists the
+library's pictures and marks those not used by any document. **Export HTML** embeds all
+pictures, so the exported file is self-contained.
 
-The app tells you which mode you are in — a read-only folder is labelled as such in
-the Explorer, and the status bar always names the current state.
+### Picture-in-picture
 
-Features that only the exe can provide are **left out** of the page opened on its own
-rather than shown and not working: Settings has no Documents section (there is no
-documents folder to show, change or open), and the Welcome guide leaves out Docs as
-files, the library's `assets`, Open with and the documents folder, describing what the
-page does instead — Docs kept in this browser, and read-only folders on `file://`.
+Enable it under **Settings → Window**, then open it with the toolbar button, `Ctrl+Alt+P`,
+or the menu.
 
-**Saving anywhere you like.** A file opened from a folder is written back where it
-came from. For anything else — a page served by laragon, or a browser-only document —
-the first `Ctrl+S` opens the system save dialog so you can put the file on the Desktop
-or anywhere else. After that the document is *bound* to that file: every later
-`Ctrl+S` writes straight to it with no dialog. Run from the exe, Docs never ask at
-all; they already have a file of their own (see **Where your work is stored**).
+- **Preview** mode follows the document; ticking a task updates the source.
+- **Edit** mode is a small editor that writes to the same document, so autosave, `Ctrl+S` and
+  unsaved markers work as usual. Edits made in either window appear in the other.
+- Switching between Preview and Edit keeps the reading position.
+- The window follows document and theme changes. The **↩** button returns to the main window.
 
-On a `file://` page browsers refuse the save dialog outright, so saving falls back to a
-download. Chrome's **"Ask where to save each file before downloading"** setting is the
-closest you get to choosing a folder there; serving through laragon is the real fix.
+Run from the exe, the floating window is an app window titled "Markdown Studio", pinned on
+top in the bottom-right corner (420 × 560). It has no taskbar button or Alt+Tab entry, stays
+visible when the main window is minimized, and closes with the main window. Minimizing the
+floating window closes it. In a plain browser the browser's own Document Picture-in-Picture
+is used instead (Edge or Chrome 116+), which shows the page address in its title bar.
 
-The whole app is one file, `index.html` (~520 KB, icons included). Copy it to a USB stick, email it,
-drop it on any machine with a browser — it keeps working.
+### Settings and language
 
-## What it does
+**Settings** (`Ctrl+,`) contains the documents folder, word wrap, scroll sync, wide layout,
+text sizes, theme, language and picture-in-picture.
 
-**Workspace (VS Code style)**
-- **Open Folder** (`Ctrl+K Ctrl+O`) loads a whole folder into an Explorer tree
-- Nested folders expand on click; heavy folders (`node_modules`, `.git`, `vendor`,
-  `dist`, ...) are skipped, and only Markdown and text files are listed
-- Open as many files as you like — each gets a **tab** across the top, and the tab
-  strip scrolls with a plain mouse wheel once there are more tabs than fit
-- Unsaved tabs show a dot and italic name; closing one asks first
-- `Ctrl+S` saves the current file, `Ctrl+K S` saves every changed file
-- `Alt+1`–`9` jumps to a tab, `Ctrl+PageDown/PageUp` cycles, `Ctrl+W` closes,
-  `Ctrl+Shift+T` reopens the last one closed
-- **Move tabs as in Chrome**: drag a tab along the bar and drop it where you want it;
-  the others make room as it passes their middle, and the tab you carried is the one
-  you see. `Ctrl+Shift+PageUp/PageDown` moves the current tab a place left or right
-  (VS Code's keys), and `Esc` while dragging puts everything back. On a touch screen
-  a finger on the bar scrolls it instead
-- **Drag a tab to move where it is stored**: carried off the bar, a tab can be dropped
-  on a **folder in the Explorer** — its file moves into that folder (dropped on a file,
-  into that file's folder) — or on the **Docs** pane or button, where the file becomes
-  a Doc. A Doc dropped on a folder leaves Docs and becomes a file there. The folder
-  under the pointer lights up and a label names it; holding over a closed folder opens
-  it, holding over the Explorer or Docs button switches to that pane, and letting go
-  anywhere else does nothing. The tab keeps its place on the bar and shows the file in
-  its new home. It is a move: the file is written in the new place with its line
-  endings and byte-order mark kept, then the old one goes — to the Recycle Bin from
-  the exe. Pictures keep showing: links to pictures in the same folder tree are
-  rewritten to reach them from the new place, pictures from another folder (a file
-  moved into Docs, or a Doc into a folder) are copied into an `assets` folder beside
-  it, and documents that linked to the moved file are offered the same link update as
-  after a rename. A file that cannot be written to (a read-only folder) is copied
-  instead, and the toast says so
-- **Copy a tab**: right-click it → **Copy Tab**, then right-click an empty part of the
-  tab bar → **Paste Tab**. The paste opens a new tab with the same content, named
-  "… (copy)" — but it is a **new document in a new place**, never the same file, so
-  editing the copy leaves the original alone. From the exe the copy is a Doc with its
-  own `.md` file in the documents folder; in a plain browser it is a Doc in that
-  browser's storage. Pictures the original shows from its own `assets` folder would
-  not be beside the copy, so they are copied into the documents folder's `assets`
-  (or, with no folder to put them in, into the text) and the copy's links point at
-  them. Copying a Doc to a Doc needs none of that — both live in the same folder
-- The tab bar is always there, even with one document open, so its empty part can
-  be right-clicked: **Paste Tab**, **New document** and **Reopen closed editor**
-- The folder is remembered, so you can reopen it in one click after a reload
-- **New file**, **New folder** and **Refresh** buttons at the top of the tree. A new
-  file or folder never replaces one that is already there under that name, and an
-  empty folder shows in the tree straight away
-- **Drag files between folders**: drop a file on a folder to move it inside, or on the
-  top bar or the empty space below the files to take it out to the top. The folder
-  under the pointer lights up, holding over a closed folder opens it, and `Esc` puts it
-  back. A moved document's own links are rewritten to reach the same files from its
-  new folder, and documents that linked to it are offered the same update as after a
-  rename. Pictures from an `assets` folder only go into another `assets` folder
-- **Right-click, as in VS Code.** Files, folders, the contents of `assets`, Docs and
-  editor tabs each have a menu: **Open**, **Reveal in File Explorer**, **Copy Path**,
-  **Copy Relative Path**, **Rename…** and **Delete**, plus **New File…** and
-  **New Folder…** on a folder and on the empty space below the files,
-  **Insert into document** on an asset, and **Close Others** and **Copy Tab** on a tab
-- **Rename in place**: the row becomes a box with the name selected up to its
-  extension; `Enter` keeps it, `Esc` puts it back. Click a file once and `F2` renames
-  it, `Delete` deletes it. Typing a name without `.md` keeps the extension, a name
-  already in the folder is refused, and a document cannot be renamed into something
-  that is not a document. When other documents link to the file — pictures included —
-  you are asked whether to **update those links**: open files are changed in the
-  editor and left for you to save, closed ones are written with their own line endings
-  and BOM. A delete goes to the **Recycle Bin**; in a folder opened in the browser,
-  where there is no Recycle Bin, it says the file is gone for good before it does it
-- **Links between files work.** Click `[notes](notes.md)` in the preview and it opens
-  that file as a tab instead of navigating away. Relative paths resolve from the file
-  you are in, so `../notes.md` and `sub/deep.md` both work, an extension-less
-  `[notes](notes)` still finds `notes.md`, and `notes.md#a-heading` opens the file and
-  jumps to that heading. Links to the open web still open in a new browser tab.
+The interface is available in English and Bahasa Indonesia, or follows the system language.
+Documents are never translated. The Welcome guide (**⋮ menu → Welcome guide**) is written in
+both languages and covers the application and Markdown syntax with side-by-side examples.
 
-**Editing**
-- Live preview that updates as you type, with scroll synced between the two panes
-- **Select text in the editor and the preview highlights the matching block** and
-  scrolls to it if it is off screen — select a whole list and it highlights as one
-  block, select one item and only that item lights up. Toggle it with
-  **Menu → Sync scroll & selection**
-- Formatting toolbar plus keyboard shortcuts (`Ctrl+B`, `Ctrl+I`, `Alt+S`, ...) — see
-  *Keyboard shortcuts* below
-- **Paste a screenshot straight in**, the way Word takes one: `Win+Shift+S`, then
-  `Ctrl+V` in the editor. The picture is saved as a real file in an `assets` folder
-  next to the document — `assets/notes-20261011-153012.png` — and
-  `![image](assets/notes-20261011-153012.png)` goes in on its own line where the caret
-  was. Dragging image files onto the window does the same, keeping their own names.
-  It works for files from an opened folder and for Docs (their pictures go in the
-  library's `assets` folder, and move with it when you change folders). A name that is
-  already taken is never overwritten. Copying cells from Excel or text from Word still
-  pastes the text, even though those also put a picture on the clipboard.
-  With no folder to write to — a browser-only document, or a read-only folder — the
-  picture is embedded in the document instead, as a reference at the very end, so the
-  text where you pasted it stays a short `![image][img-1]`.
-  **Export HTML** puts every picture inside the file, so it opens anywhere
-- **You can see what is in `assets`.** Outside an `assets` folder the Explorer still
-  lists only Markdown files, but an `assets` folder (at any depth) shows everything in
-  it — pictures, PDFs, subfolders. The Docs pane lists the library's `assets` under
-  the documents, each picture with the document that uses it (or
-  *not used in any document*, in orange). Click one to see it with its size and full
-  path, copy the path, or **Insert into document**, which writes the right relative
-  link from the document you are in (`../assets/...` from a subfolder). A picture you
-  have just pasted shows up straight away: the Explorer switches to it, opens the
-  `assets` folder — even one the paste has only just created — and flashes the new file
-- Smart Enter: continues bullet, numbered, task and quote lists; empty item ends the list
-- `Tab` / `Shift+Tab` to indent, `Alt+Up/Down` to move lines, `Shift+Alt+Down` to
-  duplicate, `Ctrl+D` to select the word and then its next match
-- Find and replace (`Ctrl+F`) with case-sensitive and regex modes. Every hit is
-  highlighted, the current one is outlined, and the view scrolls to it — focus stays
-  in the search box so you can keep typing and press `Enter` to step through matches
-- **Search works in Preview mode too**, against the rendered text rather than the
-  Markdown source, so a phrase still matches when it runs across bold or a link.
-  Preview is read-only, so replace is switched off there and the bar says so.
-  Switching views hands the search over to whichever pane is on screen
-- Three view modes: editor only, split, preview only (`Ctrl+1/2/3`). **Switching
-  keeps your place** — each pane goes back to the line it was showing, recomputed for
-  its new width, instead of jumping to the top, and the pane that appears fades in
-- Both panes centre their text in a readable column instead of stretching across a
-  maximised window; **Menu → Wide layout** turns that off when you want the full width
-- Files keep their own line endings and encoding: a CRLF file is written back as CRLF
-  and a byte-order mark is preserved, so opening a file never counts as changing it.
-  The file is read as raw bytes for this, because the browser's own text reading
-  quietly drops the mark
-- The ⋮ menu sizes itself to the window and scrolls when it does not fit, so nothing
-  hides off the bottom edge on a short screen
-- **Picture-in-picture, like Google Meet.** A small window that stays on top of every
-  other app, showing the document you are in. Turn it on in **Settings → Window**, then
-  open it with the button that appears in the top bar, `Ctrl+Alt+P` or the ⋮ menu.
-  **Preview** follows what you type (and ticking a task in it ticks the document);
-  **Edit** turns it into a small editor, so you can keep taking notes while another app
-  has the screen — it writes into the same document, so saving, autosave and the unsaved
-  marks behave as usual, and `Ctrl+S` works inside it. Switching between the two keeps
-  your place: the paragraph at the top of one is at the top of the other. It follows
-  when you switch documents and themes, and ↩ brings the main window to the front and
-  closes it
-- **Its title bar says "Markdown Studio"**, with the app's icon. The browser's own
-  picture-in-picture window prints the page's address there — `ⓘ 127.0.0.1:41873` — and no
-  page can change that, so run from the exe the floating window is not the browser's:
-  it is one of the app's own windows, opened on the same page in a floating mode, which
-  the exe pins on top, sizes to 420×560 in the bottom-right corner of the screen the app
-  is on, and keeps in step with the main window
-- **One app in Alt+Tab, not two.** The floating window has no Alt+Tab entry and no
-  taskbar button of its own (the exe gives it the tool-window style floating palettes
-  have), it stays on screen when you minimize the main window, and it closes with the
-  main window. Since it would be out of reach minimized, its minimize button closes it;
-  the picture-in-picture button brings it back
-- Opened as a plain browser page there is no exe to pin a window, so there the floating
-  window is the browser's Document Picture-in-Picture (Edge or Chrome 116+), with the
-  address in its title bar and an Alt+Tab entry of its own. Opening it takes a click or
-  a key, because a browser only lets a video call open one by itself
-- **Settings** (`Ctrl+,`) holds the documents folder, soft wrap, sync scroll, wide
-  layout, both text sizes, dark mode, the language and picture-in-picture — one place per setting, rather
-  than the same switch in a menu and a panel
-- **English and Bahasa Indonesia.** The whole interface — menus, panels, tooltips,
-  the status bar, the shortcut sheet, messages and questions — switches between them
-  from Settings, and **Follow the system** picks the one the machine is already set to.
-  English is the source text and Indonesian is a translation table keyed by it, so a
-  string nobody has translated yet reads as English rather than as a missing label.
-  Only the interface: your documents are your own words and are never touched. The
-  Welcome guide is written out in full in both languages, and you get the one your
-  interface is in — on the first run, and from **⋮ menu → Welcome guide**
-- **Unsaved changes are hard to miss**: an orange dot and italic name on the tab, a dot
-  in the file tree, a badge on the Save button, an orange "Unsaved changes" in the
-  status bar, and a ● in the browser tab title. Hover the status bar to see exactly
-  which file it is in sync with
+### More than one window
 
-**Markdown support**
-- Headings (ATX and setext), bold, italic, strikethrough, `==highlight==`, sub/sup
-- Lists: bullet, numbered, nested, and clickable task lists that write back to the source
-- Tables with column alignment and escaped pipes
-- Fenced code blocks with syntax highlighting for ~25 languages
-- **Mermaid flowcharts are drawn, not printed.** A block marked `mermaid` becomes a
-  diagram; the bar under it has **Code** to read the source that made it, **Copy**,
-  and **PNG** / **SVG** to save the picture. See *Diagrams* below
-- Blockquotes and GitHub-style callouts: `> [!NOTE]`, `[!TIP]`, `[!WARNING]`, ...
-- Links, reference links, images, autolinks, and footnotes. An image's alt text is
-  its label as plain words — `![the *login* page](...)` reads "the login page" to a
-  screen reader, not the asterisks
-- A safe subset of inline HTML (`<details>`, `<kbd>`, `<mark>`, ...) — scripts and
-  event handlers are stripped. **Collapsible sections work with Markdown inside**:
-  everything between `<details>` and `</details>` folds away, lists and code included,
-  and folds can be nested
-- **Ids from the document get a `md-` prefix in the preview** — `## Quick start` becomes
-  `id="md-quick-start"`, `<span id="note">` becomes `id="md-note"` — the way GitHub
-  prefixes them with `user-content-`, so a heading or id in your text can never take the
-  name of a part of the app. Links are written with the plain name as usual
-  (`[start](#quick-start)`, `#note`) and still find their target, and **Export HTML** and
-  **Copy HTML** give the plain ids back, since an exported page has nothing to collide with
-- Hard line breaks with a trailing `\` or two trailing spaces; escape any special
-  character with a backslash, and `<!-- comments -->` never render
+Opening another file while the app is running opens a second window served by the same
+process. Docs and settings changed in one window are applied in the others immediately.
+Text being typed in a window is never replaced by another window's copy.
 
-**The Welcome document is a tour of the app and a guide to writing a README.** It
-opens on first run — into an empty library only: a fresh browser profile pointed at a
-documents folder that already has notes (after a reinstall, or clearing site data)
-picks those up instead of adding another Welcome beside them. It is written out in full
-in English and in Bahasa Indonesia. Part 0 walks through what the app does — Docs and
-folders, tabs, saving, pasting pictures and the `assets` folder, the right-click menu
-with rename and delete, finding things with `Ctrl+P` and `Ctrl+Shift+P`, views,
-picture-in-picture, sharing, settings, and a table of the VS Code keys. Since it is only written once, **⋮ menu → Welcome guide** opens the latest
-version at any time: the existing copy if it is untouched, otherwise a fresh one, so
-your own edits to an old copy are never overwritten. The rest is a
-live reference in three parts — the basics (headings, emphasis, lists, links, code,
-quotes, tables), going further (callouts, task lists, footnotes, collapsible sections,
-reference links, anchors and a table of contents, inline HTML, escaping), and a README
-skeleton you can copy straight out, with notes on what separates a good one. Every
-example shows the syntax and the result side by side, so you can read it in Preview
-and look at the editor to see how each piece was typed. Delete it whenever you like —
-it is just a document.
+## Markdown support
 
-**Diagrams**
-- ` ```mermaid ` blocks are rendered as flowcharts: `flowchart` or `graph`, going
-  `TD`/`TB` (down), `LR`, `RL` or `BT`
-- Node shapes `[box]`, `(rounded)`, `([pill])`, `[[subroutine]]`, `[(database)]`,
-  `((circle))`, `{decision}`, `{{hexagon}}`, `[/parallelogram/]`, `[\lean\]`, `>flag]`
-- Links `-->`, `---`, `-.->`, `==>`, `--x`, `--o`, `<-->`, labelled either way
-  (`A -- yes --> B` or `A -->|yes| B`), chained (`A --> B --> C`) and branched
-  (`A --> B & C`)
-- `subgraph Name` ... `end`, `%%` comments, `classDef` / `class` / `:::` / `style`,
-  and `<br/>` inside a label
-- Diagrams that loop back on themselves lay out fine, and a node may point at itself
-- **Save it as a picture**: PNG at twice the size so it stays sharp when pasted, or
-  SVG. Both come out with the theme you are looking at, and both are self-contained
-- A diagram it cannot read shows the reason and its own source, never a broken picture
+| Element | Notes |
+| ------- | ----- |
+| Headings | ATX and setext |
+| Emphasis | Bold, italic, strikethrough, `==highlight==`, subscript, superscript |
+| Lists | Bullet, numbered, nested, task lists (clickable in the preview) |
+| Tables | Column alignment, escaped pipes |
+| Code | Fenced blocks with highlighting for about 25 languages |
+| Callouts | `> [!NOTE]`, `[!TIP]`, `[!WARNING]` and other GitHub-style callouts |
+| Links and images | Inline, reference, autolinks, footnotes; image alt text is plain text |
+| HTML | A safe subset (`<details>`, `<kbd>`, `<mark>`, ...). Scripts and event handlers are removed. `<details>` may contain Markdown |
+| Line breaks | Trailing `\` or two spaces; `<!-- comments -->` are not rendered |
 
-This is a flowchart renderer written for this app, not Mermaid itself. Mermaid is
-around three megabytes once d3, dagre and cytoscape come with it — more than ten times
-this whole program, and all of it would have to be carried inside the exe to keep
-working with no connection. So flowcharts are drawn here and the other Mermaid diagram
-types (sequence, class, state, gantt, pie) are not.
+Element ids generated from the document receive an `md-` prefix in the preview (as GitHub
+uses `user-content-`), so document content cannot collide with the application's own ids.
+Links such as `[x](#heading)` still work, and exported HTML uses the plain ids.
 
-**On phones and tablets**
-- Below 780px the layout switches to one pane at a time — the Edit/Preview toggle in
-  the top bar swaps between them (split view is two useless slivers on a phone)
-- The sidebar becomes a slide-over drawer: tap the dimmed backdrop to dismiss it, and
-  it closes itself once you pick a file
-- Toolbar and tab strip scroll sideways in a single row, buttons grow to 36px touch
-  targets, and the ⋮ menu is capped to the screen so it never runs off the bottom
-- Text keeps the same readable column on a tablet or a rotated phone as it does on a
-  desktop, so the line length stays proportional instead of stretching to the edges
-- Editor stays at 16px so iOS does not zoom the page when you tap into it
-- Respects notch/home-indicator safe areas, and nothing overflows sideways at 375px
-- Find and dark mode move into the ⋮ menu, since phones have no `Ctrl+F`
+### Diagrams
 
-**Files**
-- Four sidebar panes: **Explorer** (your folder), **Docs** (your own documents, each a
-  real file, with search), **Outline** (headings of the current file), and **Search**
-- **Search in folder** (`Ctrl+Shift+F`) looks through every Markdown file in the opened
-  folder, subfolders included, with case-sensitive and regex modes. Results are grouped
-  by file with line numbers; click one to open the file and land on that exact match,
-  with the find bar ready to step through the rest. Open tabs are searched as they are
-  in the editor, unsaved edits included; the refresh button re-reads files from disk
-- **Close all tabs** with the button at the right end of the tab bar, **Menu → Close all
-  tabs**, or `Ctrl+K Ctrl+W` — it asks once if any open file has unsaved changes
-- Export to standalone HTML, or print / save as PDF
-- Drag any `.md` file onto the window to open it
-- JSON backup of every scratch document, and import to restore
+Code blocks marked `mermaid` are rendered as flowcharts by a built-in renderer.
+
+- Directions: `TD`/`TB`, `LR`, `RL`, `BT`
+- Node shapes: box, rounded, pill, subroutine, database, circle, decision, hexagon,
+  parallelogram, flag
+- Edges: `-->`, `---`, `-.->`, `==>`, `--x`, `--o`, `<-->`, with labels, chains and branches
+- `subgraph`, comments, `classDef`, `class`, `:::`, `style`, and `<br/>` in labels
+- Export as PNG (2× resolution) or SVG in the current theme
+
+Only flowcharts are supported. Full Mermaid would add about 3 MB, more than ten times the
+size of the application. A diagram that cannot be parsed shows the error and its source.
 
 ## Keyboard shortcuts
 
-**The keys are VS Code's.** The editing and navigation keys are VS Code's defaults, and
-the formatting keys are those of its *Markdown All in One* extension, so hands that
-know VS Code know this. One list drives the keyboard, the command palette and the
-shortcut sheet, so the three never disagree.
+Shortcuts follow VS Code and its *Markdown All in One* extension. `Ctrl+K` starts a two-key
+chord. `Ctrl+K Ctrl+S` shows the full list.
 
-- `Ctrl+P` — **Go to file**: every file in the folder, your Docs, open tabs and
-  `assets`, matched by the letters you type in order. Start with `>` for commands, `@`
-  for the headings of this document, `:` for a line number
-- `Ctrl+Shift+P` or `F1` — **every command**, searchable
-- `Ctrl+K Ctrl+S` — the **shortcut sheet**
-- `Ctrl+K` starts a two-key chord, as in VS Code; the status bar says so while it waits
-
-| Do | Press | Do | Press |
-| -- | ----- | -- | ----- |
+| Action | Keys | Action | Keys |
+| ------ | ---- | ------ | ---- |
 | Go to file | `Ctrl+P` | Bold / italic | `Ctrl+B` / `Ctrl+I` |
-| All commands | `Ctrl+Shift+P`, `F1` | Strikethrough | `Alt+S` |
+| Command palette | `Ctrl+Shift+P`, `F1` | Strikethrough | `Alt+S` |
 | Go to heading | `Ctrl+Shift+O` | Inline code | ``Ctrl+` `` |
-| Go to line | `Ctrl+G` | Heading bigger / smaller | `Ctrl+Shift+]` / `Ctrl+Shift+[` |
-| Find / replace | `Ctrl+F` / `Ctrl+H` | Heading 1–6 | `Ctrl+Alt+1`–`6` |
-| Next / previous match | `F3` / `Shift+F3` | Toggle a task | `Alt+C` |
+| Go to line | `Ctrl+G` | Heading level up / down | `Ctrl+Shift+]` / `Ctrl+Shift+[` |
+| Find / replace | `Ctrl+F` / `Ctrl+H` | Heading 1 to 6 | `Ctrl+Alt+1` to `6` |
+| Next / previous match | `F3` / `Shift+F3` | Toggle task | `Alt+C` |
 | Search in folder | `Ctrl+Shift+F` | Bullet / numbered list | `Ctrl+Shift+8` / `Ctrl+Shift+7` |
 | Show Explorer | `Ctrl+Shift+E` | Blockquote | `Ctrl+Shift+.` |
-| Toggle sidebar | `Ctrl+B` (outside the editor) | Comment out | `Ctrl+/` |
-| Toggle preview | `Ctrl+Shift+V` | Select word, next match | `Ctrl+D` |
+| Toggle sidebar | `Ctrl+B` (outside the editor) | Toggle comment | `Ctrl+/` |
+| Toggle preview | `Ctrl+Shift+V` | Select next match | `Ctrl+D` |
 | Preview to the side | `Ctrl+K V`, `Ctrl+\` | Select line | `Ctrl+L` |
 | Editor / split / preview | `Ctrl+1` / `2` / `3` | Delete line | `Ctrl+Shift+K` |
 | Word wrap | `Alt+Z` | Move line | `Alt+Up` / `Alt+Down` |
 | Dark mode | `Ctrl+K Ctrl+T` | Copy line up / down | `Shift+Alt+Up` / `Down` |
-| Settings | `Ctrl+,` | New line below / above | `Ctrl+Enter` / `Ctrl+Shift+Enter` |
-| New document | `Ctrl+N` | Indent / outdent | `Ctrl+]` / `Ctrl+[` |
-| Open file / folder | `Ctrl+O` / `Ctrl+K Ctrl+O` | Cut / copy the line | `Ctrl+X` / `Ctrl+C`, nothing selected |
-| Save / save as / save all | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+K S` | Paste a URL over words | makes a link |
-| Close / close all | `Ctrl+W` / `Ctrl+K Ctrl+W` | Rename file | `F2` |
-| Reopen closed | `Ctrl+Shift+T` | Copy path / relative path | `Shift+Alt+C` / `Ctrl+Shift+Alt+C` |
-| Next / previous editor | `Ctrl+PageDown` / `Ctrl+PageUp` | Reveal in File Explorer | `Shift+Alt+R` |
-| Move tab left / right | `Ctrl+Shift+PageUp` / `Ctrl+Shift+PageDown` | Picture-in-picture | `Ctrl+Alt+P` (once on in Settings) |
+| Settings | `Ctrl+,` | Insert line below / above | `Ctrl+Enter` / `Ctrl+Shift+Enter` |
+| New document | `Ctrl+N`, `Alt+N` | Indent / outdent | `Ctrl+]` / `Ctrl+[` |
+| Open file / folder | `Ctrl+O` / `Ctrl+K Ctrl+O` | Cut / copy line | `Ctrl+X` / `Ctrl+C` (no selection) |
+| Save / save as / save all | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+K S` | Rename | `F2` |
+| Close / close all | `Ctrl+W` / `Ctrl+K Ctrl+W` | Copy path / relative path | `Shift+Alt+C` / `Ctrl+Shift+Alt+C` |
+| Reopen closed tab | `Ctrl+Shift+T` | Reveal in File Explorer | `Shift+Alt+R` |
+| Next / previous tab | `Ctrl+PageDown` / `Ctrl+PageUp` | Picture-in-picture | `Ctrl+Alt+P` |
+| Move tab left / right | `Ctrl+Shift+PageUp` / `PageDown` | Jump to tab | `Alt+1` to `9` |
 
-`Ctrl+B` is bold while you type in the editor and toggles the sidebar anywhere else,
-exactly as in VS Code with that extension. `Ctrl+Alt+P` opens and closes the
-picture-in-picture window (VS Code has no such key, so this one is the app's own).
+The browser may intercept `Ctrl+N`, `Ctrl+W`, `Ctrl+Tab` and `Ctrl+Shift+T`. Alternatives
+that always work: `Alt+N`, `Ctrl+Alt+W`, `Ctrl+Alt+Right/Left`, `Ctrl+Alt+S` (save all) and
+`Ctrl+Alt+Shift+W` (close all).
 
-A few keys belong to the browser and may never reach the page — `Ctrl+N`, `Ctrl+W`,
-`Ctrl+Tab`, `Ctrl+Shift+T` can open or close a window instead. Each has a second key
-that always works: `Alt+N`, `Ctrl+Alt+W`, `Ctrl+Alt+Right/Left`, and the older
-`Ctrl+Alt+S` (save all) and `Ctrl+Alt+Shift+W` (close all) still work too.
+## Where documents are stored
 
-Changed from earlier versions, to match VS Code: `Ctrl+K` is now a chord prefix (insert
-a link from the toolbar, the palette, or by pasting a URL over selected words);
-`Ctrl+Shift+K` deletes a line; `Ctrl+D` selects the next match (`Shift+Alt+Down`
-duplicates); `Ctrl+P` is Go to file (print is in the ⋮ menu); `F1` is the command
-palette; `Ctrl+Shift+O` is Go to heading (open a folder with `Ctrl+K Ctrl+O`); dark mode
-is `Ctrl+K Ctrl+T`; strikethrough is `Alt+S`.
+### The documents folder
 
-## Where your work is stored
+When run from the exe, every Doc is a regular `.md` file in `Documents\Markdown Studio`,
+written as you type. The location is resolved per user, so redirected or OneDrive-synced
+Documents folders work. Change it under **Settings → Change folder…**; existing documents
+move with it, and name conflicts are resolved by adding a number (`Notes 2.md`).
 
-There are two kinds of document, and they are saved differently.
+Because Docs are files:
 
-**Files from an opened folder** live on your disk. They are *not* autosaved — an edited
-tab is marked dirty until you press `Ctrl+S`, and closing the tab or the browser warns
-you first. This matches how VS Code behaves.
+- They survive clearing browser data, and Windows Search indexes their names and contents.
+- A `.md` file added to the folder appears in Docs at the next start.
+- Renaming a Doc renames its file. Deleting a Doc sends its file to the Recycle Bin.
+- Deleting or renaming the file outside the Docs pane (in Windows Explorer, or in the
+  Explorer pane with the documents folder open) updates the Docs list accordingly.
+- If the folder is empty at startup (moved, disconnected or not yet synced), the documents
+  are written back so that nothing is lost.
+- If the chosen folder is unavailable, the app uses `Documents` for that session and keeps
+  your setting.
 
-**Docs are real files too.** Run from `MarkdownStudio.exe`, everything in the Docs pane
-is an ordinary `.md` file in a folder of your own, written as you type. No dialog ever
-asks where to put it — it already has a place. Which means:
+Avoid editing the same document in two places at once. If the documents folder is opened in
+the Explorer pane, the file tab takes precedence and the Doc's autosave pauses while it is open.
 
-- Close the app and reopen it and your documents are there, because they are on disk
-  rather than in a browser profile that site-data cleaning can wipe
-- Windows Search finds them, by name and by what is written in them
-- Right-click one in Explorer → **Open with** → **Markdown Studio** and it opens
-- Copy, back up or sync that folder like any other; the app reads it as it finds it
-- Drop a `.md` into the folder from anywhere and it appears in the Docs list next time
-  the app starts. Rename a document — in the title box above the editor, or
-  right-click it in the Docs list (or its tab) → **Rename…**, or `F2` — and its file is
-  renamed with it. Delete one and the file goes to the **Recycle Bin**, so a misclick
-  is undoable
-- Delete or rename a document's file **anywhere else** — in Windows Explorer, or in the
-  app's Explorer pane with the documents folder open in it — and the Docs list follows:
-  a deleted one leaves the list (at once from the Explorer pane, at the next start from
-  Windows Explorer) and stays gone. Only when the folder has no notes left in it at all
-  — moved or synced away rather than one note deleted — are they written back, so a
-  folder that went missing never costs you every note
-- Right-click a document for **Reveal in File Explorer** and **Copy Path** too, which
-  open or name its actual file in the library folder
-- The Docs list names each document's file, and the status bar names the full path
+Without the exe, Docs are kept in browser storage for that browser only. Use `Ctrl+S` to save
+a document as a file, or **Download backup** to export all Docs as JSON.
 
-`Ctrl+S` on a document still works; it just writes the file now instead of half a
-second from now. **Menu → Download backup** still exports everything as JSON.
+### Application data
 
-### Choosing where they live
+| Location | Contents |
+| -------- | -------- |
+| `%LOCALAPPDATA%\MarkdownStudio\profile` | Browser profile used for the app window |
+| `%LOCALAPPDATA%\MarkdownStudio\library` | The chosen documents folder |
+| `%LOCALAPPDATA%\MarkdownStudio\instance` | Port and access key of the running instance |
 
-Until you say otherwise the folder is **`Documents\Markdown Studio`** — Documents
-because Windows indexes it out of the box. That path is not baked into the app: it is
-resolved by asking Windows where *this* user's Documents folder is, so on another
-machine, another account, a Documents folder redirected to OneDrive or moved to
-another drive, it lands in the right place by itself.
+## How it works
 
-The Docs pane says only *"Each of these is a file in here"*; clicking **in here** opens
-**Settings** (also `Ctrl+,`, or the ⋮ menu), which names the folder in full and has the
-buttons for it — **Change folder…** and **Open in Explorer**.
+The launcher starts a local HTTP server on `127.0.0.1:41873` and opens Edge or Chrome in app
+mode with a dedicated profile. The fixed port keeps the browser origin stable, so stored
+settings persist between sessions; if the port is taken, a free one is used for that session.
+The server stops when the last window closes and never listens on the network.
 
-To keep them somewhere else, press **Change folder…**. Windows' own folder picker opens — the File Explorer window with
-everything but folders switched off, so you get the address bar, search and Quick
-access rather than the cramped old "Browse For Folder" tree. Pick anything: another
-drive, a USB stick, a folder your own cloud client syncs. (On a Windows too old for
-that picker the app falls back to the tree dialog, so the button always works.)
+The page reaches the file system through the endpoints below. Each request must carry a
+random key generated at startup, and paths outside the workspace are rejected.
 
-- Your notes **move with you**. Anything already in the folder you pick simply joins
-  the library, so you can point the app at a folder of notes you already have
-- A name that is taken in the new folder is never overwritten: that note arrives as
-  `Notes 2.md` and the Docs list follows it, so nothing is lost either way
-- The choice is remembered in `%LOCALAPPDATA%\MarkdownStudio\library`, next to the
-  instance file. It belongs to the machine, not to the exe — so a copy carried on a
-  USB stick still uses each machine's own folder
-- If that folder is not there on some launch (an unplugged drive), the app falls back
-  to Documents for that run and keeps your choice, rather than quietly starting a new
-  empty library somewhere else. The Docs pane always names the folder actually in use
+| Endpoint | Purpose |
+| -------- | ------- |
+| `/__ws` | Workspace listing: documents, folders, assets |
+| `/__file` | Read, write and delete documents |
+| `/__all` | Read all documents at once (folder search) |
+| `/__asset` | Read and save pictures. Existing names are never overwritten; SVG is served with a restrictive content policy |
+| `/__entry` | File and folder operations: `rename`, `move`, `mkdir`, `renamedir`, `movedir`, `rmdir`, `reveal`, delete |
+| `/__float` | Open, close and focus the picture-in-picture window (only windows of the app's own browser profile) |
+| `/__launch`, `/__libdir`, `/__reveal` | Second windows, documents folder selection, opening Explorer |
 
-Editing the same file in two places at once is the one thing to avoid: if you open
-`Documents\Markdown Studio` *as a folder* in the Explorer pane, that file tab takes over
-and the document's autosave stands aside while the tab is open, so the two cannot
-overwrite each other.
+Only Markdown and text files, and the contents of `assets` folders, can be read or changed.
+Deletion uses the Windows Recycle Bin through `SHFileOperation`, with the structure layout
+matching the process architecture.
 
-Without the exe — the page served by laragon, or `index.html` double-clicked — there is
-no library folder, and Docs stay where they always were: in that browser's local
-storage, per browser and per machine, erased if you clear its site data. Press `Ctrl+S`
-to save a real `.md` file, or export them all as JSON.
+## Building
 
-## When something goes wrong
+```bash
+.\build-exe.cmd
+```
 
-An error the app did not expect is **shown on screen** for a few seconds, as
-*"Something went wrong: …"* with the step it happened in. Copy that text when you
-report a problem — it names exactly what failed. A step that fails while the app is
-starting is skipped rather than stopping everything after it, so the menu, Settings
-and the rest of the buttons keep working either way.
+The script compiles `MarkdownStudio.cs` with the C# compiler included in Windows and embeds
+the current `index.html` and `icon.ico`. Building while the app is running is supported: the
+running exe is renamed and replaced, and removed by the next build. A failed build leaves the
+existing exe untouched.
 
-## Fixes
+### Icon
 
-**1.16.0**
+| File | Use |
+| ---- | --- |
+| `icon-v2.jpg` | 2048 × 2048 source image |
+| `icon.ico` | Embedded in the exe; nine sizes from 16 to 256 px |
+| `index.html` | The same image as PNG for the window icon (32 and 256 px) and the in-app logo (64 px) |
 
-- **New folders** — from a button at the top of the Explorer, a folder's right-click
-  menu, or a right-click on the empty space below the files. From the exe a folder
-  with nothing in it yet used to be impossible to show at all: the tree was built
-  from the list of files, so a folder only existed once a document was in it. The
-  launcher now lists folders too, and makes them (`/__entry`, `op=mkdir`)
-- **Files can be dragged between folders** in the Explorer, into a folder or out to
-  the top (`op=move` from the exe; a rename used to be the only way to touch a file's
-  place, and it stayed in the same folder)
-- **Picture-in-picture did not follow edits made in the main window**, and typing in
-  it then undid them. Its editor took itself to be the one being typed in whenever it
-  was the active element of its own window — which it stays while you work in the main
-  window — so updates from the main window were held back, and the next key pressed in
-  the floating window sent its old copy over them. It now only counts as typing there
-  while the floating window itself has the focus; otherwise it takes every change,
-  keeping its caret and scroll where they were
+The icon is cropped so that the point of the M's inner V sits on the vertical centre line.
+After changing it, rebuild and reinstall. Windows may show the old icon until its icon cache
+refreshes (sign out and back in).
 
-**1.15.0**
+## Troubleshooting
 
-- **Drag a tab onto a folder or onto Docs to move where it is stored** — see *Drag a
-  tab to move where it is stored* under What it does
-- **Dragging a tab highlighted its name as text**, which looked as if the drag had not
-  taken. Tabs can no longer be text-selected, and the pointer shows a closed hand for
-  the whole drag
-- **A tab let go away from a folder could still be moved into it**: the drop used the
-  folder the pointer had last passed over, not the place it was let go. It now looks at
-  where the button is released, so letting go over the editor does nothing
-- **The floating window could lose "always on top"** some time after it opened: the
-  browser resets a window's z-order itself on some focus changes. The launcher now puts
-  it back whenever it has gone, checking as often as it already checks for the window
-  being minimized. (A first attempt that also rewrote the window's style did the
-  opposite of what was wanted — the browser then minimized the floating window along
-  with the main one, which closed it — so only the z-order is touched)
-- **A deleted document kept coming back, however many times it was deleted.** A
-  document whose file had gone from the documents folder was written again at every
-  start — meant to save notes from a folder moved or synced away, but it also undid
-  every delete made outside the Docs list: in Windows Explorer, or in the app's own
-  Explorer pane with the documents folder open in it, where the document even stayed
-  in the Docs list and was written back as soon as it was typed in. A file deleted
-  there now takes its document with it, at once from the Explorer pane and at the next
-  start from Windows Explorer; a rename there renames the document instead of leaving a
-  second one. Only a folder with no notes left at all is still written back
-- **Two windows open at once undid each other's Docs and settings.** Every window
-  wrote its whole list of Docs and its settings to the same place, so whichever wrote
-  last won: a Doc made in one window dropped out of the list once the other saved, and
-  a setting changed in one never reached the other. Each window now takes in what
-  another one wrote as soon as it is written — new Docs, edits, renames, deletions,
-  theme, language — before it writes again. What is being typed in a window is never
-  replaced by the other's copy, and a deletion is recorded as one, so a window that
-  simply had not heard of a Doc yet can no longer make it disappear
-- **Moving a file to another folder broke its links to other documents.** Links to
-  pictures were updated, but `[Chapter 1](Chapter%201.md)` still pointed at the old
-  folder. Every relative link in a moved file — documents, pictures, reference links,
-  `src` and `href` — is now pointed at the same file from the new place; `#heading`
-  parts are kept, and links to the web and to headings in the same file are left alone
-- **Cleanup from a full check of the code** (ESLint over all 7,000+ lines of script,
-  now with no findings): 29 Indonesian translations were listed twice, five of them
-  with two different wordings where the later one silently won — each is now listed
-  once, with the wording that was already on screen; and three helpers nothing used
-  any more were removed, among them an old way of reading a file that dropped its
-  byte-order mark, so it cannot be picked up again by mistake
-- **Installed apps showed an old version** (1.10.0 next to an installed 1.14.0). The
-  version there is now read from the exe itself, and the entry is refreshed whenever
-  the installed copy starts
+| Symptom | Cause and solution |
+| ------- | ------------------ |
+| "Something went wrong: ..." message | An unexpected error; the message names the failing step. Include it when reporting the problem. Other features keep working |
+| Changes do not appear after rebuilding | An `index.html` next to the exe overrides the built-in copy, or the old version is still running. Close the app and reinstall |
+| Open Folder is read-only | The page was opened from `file://`. Use the exe or a local web server |
+| Old icon on shortcuts | Windows icon cache; sign out and back in |
 
-**1.14.0**
+## Changelog
 
-- **Tabs can be moved, as in Chrome** — drag one along the tab bar, or
-  `Ctrl+Shift+PageUp/PageDown`. Until now a tab stayed wherever it had been opened
-- **Copy Tab and Paste Tab** — right-click a tab to copy it, right-click an empty part
-  of the tab bar to paste it as a new document with the same content. The copy is
-  saved in a new place (a Doc of its own), pictures included, so the original is never
-  touched
-- **The tab bar no longer disappears** when only one document is open, so there is
-  always an empty part of it to paste into
+### 1.16.0
 
-**1.13.3**
+**Fixed**
+- Deleted files never reached the Recycle Bin on 64-bit Windows. `SHFILEOPSTRUCT` was declared
+  with 32-bit packing, `SHFileOperation` rejected it (error 0x57), and the launcher fell back to
+  permanent deletion. Both layouts are now declared and selected at runtime. If recycling fails,
+  nothing is deleted. Files deleted with earlier versions are not in the Recycle Bin.
+- A Doc whose file could not be deleted disappeared from the list and returned at the next start.
+- Renaming a Doc no longer places a copy of the old file in the Recycle Bin.
+- Picture-in-picture did not receive edits made in the main window, and typing in it then
+  overwrote them.
+- Moving files rewrote links that were already correct.
 
-- **The floating window lost your place when switching between Edit and Preview** —
-  scrolled halfway down in one, the other opened at the top. Each now opens at the
-  paragraph the other was showing: the preview's blocks know which source line they came
-  from, and the editor's lines are measured with their wrapping, so the position carries
-  over both ways. The caret goes to that line too, so focusing the editor no longer jumps
-  back up, and an update from the main window no longer resets the editor's scroll
-- **New icon** — the gradient Markdown M, replacing the old white "M" on a blue square
-  everywhere: the exe, its shortcuts, the app window, the floating window and the logo
-  at the top left of the app. The old `icon.ico` held a single 256 px picture that
-  Windows had to shrink for every small size; the new one has nine, from 16 to 256 px,
-  each drawn at its own size. See **The icon** under Running it
+**Added**
+- New folders (button, folder menu, empty-area menu); empty folders are listed.
+- Drag and drop of files and folders between folders.
+- Rename and delete for folders.
 
-**1.13.2**
+### 1.15.0
 
-- **The floating window's title bar showed `ⓘ 127.0.0.1:41873`** — the browser's own
-  picture-in-picture prints the page's address there and cannot be told otherwise. Run
-  from the exe, the floating window is now one of the app's own windows, pinned on top
-  by the launcher, and its title bar reads **Markdown Studio**. It still has no Alt+Tab
-  entry or taskbar button, still stays up when the main window is minimized, and now
-  closes when the main window does
-- **Minimizing the floating window lost it** — with no Alt+Tab entry or taskbar button
-  there was no way back. Minimizing it now closes it, and the picture-in-picture button
-  opens it again
-- **Edge offered to translate the page** ("Translate page from Indonesian?") whenever a
-  document was written in another language. The page now tells the browser not to: what
-  is on it is your own writing
+**Added**
+- Drag a tab onto a folder or the Docs pane to change where its document is stored.
 
-**1.13.1**
+**Fixed**
+- Deleted documents reappeared at startup when deleted outside the Docs pane.
+- Two open windows overwrote each other's Docs and settings.
+- Moving a file broke its links to other documents.
+- The picture-in-picture window could lose its always-on-top state.
+- A dragged tab could be dropped on a folder it had only passed over.
+- Tab names were selected as text while dragging.
+- Installed apps showed an outdated version number.
+- Duplicate Indonesian translations and unused code removed after a full ESLint check.
 
-- **Alt+Tab showed the app twice while picture-in-picture was open** — the main window
-  and the floating one, each with its own taskbar button. The floating window is now a
-  tool window of the app: on top, clickable, still there when the main window is
-  minimized, but only one Markdown Studio in Alt+Tab and on the taskbar. This needs the
-  exe; opened as a plain browser page the floating window stays a window of its own
-- The Welcome guide (both languages) says so in its Picture-in-picture section, in the
-  exe's version of the guide only
+### 1.14.0
 
-**1.13.0**
+- Tabs can be reordered by dragging or with `Ctrl+Shift+PageUp/PageDown`.
+- Copy Tab and Paste Tab.
+- The tab bar stays visible with a single document open.
 
-- **Settings would not open while the Welcome guide was on screen.** The guide has a
-  heading called "Settings", which became `id="settings"` in the preview — the id of the
-  app's own Settings window. The preview comes first in the page, so the Settings button
-  opened the heading instead, silently. Any document with a heading named Help, Menu,
-  Status, Editor or Preview could do the same to that part of the app and pick up its
-  styling. Ids from a document's content now carry a `md-` prefix, as GitHub's carry
-  `user-content-`; links such as `[x](#settings)` still find their heading, and Export
-  HTML and Copy HTML put the plain ids back
-- New: picture-in-picture (see *What it does*)
+### 1.13.3
 
-**1.12.0**
+- Picture-in-picture keeps the reading position when switching between Edit and Preview.
+- New application icon with nine sizes.
 
-- **Right-click had no Rename.** Files can now be renamed, deleted, revealed in File
-  Explorer and have their path copied from a right-click menu, with links to a renamed
-  file updated on request (see *What it does*)
-- **New file overwrote an existing file of the same name** with an empty document,
-  without asking, in both the exe and a folder opened in the browser. It now refuses
-  and says the name is taken
-- Keyboard shortcuts now follow VS Code (see *Keyboard shortcuts*), with **Go to file**
-  (`Ctrl+P`) and a **command palette** (`Ctrl+Shift+P` / `F1`); the shortcut sheet is
-  drawn from the same list as the keys, so it can no longer show a key that does
-  something else. Several older keys changed meaning — listed at the end of that section
-- The Welcome guide (both languages) describes the right-click menu and the new keys,
-  and no longer mentions the old ones
+### 1.13.2
 
-**1.11.1**
+- The picture-in-picture window is titled "Markdown Studio" instead of showing the page address.
+- Minimizing the picture-in-picture window closes it instead of hiding it unreachably.
+- Edge no longer offers to translate the page.
 
-- **Find: Next / Enter did not move to the next match.** The counter stayed on
-  `1 / 3`. A startup helper added in 1.11 had the same name as the function that
-  steps through matches and replaced it. Renamed, and the app is now checked for any
-  other name declared twice
-- **A byte-order mark was lost on the first save.** A file that started with one was
-  written back without it, so saving changed every such file. The browser's text
-  reading dropped the mark before the app could see it; files are now read as raw bytes
-- **Collapsible sections showed their contents outside the fold.** An HTML block was
-  wrapped in its own container, whose closing tag shut `<details>` straight away.
-  Blocks that open an element and leave it open are no longer wrapped. This also fixes
-  the collapsible example in the Welcome guide
-- **Image alt text kept the Markdown.** `![a *bold* word](...)` gave the alt text
-  `a *bold* word`; it is now `a bold word`
-- **A second Welcome appeared** each time a fresh browser profile met a documents
-  folder that already had notes. The first-run guide is now only written into an empty
-  library
-- **A picture just pasted into a document was briefly marked "not used in any
-  document"** in the Docs pane's `assets` list, because the list was drawn before the
-  link went into the text. It is drawn again once the link is in
+### 1.13.1
 
-**1.11.0**
+- The picture-in-picture window no longer appears as a second app in Alt+Tab and the taskbar.
 
-- **The whole app stopped working** after the `assets` update: a Windows path in the
-  code had lost a backslash, which broke the script before anything ran
-- **Settings in the page opened on its own** showed a Documents section whose
-  **Change folder…** and **Open in Explorer** could never work there, so it looked
-  broken. That section is now left out without the exe, and the Welcome guide no
-  longer describes exe-only features in that mode. (The report of Settings not opening
-  at all had a second cause that was only found later — a heading in the Welcome guide
-  taking the Settings window's id — fixed in 1.13.0.)
-- An error during startup used to stop everything after it silently, leaving buttons
-  that did nothing. Startup steps now fail one at a time and errors are shown (see
-  *When something goes wrong*)
-- The first picture pasted into a document creates its `assets` folder; the Explorer
-  now opens that folder and flashes the new file instead of showing it collapsed
+### 1.13.0
+
+- Added picture-in-picture.
+- Fixed: Settings did not open while a document had a heading named "Settings". Document ids
+  now carry an `md-` prefix.
+
+### 1.12.0
+
+- Added a right-click menu with rename, delete, reveal and copy path, and link updates on rename.
+- Keyboard shortcuts now follow VS Code, with Go to file and a command palette.
+- Fixed: New File overwrote an existing file with the same name.
+
+### 1.11.1
+
+- Fixed: Find did not advance to the next match.
+- Fixed: byte-order marks were lost on save.
+- Fixed: content of `<details>` blocks rendered outside the fold.
+- Fixed: image alt text kept Markdown syntax.
+- Fixed: a second Welcome document was created for existing libraries.
+
+### 1.11.0
+
+- Fixed: the application failed to start after the assets update.
+- Exe-only settings are hidden when the page runs without the exe.
+- Startup errors are shown and no longer stop the remaining startup steps.
+- The Explorer reveals the `assets` folder created by the first pasted picture.
