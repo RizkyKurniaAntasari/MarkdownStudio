@@ -2767,6 +2767,7 @@ const I18N = (function () {
     "Saved": "Tersimpan", "Unsaved changes": "Ada perubahan belum tersimpan",
     "Read-only copy": "Salinan hanya baca", "Not saved": "Tidak tersimpan",
     "Browser only": "Hanya di browser", "Not written": "Gagal ditulis",
+    "No document open": "Tidak ada dokumen terbuka",
     "In sync with ": "Sinkron dengan ",
     "Written as you type to ": "Ditulis sambil mengetik ke ",
     "Could not write ": "Gagal menulis ",
@@ -4610,6 +4611,16 @@ const MD = (function () {
   /* One place decides how "saved" is shown: status bar, Save badge and tab title. */
   function updateSaveUI() {
     const t = active();
+    if (!t) {
+      const el = $("#saveState");
+      el.className = "";
+      el.title = "";
+      el.innerHTML = '<span class="dot browser"></span>' + MD.escape(tr("No document open"));
+      $("#btnSave").classList.remove("pending");
+      $("#btnSave").title = tr("Save changes (Ctrl+S)");
+      document.title = "Markdown Studio";
+      return;
+    }
     const dirty = isDirty(t);
     let kind, text, tip;
 
@@ -5493,6 +5504,7 @@ const MD = (function () {
     if (!t) return;
     activeTab = id;
     ed.value = t.content;
+    ed.readOnly = false;
     const title = $("#docTitle");
     title.value = t.name;
     title.readOnly = isBound(t);
@@ -5505,6 +5517,24 @@ const MD = (function () {
     renderTabs(); renderTree(); renderDocs(); updateCursor();
     /* the hits belong to the document we just left, so recompute against this one */
     if (findHL && !previewMode()) runFind();
+    updateSaveUI();
+  }
+
+  /* Closing a tab only hides the document, it never deletes it - so bringing back
+     the same still-open doc the instant its tab is closed (as ensureTab() would)
+     made that one tab impossible to get rid of. Closing the last tab, or all of
+     them, now genuinely leaves nothing open. */
+  function clearEditorState() {
+    activeTab = null;
+    ed.value = "";
+    ed.readOnly = true;
+    const title = $("#docTitle");
+    title.value = "";
+    title.readOnly = true;
+    title.title = "";
+    renderNow();
+    renderTabs(); renderTree(); renderDocs();
+    updateCursor();
     updateSaveUI();
   }
 
@@ -5521,7 +5551,7 @@ const MD = (function () {
     if (!wasActive) { renderTabs(); renderTree(); return; }
     activeTab = null;
     if (tabs.length) activateTab(tabs[Math.min(i, tabs.length - 1)].id, true);
-    else ensureTab();
+    else clearEditorState();
   }
 
   /* one confirm for the lot instead of one per unsaved tab */
@@ -5535,8 +5565,8 @@ const MD = (function () {
       tr("%n open files have unsaved changes. Close all tabs anyway?")
         .replace("%n", dirty.length))) return;
     tabs.forEach(rememberClosed);
-    tabs = []; activeTab = null;
-    ensureTab();
+    tabs = [];
+    clearEditorState();
     toast(tr("Closed ") + n + " tab" + (n === 1 ? "" : "s"));
   }
 
