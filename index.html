@@ -268,7 +268,10 @@ body.tab-dragging,body.tab-dragging *{cursor:grabbing!important;user-select:none
 .drop-on{outline:2px solid var(--acc)!important;outline-offset:-2px;background:var(--accsoft)!important}
 
 /* ---------------- file tree ---------------- */
-.root-bar{display:flex;align-items:center;gap:2px;padding:0 2px 6px;margin-bottom:2px;border-bottom:1px solid var(--bd)}
+/* pinned at the top of the scrolling tree, like VS Code's workspace-root header -
+   otherwise, in a folder with many files, it scrolls away and dropping something
+   back onto the root becomes impossible without scrolling all the way back up */
+.root-bar{display:flex;align-items:center;gap:2px;padding:8px 10px 6px;margin:-8px -8px 2px;border-bottom:1px solid var(--bd);position:sticky;top:-8px;z-index:2;background:var(--panel)}
 .root-name{flex:1;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ibtn{width:24px;height:24px;display:grid;place-items:center;border:0;background:transparent;border-radius:5px;color:var(--fg3);cursor:pointer;flex:0 0 auto}
 .ibtn:hover{background:var(--bg3);color:var(--fg)}
@@ -370,6 +373,11 @@ body.tab-dragging,body.tab-dragging *{cursor:grabbing!important;user-select:none
 .sheet-h{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--bg);z-index:2}
 .sheet-h h2{margin:0;font-size:15px;font-weight:650}
 .sheet-b{padding:18px 20px 22px}
+.confirm-sheet{width:min(420px,100%)}
+.confirm-sheet #confirmMsg{margin:0 0 18px;font-size:13.5px;line-height:1.5;color:var(--fg2);white-space:pre-line}
+.confirm-btns{display:flex;justify-content:flex-end;gap:8px}
+.confirm-btns .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.confirm-btns .btn-danger:hover{filter:brightness(1.08)}
 .kbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:16px 26px}
 .kbsec h3{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--fg3)}
 
@@ -916,7 +924,26 @@ body.pip-body{margin:0;height:100vh;display:block;overflow:hidden;background:var
         <p class="sethint" id="setPipHint">A small window that stays on top of every other app, like Google Meet's,
           showing the document you are in - read it, or switch it to Edit and keep writing.
           Open it with the button in the top bar or Ctrl+Alt+P.</p>
+        <div class="setrow" id="setPipRememberRow"><span>Remember size and position</span>
+          <button class="tgl" data-set="pipRemember" role="switch" aria-label="Remember size and position"></button></div>
+        <p class="sethint" id="setPipRememberHint">Off: it always opens at the default size, in the bottom-right
+          corner. On: it opens the way you last left it.</p>
+        <div class="setbtns" id="setPipResetWrap" hidden>
+          <button class="btn btn-out" id="setPipReset">Reset to default</button>
+        </div>
       </section>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="confirmDlg" hidden>
+  <div class="sheet confirm-sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmMsg">
+    <div class="sheet-b">
+      <p id="confirmMsg"></p>
+      <div class="confirm-btns">
+        <button class="btn btn-out" id="confirmCancel">Cancel</button>
+        <button class="btn btn-pri" id="confirmOk">OK</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3008,6 +3035,7 @@ const I18N = (function () {
     "Open a document from the same folder to insert this picture":
       "Buka dokumen dari folder yang sama untuk menyisipkan gambar ini",
     "Delete": "Hapus",
+    "Cancel": "Batal", "OK": "OK",
     "has unsaved changes. Close it anyway?":
       "punya perubahan yang belum tersimpan. Tetap ditutup?",
     "%n open files have unsaved changes. Close all tabs anyway?":
@@ -4455,7 +4483,11 @@ const MD = (function () {
 
   const KEY = "md-studio-v1";
   const DEFAULTS = { theme: "light", view: "split", split: 50, edSize: 14, pvSize: 16,
-    wrap: true, sync: true, wide: false, sidebar: true, lang: "auto", pip: false };
+    wrap: true, sync: true, wide: false, sidebar: true, lang: "auto", pip: false,
+    /* pipBounds: {w,h,x,y} last seen when the pip window closed - x/y only ever
+       come from the launcher's own window, never from the browser's own picture-
+       in-picture, which the API gives no way to move or place */
+    pipRemember: false, pipBounds: null };
   let state = { docs: [], active: null, settings: Object.assign({}, DEFAULTS) };
   let saveTimer = null, renderTimer = null, lineMap = [], mirrorStale = true, mirrorStyleStale = true, mirrorW = -1, storageWarned = false;
 
@@ -4471,6 +4503,25 @@ const MD = (function () {
     /* an error has to stay up long enough to be read out to someone */
     toastTimer = setTimeout(() => t.classList.remove("show"), ms || 2100);
   }
+
+  /* A window.confirm() dialog is labelled by the browser with the page's own
+     origin ("127.0.0.1:41873 says"), not the app's name - there is no way to
+     change that text, so a destructive action (delete) asks through this
+     dialog instead, which looks like the rest of the app and names nothing. */
+  let confirmResolve = null;
+  function confirmDialog(message, opts) {
+    opts = opts || {};
+    const dlg = $("#confirmDlg"), ok = $("#confirmOk"), cancel = $("#confirmCancel");
+    $("#confirmMsg").textContent = message;
+    ok.textContent = opts.okLabel || tr("OK");
+    ok.className = "btn " + (opts.danger ? "btn-danger" : "btn-pri");
+    dlg.hidden = false;
+    return new Promise(res => {
+      confirmResolve = v => { dlg.hidden = true; confirmResolve = null; res(v); };
+      ok.focus();
+    });
+  }
+  function confirmDialogAnswer(v) { if (confirmResolve) confirmResolve(v); }
 
   /* The guide comes in the interface's language. Resolved from the setting rather
      than the current language, because the first run writes it before the language
@@ -5434,6 +5485,7 @@ const MD = (function () {
         (location.protocol === "file:"
           ? '<div class="hint">Opened straight from a file, so folders here are <b>read-only</b>. To edit files in place, serve this app with laragon at <code>http://localhost/MDpreviewer/</code>.</div>'
           : "");
+      updateNewBtn();
       return;
     }
     nodeByPath.clear();
@@ -5450,6 +5502,7 @@ const MD = (function () {
       '<button class="ibtn" data-fs="close" title="' + esc(tr("Close folder")) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>' +
       (tree.kids && tree.kids.length ? tree.kids.map(renderNode).join("")
         : '<div class="empty">' + esc(tr("No Markdown files here.")) + "</div>");
+    updateNewBtn();
   }
 
   function renderNode(n) {
@@ -6415,6 +6468,19 @@ const MD = (function () {
   }
   const treeRowEl = p => document.querySelector('#treeBody .tree-row[data-path="' + CSS.escape(p) + '"]');
 
+  /* the folder a new file/folder from the Explorer toolbar lands in: the selected
+     folder, the parent of a selected file, or the root if nothing is selected -
+     same as VS Code's Explorer "New File" button. Without this, the toolbar icon
+     always created at the tree root no matter what was selected. */
+  function targetDir() {
+    if (!treeSel) return "";
+    const n = nodeByPath.get(treeSel);
+    if (!n) return "";
+    if (n.kind === "dir") return n.path;
+    const i = n.path.lastIndexOf("/");
+    return i < 0 ? "" : n.path.slice(0, i);
+  }
+
   function treeItems(n) {
     const exe = root && root.mode === "server";
     const common = [
@@ -7132,7 +7198,7 @@ const MD = (function () {
       (all.length > docs.length ? ", " + (all.length - docs.length) + " " + tr(all.length - docs.length === 1 ? "other file" : "other files") : "") + ")? ";
     if (open.some(isDirty)) msg += tr("Open files in it have unsaved changes, which will be lost. ");
     msg += tr(exe ? "It goes to the Recycle Bin." : "This cannot be undone.");
-    if (!confirm(msg)) return;
+    if (!await confirmDialog(msg, { okLabel: tr("Delete"), danger: true })) return;
     try {
       if (exe) {
         const r = await fetch(entryUrl(SRV_WS, n.path, "rmdir"), { method: "POST" });
@@ -7155,8 +7221,8 @@ const MD = (function () {
     if (n && n.kind === "dir") return deleteDirEntry(n);
     if (!canEdit()) return;
     const exe = root.mode === "server";
-    if (!confirm(tr("Delete") + ' "' + n.name + '"? ' +
-      tr(exe ? "It goes to the Recycle Bin." : "This cannot be undone."))) return;
+    if (!await confirmDialog(tr("Delete") + ' "' + n.name + '"? ' +
+      tr(exe ? "It goes to the Recycle Bin." : "This cannot be undone."), { okLabel: tr("Delete"), danger: true })) return;
     try {
       if (exe) {
         const r = await fetch(entryUrl(SRV_WS, n.path), { method: "DELETE" });
@@ -8235,18 +8301,32 @@ const MD = (function () {
       else if (m.type === "save") floatDo.save();
       else if (m.type === "back") { fetch(floatUrl("front"), { method: "POST" }).catch(() => { }); closePip(); }
       else if (m.type === "close") closePip();
-      else if (m.type === "closed") { pipLive = false; pipUI(); }
+      else if (m.type === "closed") {
+        pipLive = false;
+        /* wherever it was left, so next time it opens there again */
+        if (state.settings.pipRemember && m.w && m.h) {
+          state.settings.pipBounds = { w: m.w, h: m.h, x: m.x, y: m.y };
+          persist();
+        }
+        pipUI();
+      }
     };
-    fetch(floatUrl("open", id), { method: "POST" }).catch(() => toast(tr("Could not open the picture-in-picture window: ") + "launcher"));
+    const b = state.settings.pipRemember ? state.settings.pipBounds : null;
+    fetch(floatUrl("open", id, b), { method: "POST" }).catch(() => toast(tr("Could not open the picture-in-picture window: ") + "launcher"));
     clearTimeout(pipTimer);
     pipTimer = setTimeout(() => { if (!pipLive) toast(tr("Could not open the picture-in-picture window: ") + tr("it did not start")); }, 12000);
   }
-  const floatUrl = (op, id) => "/__float?k=" + encodeURIComponent(SRV_KEY) + "&op=" + op + (id ? "&id=" + id : "");
+  const floatUrl = (op, id, bounds) => "/__float?k=" + encodeURIComponent(SRV_KEY) + "&op=" + op + (id ? "&id=" + id : "") +
+    (bounds ? "&w=" + Math.round(bounds.w) + "&h=" + Math.round(bounds.h) + "&x=" + Math.round(bounds.x) + "&y=" + Math.round(bounds.y) : "");
 
   /* ----- the browser's own window ----- */
   async function openBrowserPip() {
     let w;
-    try { w = await window.documentPictureInPicture.requestWindow({ width: 420, height: 560, preferInitialWindowPlacement: true }); }
+    /* the API never says where the window ended up, only how big it is - there
+       is no way to also remember or ask for a position here */
+    const b = state.settings.pipRemember && state.settings.pipBounds;
+    const width = (b && b.w) || 420, height = (b && b.h) || 560;
+    try { w = await window.documentPictureInPicture.requestWindow({ width: width, height: height, preferInitialWindowPlacement: !b }); }
     catch (e) { toast(tr("Could not open the picture-in-picture window: ") + (e.message || e.name)); return; }
     pipWin = w;
     const d = w.document;
@@ -8257,7 +8337,13 @@ const MD = (function () {
       back() { window.focus(); closePip(); },
       close() { closePip(); }
     }));
-    w.addEventListener("pagehide", () => { pipWin = null; pipUI(); });
+    w.addEventListener("pagehide", () => {
+      if (state.settings.pipRemember) {
+        state.settings.pipBounds = Object.assign({}, state.settings.pipBounds, { w: w.innerWidth, h: w.innerHeight });
+        persist();
+      }
+      pipWin = null; pipUI();
+    });
     pipSync(true);
     pipUI();
   }
@@ -8304,7 +8390,12 @@ const MD = (function () {
         if (was && was !== m.mode && m.mode === "edit") document.querySelector(".pip-ed").focus({ preventScroll: true });
       } else if (m.type === "close") window.close();
     };
-    window.addEventListener("pagehide", () => ch.postMessage({ type: "closed" }));
+    /* screenX/screenY/outerWidth/outerHeight are readable for any window, launcher-
+       opened ones included - only resizeTo/moveTo are refused outside a script-
+       opened window, which this is not, so the C# side does the actual placing */
+    window.addEventListener("pagehide", () => ch.postMessage({
+      type: "closed", w: window.outerWidth, h: window.outerHeight, x: window.screenX, y: window.screenY
+    }));
     ch.postMessage({ type: "hello" });
   }
 
@@ -8335,9 +8426,9 @@ const MD = (function () {
   async function deleteDoc(id) {
     const d = state.docs.find(x => x.id === id);
     if (!d) return;
-    if (!confirm(tr("Delete") + ' "' + (d.name || tr("Untitled")) + '"? ' +
+    if (!await confirmDialog(tr("Delete") + ' "' + (d.name || tr("Untitled")) + '"? ' +
       (d.file && LIB.ok ? d.file + tr(" goes to the Recycle Bin.")
-        : tr("This cannot be undone.")))) return;
+        : tr("This cannot be undone.")), { okLabel: tr("Delete"), danger: true })) return;
     /* the file first: a document whose file could not be deleted stays in the list,
        rather than vanishing from it and coming back at the next start */
     if (d.file && LIB.ok) {
@@ -8377,6 +8468,14 @@ const MD = (function () {
     /* edits may have moved things since the last run, so search again */
     if (which === "search") runFolderSearch();
     if (window.matchMedia("(max-width:780px)").matches) sideScrollTop();
+    updateNewBtn();
+  }
+  /* the big sidebar button is "New file" in a selected folder while the Explorer
+     is showing, "New document" (a Docs library entry) otherwise - its tooltip
+     says which one a click will do */
+  function updateNewBtn() {
+    const inExplorer = $("#tabFiles").getAttribute("aria-selected") === "true" && canEdit();
+    $("#btnNew").title = tr(inExplorer ? "New file in folder…" : "New document (Ctrl+N)");
   }
   function sideScrollTop() { const b = $(".side-body:not([hidden])"); if (b) b.scrollTop = 0; }
 
@@ -9445,6 +9544,7 @@ const MD = (function () {
   function onGlobalKey(e) {
     if (e.key === "Escape") {
       if (chord) { chord = null; chordHint(null); return; }
+      if (!$("#confirmDlg").hidden) { confirmDialogAnswer(false); return; }
       if (ctxEl) { hideCtx(); return; }
       if (!$("#palette").hidden) { closePalette(); return; }
       if (!$("#imgView").hidden) { hideImage(); return; }
@@ -9532,12 +9632,12 @@ const MD = (function () {
      Only these roots. Never the editor or the preview: those hold the user's own
      words, and a dictionary has no business anywhere near them. */
   const LANG_ROOTS = ["#sidebar", "#topbar", "#status", "#menu", "#settings", "#help", "#imgView", "#palette",
-                      "#findbar", "#tabwrap", "#drop"];
+                      "#findbar", "#tabwrap", "#drop", "#confirmDlg"];
   /* written by JavaScript, which translates them itself - a sweep would only put its
      own stale copy back */
   const LANG_SKIP = "#kbGrid,#palList,#toolbar,#treeBody,#docList,#docAssets,#ivName,#ivPath,#ivInfo,#tocList,#fsResults,#tabbar," +
     "#docHome,#fsSummary,#stCursor,#stWords,#stChars,#stLines,#stRead,#saveState," +
-    "#findCount,#setPath,#setEdSize,#setPvSize";
+    "#findCount,#setPath,#setEdSize,#setPvSize,#confirmMsg,#confirmOk";
   const langWas = new Map();
 
   function sweepLang() {
@@ -9617,6 +9717,11 @@ const MD = (function () {
     if (pt) pt.disabled = !PIP_OK;
     const ph = $("#setPipHint");
     if (ph && !PIP_OK) ph.textContent = tr("This browser has no picture-in-picture for pages. It needs Edge or Chrome 116 or newer, which the desktop app uses.");
+    on("pipRemember", s.pipRemember);
+    const prt = document.querySelector('.tgl[data-set="pipRemember"]');
+    if (prt) prt.disabled = !pipOn();
+    const prw = $("#setPipResetWrap");
+    if (prw) prw.hidden = !s.pipBounds;
     const a = $("#setEdSize"), b = $("#setPvSize"), l = $("#setLang");
     if (a) a.textContent = s.edSize;
     if (b) b.textContent = s.pvSize;
@@ -9640,6 +9745,7 @@ const MD = (function () {
       if (!s.pip) closePip();
       else toast(tr("Picture-in-picture is on - open it with the button in the top bar or Ctrl+Alt+P"));
     }
+    else if (k === "pipRemember") { if (!pipOn()) return; s.pipRemember = !s.pipRemember; }
     else if (k === "font+") s.edSize = Math.min(24, s.edSize + 1);
     else if (k === "font-") s.edSize = Math.max(10, s.edSize - 1);
     else if (k === "pfont+") s.pvSize = Math.min(26, s.pvSize + 1);
@@ -9808,7 +9914,12 @@ const MD = (function () {
     $("#btnSide").addEventListener("click", () => setSidebar(!state.settings.sidebar));
     $("#btnSave").addEventListener("click", saveMarkdown);
     $("#btnFind").addEventListener("click", () => showFind($("#findbar").hidden));
-    $("#btnNew").addEventListener("click", () => newDoc());
+    /* With a folder open and the Explorer showing, this is where VS Code would
+       put a new file - in the selected folder - not a Docs library entry. */
+    $("#btnNew").addEventListener("click", () => {
+      if ($("#tabFiles").getAttribute("aria-selected") === "true" && canEdit()) newFileInFolder(targetDir());
+      else newDoc();
+    });
     $("#btnOpen").addEventListener("click", () => $("#filePick").click());
     $("#btnFolder").addEventListener("click", openFolder);
 
@@ -9836,8 +9947,8 @@ const MD = (function () {
         else if (a === "reopen" && reopen) {
           try { await useFolder(reopen.handle); idbSet("root", reopen.handle); }
           catch (err) { toast(tr("Could not reopen that folder")); }
-        } else if (a === "new") newFileInFolder();
-        else if (a === "newdir") newFolderIn("");
+        } else if (a === "new") newFileInFolder(targetDir());
+        else if (a === "newdir") newFolderIn(targetDir());
         else if (a === "refresh") { if (tree) { dropSearchCache(); await refreshTree(tree); renderTree(); toast(tr("Refreshed")); } }
         else if (a === "close") closeFolder();
         return;
@@ -9986,6 +10097,12 @@ const MD = (function () {
     });
     $("#setChange").addEventListener("click", libChooseFolder);
     $("#setOpen").addEventListener("click", libReveal);
+    $("#setPipReset").addEventListener("click", () => {
+      state.settings.pipBounds = null;
+      applySettings();
+      persist();
+      toast(tr("Picture-in-picture will open at its default size and place next time"));
+    });
     $("#helpClose").addEventListener("click", () => { $("#help").hidden = true; });
     $("#help").addEventListener("click", e => { if (e.target.id === "help") $("#help").hidden = true; });
 
@@ -10033,6 +10150,9 @@ const MD = (function () {
     });
     $("#ivClose").addEventListener("click", hideImage);
     $("#imgView").addEventListener("click", e => { if (e.target.id === "imgView") hideImage(); });
+    $("#confirmOk").addEventListener("click", () => confirmDialogAnswer(true));
+    $("#confirmCancel").addEventListener("click", () => confirmDialogAnswer(false));
+    $("#confirmDlg").addEventListener("click", e => { if (e.target.id === "confirmDlg") confirmDialogAnswer(false); });
     $("#ivCopy").addEventListener("click", () => copyText($("#ivPath").textContent, tr("Path copied")));
     $("#ivInsert").addEventListener("click", () => {
       const key = ivKey, base = imgBase(active());

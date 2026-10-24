@@ -1573,7 +1573,7 @@ static class MarkdownStudio
     // Opens the floating window for the page whose channel is `id`, then finds it - the
     // new window of ours that titles itself "Markdown Studio" - and pins it in the
     // bottom-right corner of the screen the app is on.
-    static void FloatOpen(string id)
+    static void FloatOpen(string id, int? w, int? h, int? x, int? y)
     {
         string browser = FindBrowser();
         if (browser == null || ServePort == 0) return;
@@ -1588,10 +1588,15 @@ static class MarkdownStudio
             FloatWin = IntPtr.Zero;
         }
 
+        // a remembered size too small to be useful is not worth keeping
+        int startW = w.HasValue && w.Value >= 240 ? w.Value : 420;
+        int startH = h.HasValue && h.Value >= 180 ? h.Value : 560;
+
         string url = "http://127.0.0.1:" + ServePort + "/?k=" + key + "&pip=" + Uri.EscapeDataString(id);
         ProcessStartInfo psi = new ProcessStartInfo(browser);
         psi.Arguments = "--app=" + url + " --user-data-dir=\"" + ProfileDir + "\"" +
-                        " --window-size=420,560 --no-first-run --no-default-browser-check --disable-background-mode";
+                        " --window-size=" + startW + "," + startH +
+                        " --no-first-run --no-default-browser-check --disable-background-mode";
         psi.UseShellExecute = false;
         try { Process.Start(psi); } catch { return; }
 
@@ -1600,12 +1605,12 @@ static class MarkdownStudio
             for (int i = 0; i < 60; i++)
             {
                 Thread.Sleep(150);
-                foreach (KeyValuePair<IntPtr, string> w in OurWindows(OurBrowserPidsCached(pids)))
+                foreach (KeyValuePair<IntPtr, string> w2 in OurWindows(OurBrowserPidsCached(pids)))
                 {
-                    if (before.ContainsKey(w.Key) || w.Value != "Markdown Studio") continue;
-                    PinFloat(w.Key);
-                    lock (FloatLock) FloatWin = w.Key;
-                    WatchFloat(w.Key);
+                    if (before.ContainsKey(w2.Key) || w2.Value != "Markdown Studio") continue;
+                    PinFloat(w2.Key, startW, startH, x, y);
+                    lock (FloatLock) FloatWin = w2.Key;
+                    WatchFloat(w2.Key);
                     return;
                 }
             }
@@ -1623,18 +1628,30 @@ static class MarkdownStudio
         return now;
     }
 
-    static void PinFloat(IntPtr h)
+    // w/h are the CSS-pixel size already decided in FloatOpen (a remembered one, or
+    // the 420x560 default); x/y are a remembered top-left corner, in the same CSS
+    // pixels (window.screenX/screenY), or null for the usual bottom-right corner.
+    static void PinFloat(IntPtr h, int w, int hh, int? x, int? y)
     {
         double scale = 1.0;
         try { uint dpi = GetDpiForWindow(h); if (dpi > 0) scale = dpi / 96.0; } catch { }
-        int w = (int)(420 * scale), hh = (int)(560 * scale), gap = (int)(16 * scale);
+        int gap = (int)(16 * scale);
+        w = (int)(w * scale); hh = (int)(hh * scale);
         System.Drawing.Rectangle wa;
         try { wa = Screen.FromHandle(FloatMain != IntPtr.Zero ? FloatMain : h).WorkingArea; }
         catch { wa = Screen.PrimaryScreen.WorkingArea; }
         w = Math.Min(w, wa.Width - 2 * gap);
         hh = Math.Min(hh, wa.Height - 2 * gap);
+        int px, py;
+        if (x.HasValue && y.HasValue)
+        {
+            // kept on screen even if it was last seen on a monitor that is gone now
+            px = Math.Max(wa.Left, Math.Min((int)(x.Value * scale), wa.Right - w));
+            py = Math.Max(wa.Top, Math.Min((int)(y.Value * scale), wa.Bottom - hh));
+        }
+        else { px = wa.Right - w - gap; py = wa.Bottom - hh - gap; }
         SetExStyle(h, (ExStyle(h) | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW);
-        SetWindowPos(h, HWND_TOPMOST, wa.Right - w - gap, wa.Bottom - hh - gap, w, hh, SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        SetWindowPos(h, HWND_TOPMOST, px, py, w, hh, SWP_NOACTIVATE | SWP_FRAMECHANGED);
         try
         {
             ITaskbarList bar = (ITaskbarList)new TaskbarList();
@@ -1866,7 +1883,12 @@ static class MarkdownStudio
                             bool okId = id.Length > 0 && id.Length <= 40;
                             foreach (char c in id) if (!char.IsLetterOrDigit(c)) okId = false;
                             if (!okId) { SendText(ns, "400 Bad Request", "bad id"); return; }
-                            FloatOpen(id);
+                            // a remembered size and place from a previous session, or none for the default
+                            int pw = 0, ph = 0, px = 0, py = 0;
+                            bool hasSize = int.TryParse(QueryValue(query, "w"), out pw) & int.TryParse(QueryValue(query, "h"), out ph);
+                            bool hasPos = int.TryParse(QueryValue(query, "x"), out px) & int.TryParse(QueryValue(query, "y"), out py);
+                            FloatOpen(id, hasSize ? (int?)pw : null, hasSize ? (int?)ph : null,
+                                          hasPos ? (int?)px : null, hasPos ? (int?)py : null);
                         }
                         else if (op == "close") FloatClose();
                         else if (op == "front") FloatFront();
