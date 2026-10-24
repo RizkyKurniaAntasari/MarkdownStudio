@@ -1638,7 +1638,15 @@ static class MarkdownStudio
         int gap = (int)(16 * scale);
         w = (int)(w * scale); hh = (int)(hh * scale);
         System.Drawing.Rectangle wa;
-        try { wa = Screen.FromHandle(FloatMain != IntPtr.Zero ? FloatMain : h).WorkingArea; }
+        try
+        {
+            // the monitor the remembered spot is actually on, not whichever one this
+            // window happened to be created on - those can differ, and picking the
+            // wrong one's working area is what sent it to the wrong corner
+            wa = x.HasValue && y.HasValue
+                ? Screen.FromPoint(new System.Drawing.Point((int)(x.Value * scale), (int)(y.Value * scale))).WorkingArea
+                : Screen.FromHandle(FloatMain != IntPtr.Zero ? FloatMain : h).WorkingArea;
+        }
         catch { wa = Screen.PrimaryScreen.WorkingArea; }
         w = Math.Min(w, wa.Width - 2 * gap);
         hh = Math.Min(hh, wa.Height - 2 * gap);

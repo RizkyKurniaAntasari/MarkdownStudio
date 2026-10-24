@@ -436,6 +436,7 @@ body.pip-body{margin:0;height:100vh;display:block;overflow:hidden;background:var
 .pip-name{flex:1;min-width:0;font-size:12.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pip-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--bd2);background:var(--bg);color:var(--fg2);border-radius:var(--r-sm);font:inherit;font-size:12px;padding:3px 9px;cursor:pointer}
 .pip-btn:hover{color:var(--fg);border-color:var(--fg3)}
+.pip-btn.pip-saved{color:var(--ok);border-color:var(--ok)}
 .pip-main{flex:1;min-height:0;overflow:auto;position:relative}
 .pip-main #preview.pip-pv{max-width:none;margin:0;padding:14px 18px 48px}
 .pip-pv[hidden],.pip-ed[hidden]{display:none}
@@ -927,7 +928,8 @@ body.pip-body{margin:0;height:100vh;display:block;overflow:hidden;background:var
         <div class="setrow" id="setPipRememberRow"><span>Remember size and position</span>
           <button class="tgl" data-set="pipRemember" role="switch" aria-label="Remember size and position"></button></div>
         <p class="sethint" id="setPipRememberHint">Off: it always opens at the default size, in the bottom-right
-          corner. On: it opens the way you last left it.</p>
+          corner. On: it opens the way it was when you last pressed the pin button inside the
+          picture-in-picture window, to save that size and place - turning this on by itself saves nothing.</p>
         <div class="setbtns" id="setPipResetWrap" hidden>
           <button class="btn btn-out" id="setPipReset">Reset to default</button>
         </div>
@@ -2881,6 +2883,14 @@ const I18N = (function () {
     "Could not open the picture-in-picture window: ": "Jendela picture-in-picture tidak bisa dibuka: ",
     "This browser has no picture-in-picture for pages. It needs Edge or Chrome 116 or newer, which the desktop app uses.":
       "Browser ini tidak punya picture-in-picture untuk halaman. Butuh Edge atau Chrome 116 ke atas, yang dipakai aplikasi desktop.",
+    "Save this size and position": "Simpan ukuran dan posisi ini",
+    "Remember size and position": "Ingat ukuran dan posisi",
+    "Off: it always opens at the default size, in the bottom-right corner. On: it opens the way it was when you last pressed the pin button inside the picture-in-picture window, to save that size and place - turning this on by itself saves nothing.":
+      "Mati: selalu terbuka dengan ukuran bawaan, di pojok kanan bawah. Nyala: terbuka seperti saat terakhir kali Anda menekan tombol pin di dalam jendela picture-in-picture untuk menyimpan ukuran dan posisi itu - menyalakan ini saja tidak menyimpan apa-apa.",
+    "Picture-in-picture will open at this size and place next time": "Picture-in-picture akan terbuka dengan ukuran dan posisi ini lain kali",
+    "Picture-in-picture will open at this size next time": "Picture-in-picture akan terbuka dengan ukuran ini lain kali",
+    "Picture-in-picture will open at its default size and place next time": "Picture-in-picture akan terbuka dengan ukuran dan posisi bawaan lain kali",
+    "Reset to default": "Kembalikan ke bawaan",
     "Back to Markdown Studio": "Kembali ke Markdown Studio", "Edit": "Edit", "Preview": "Pratinjau",
     "Write in this window": "Menulis di jendela ini", "Show the finished page": "Tampilkan hasil jadinya",
     "Command palette": "Palet perintah",
@@ -4484,9 +4494,10 @@ const MD = (function () {
   const KEY = "md-studio-v1";
   const DEFAULTS = { theme: "light", view: "split", split: 50, edSize: 14, pvSize: 16,
     wrap: true, sync: true, wide: false, sidebar: true, lang: "auto", pip: false,
-    /* pipBounds: {w,h,x,y} last seen when the pip window closed - x/y only ever
-       come from the launcher's own window, never from the browser's own picture-
-       in-picture, which the API gives no way to move or place */
+    /* pipBounds: {w,h,x,y} from the last time the pin button inside the pip window
+       was pressed - x/y only ever come from the launcher's own window, never from
+       the browser's own picture-in-picture, which the API gives no way to move or
+       place */
     pipRemember: false, pipBounds: null };
   let state = { docs: [], active: null, settings: Object.assign({}, DEFAULTS) };
   let saveTimer = null, renderTimer = null, lineMap = [], mirrorStale = true, mirrorStyleStale = true, mirrorW = -1, storageWarned = false;
@@ -8122,6 +8133,8 @@ const MD = (function () {
     d.body.className = "pip-body";
     d.body.innerHTML =
       '<div class="pip"><div class="pip-bar"><span class="pip-name"></span>' +
+      '<button type="button" class="pip-btn" data-pip="savepos" title="' + esc(tr("Save this size and position")) + '">' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 10.5V5a3 3 0 016 0v5.5l2 3.5H7l2-3.5z"/></svg></button>' +
       '<button type="button" class="pip-btn" data-pip="mode"></button>' +
       '<button type="button" class="pip-btn" data-pip="back" title="' + esc(tr("Back to Markdown Studio")) + '">' +
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>' +
@@ -8131,6 +8144,7 @@ const MD = (function () {
     ta.addEventListener("input", () => on.edit(ta.value));
     d.addEventListener("click", e => {
       const b = e.target.closest("[data-pip]");
+      if (b && b.dataset.pip === "savepos") { on.savepos(); return; }
       if (b && b.dataset.pip === "mode") { on.mode(); return; }
       if (b && b.dataset.pip === "back") { on.back(); return; }
       /* a task ticked in the floating window is ticked in the document */
@@ -8301,14 +8315,14 @@ const MD = (function () {
       else if (m.type === "save") floatDo.save();
       else if (m.type === "back") { fetch(floatUrl("front"), { method: "POST" }).catch(() => { }); closePip(); }
       else if (m.type === "close") closePip();
-      else if (m.type === "closed") {
-        pipLive = false;
-        /* wherever it was left, so next time it opens there again */
-        if (state.settings.pipRemember && m.w && m.h) {
-          state.settings.pipBounds = { w: m.w, h: m.h, x: m.x, y: m.y };
-          persist();
-        }
-        pipUI();
+      else if (m.type === "closed") { pipLive = false; pipUI(); }
+      else if (m.type === "savepos" && m.w && m.h) {
+        state.settings.pipRemember = true;
+        state.settings.pipBounds = { w: m.w, h: m.h, x: m.x, y: m.y };
+        applySettings();
+        persist();
+        pipChan.postMessage({ type: "saved" });
+        toast(tr("Picture-in-picture will open at this size and place next time"));
       }
     };
     const b = state.settings.pipRemember ? state.settings.pipBounds : null;
@@ -8335,15 +8349,20 @@ const MD = (function () {
     floatBuild(d, w, Object.assign({}, floatDo, {
       mode() { pipMode = pipMode === "preview" ? "edit" : "preview"; pipSync(true); if (pipMode === "edit") d.querySelector(".pip-ed").focus({ preventScroll: true }); },
       back() { window.focus(); closePip(); },
-      close() { closePip(); }
-    }));
-    w.addEventListener("pagehide", () => {
-      if (state.settings.pipRemember) {
+      close() { closePip(); },
+      /* read right now, on a deliberate click - the same reasoning as the launcher's
+         own window: by the time it is closing, its size can no longer be trusted */
+      savepos() {
+        state.settings.pipRemember = true;
         state.settings.pipBounds = Object.assign({}, state.settings.pipBounds, { w: w.innerWidth, h: w.innerHeight });
+        applySettings();
         persist();
+        const btn = d.querySelector('[data-pip="savepos"]');
+        if (btn) { btn.classList.add("pip-saved"); setTimeout(() => btn.classList.remove("pip-saved"), 900); }
+        toast(tr("Picture-in-picture will open at this size next time"));
       }
-      pipWin = null; pipUI();
-    });
+    }));
+    w.addEventListener("pagehide", () => { pipWin = null; pipUI(); });
     pipSync(true);
     pipUI();
   }
@@ -8379,7 +8398,15 @@ const MD = (function () {
       save: () => ch.postMessage({ type: "save" }),
       mode: () => ch.postMessage({ type: "mode" }),
       back: () => ch.postMessage({ type: "back" }),
-      close: () => ch.postMessage({ type: "close" })
+      close: () => ch.postMessage({ type: "close" }),
+      /* screenX/screenY/outerWidth/outerHeight are readable for any window, launcher-
+         opened ones included - only resizeTo/moveTo are refused outside a script-
+         opened window, which this is not, so the C# side does the actual placing.
+         Read right now, on a deliberate click, rather than guessed at from pagehide:
+         by the time a window is closing its reported bounds can no longer be trusted. */
+      savepos: () => ch.postMessage({
+        type: "savepos", w: window.outerWidth, h: window.outerHeight, x: window.screenX, y: window.screenY
+      })
     });
     ch.onmessage = e => {
       const m = e.data || {};
@@ -8389,13 +8416,13 @@ const MD = (function () {
         floatPaint(document, m, m.full || was !== m.mode);
         if (was && was !== m.mode && m.mode === "edit") document.querySelector(".pip-ed").focus({ preventScroll: true });
       } else if (m.type === "close") window.close();
+      else if (m.type === "saved") {
+        /* this window has no toast of its own - a quick flash on the button says it stuck */
+        const btn = document.querySelector('[data-pip="savepos"]');
+        if (btn) { btn.classList.add("pip-saved"); setTimeout(() => btn.classList.remove("pip-saved"), 900); }
+      }
     };
-    /* screenX/screenY/outerWidth/outerHeight are readable for any window, launcher-
-       opened ones included - only resizeTo/moveTo are refused outside a script-
-       opened window, which this is not, so the C# side does the actual placing */
-    window.addEventListener("pagehide", () => ch.postMessage({
-      type: "closed", w: window.outerWidth, h: window.outerHeight, x: window.screenX, y: window.screenY
-    }));
+    window.addEventListener("pagehide", () => ch.postMessage({ type: "closed" }));
     ch.postMessage({ type: "hello" });
   }
 
