@@ -69,8 +69,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Markdown Studio")]
 [assembly: AssemblyProduct("Markdown Studio")]
 [assembly: AssemblyDescription("Offline Markdown editor with live preview")]
-[assembly: AssemblyVersion("1.16.0.0")]
-[assembly: AssemblyFileVersion("1.16.0.0")]
+[assembly: AssemblyVersion("1.17.0.0")]
+[assembly: AssemblyFileVersion("1.17.0.0")]
 
 static class MarkdownStudio
 {

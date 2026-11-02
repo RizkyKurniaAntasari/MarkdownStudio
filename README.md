@@ -29,6 +29,7 @@ file system. No build step, no dependencies, no internet connection.
 | Links | Relative links open as tabs; moving or renaming files offers to update links |
 | Picture-in-picture | A small always-on-top window for reading or editing while another app has the screen |
 | Diagrams | Built-in Mermaid flowchart renderer, exportable as PNG or SVG |
+| Equations | LaTeX-style math, `$inline$` and `$$display$$`, rendered as you type |
 | Keyboard | VS Code key bindings, command palette, Go to file |
 | Language | English and Bahasa Indonesia interface |
 | Mobile | Responsive single-pane layout below 780 px |
@@ -205,6 +206,7 @@ Text being typed in a window is never replaced by another window's copy.
 | Links and images | Inline, reference, autolinks, footnotes; image alt text is plain text |
 | HTML | A safe subset (`<details>`, `<kbd>`, `<mark>`, ...). Scripts and event handlers are removed. `<details>` may contain Markdown |
 | Line breaks | Trailing `\` or two spaces; `<!-- comments -->` are not rendered |
+| Equations | `$x^2$` inline, `$$...$$` on its own line for a centered, numbered display equation |
 
 Element ids generated from the document receive an `md-` prefix in the preview (as GitHub
 uses `user-content-`), so document content cannot collide with the application's own ids.
@@ -223,6 +225,40 @@ Code blocks marked `mermaid` are rendered as flowcharts by a built-in renderer.
 
 Only flowcharts are supported. Full Mermaid would add about 3 MB, more than ten times the
 size of the application. A diagram that cannot be parsed shows the error and its source.
+
+### Equations
+
+A common subset of LaTeX math, rendered by a small built-in engine - no fonts or libraries
+to download, no internet connection needed.
+
+- `$x^2 + y^2 = z^2$` - inline, inside a sentence
+- `$$...$$` on its own line (blank line before and after) - a centered display equation.
+  Ending the line with `(1)`, `(2.3)` and so on pulls that out as an equation number on the
+  right, the way a thesis or a paper numbers its equations
+- The **Σ** button on the toolbar (or **Insert equation** in the command palette) inserts a
+  `$$...$$` block, or wraps the current selection in `$...$` for inline math
+
+What it understands:
+
+| | |
+| --- | --- |
+| Superscript, subscript | `x^2`, `a_i`, `x_i^2` |
+| Fractions, roots | `\frac{a}{b}`, `\sqrt{x}`, `\sqrt[3]{x}` |
+| Sums, products, integrals | `\sum_{i=1}^n`, `\prod`, `\int_a^b`, `\lim_{x \to 0}` |
+| Greek letters | `\alpha` … `\omega`, `\Gamma` … `\Omega` |
+| Operators and relations | `\times \cdot \pm \leq \geq \neq \approx \in \subset \to \infty \partial \nabla` and more |
+| Functions | `\sin \cos \tan \log \ln \exp \max \min \det` and so on, upright rather than italic |
+| Text, accents | `\text{...}`, `\overline{x}`, `\vec{x}`, `\hat{x}`, `\bar{x}` |
+| Spacing | `\,` `\;` `\quad` `\qquad` |
+
+A command it does not know is shown as typed, in orange, rather than guessing at it or
+breaking the rest of the equation. `\left(` `\right)` and friends are drawn at normal size,
+not stretched to fit tall content, and matrices and multi-line aligned equations are not
+supported - keep those as a picture or a table instead. Math uses whatever math-capable font
+is already on the machine (Cambria Math ships with Windows and Office, so most documents
+already have one); without one, it still renders correctly, just in a plain serif.
+
+Write a literal dollar sign with `\$`.
 
 ## Keyboard shortcuts
 
@@ -350,6 +386,36 @@ refreshes (sign out and back in).
 | Old icon on shortcuts | Windows icon cache; sign out and back in |
 
 ## Changelog
+
+### 1.17.0
+
+**Added**
+- Equations: `$inline$` and `$$display$$` LaTeX-style math, rendered by a small built-in
+  engine (no fonts or libraries downloaded). See [Equations](#equations). A **Σ** button on
+  the toolbar and **Insert equation** in the command palette insert one.
+- Picture-in-picture: a **Remember size and position** setting in Settings → Window. A pin
+  button inside the picture-in-picture window saves its current size (and, for the launcher's
+  own window, its place on screen) for next time; nothing is saved until that button is
+  pressed.
+- Deleting a file, folder or Doc now asks through a dialog styled like the rest of the app,
+  instead of a browser confirm box labelled with the page's address (`127.0.0.1:... says`).
+
+**Fixed**
+- **New File** and **New Folder**, from the toolbar above the Explorer or the button beside
+  the folder name, created the file at the top of the folder (or, from the sidebar's **New**
+  button, as a Doc) no matter which folder was selected - now they go into the selected
+  folder, the way they would in VS Code.
+- The folder name and its New File / New Folder buttons, at the top of the Explorer, scrolled
+  out of view in a folder with many files - taking with it the only place you could drop a
+  file to move it back to the top level. That header now stays in view while the list below
+  it scrolls.
+- Close All Tabs, and closing the very last open tab, immediately reopened the document that
+  was just closed (it is still in the Docs list - closing never deleted it). Both now leave
+  nothing open, as asked.
+- Picture-in-picture's remembered position could end up on the wrong side of the screen,
+  because it was captured automatically while the window was already closing, a moment that
+  could not be trusted. It is now captured only when the pin button is pressed instead - see
+  "Added" above.
 
 ### 1.16.0
 

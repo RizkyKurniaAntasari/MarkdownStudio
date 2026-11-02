@@ -215,6 +215,58 @@ body.wide #editor,body.wide #mirror{padding-left:var(--gut);padding-right:var(--
 .mmd-bar button:hover{border-color:var(--acc);color:var(--acc)}
 @media print{.mmd-bar{display:none}#preview .mmd{break-inside:avoid;border-color:#ddd}}
 
+/* ---------------- equations ---------------- */
+/* no bundled math font - these are common enough that at least one is usually
+   on the machine already; a plain serif still reads fine if none is */
+.eq{font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;font-style:normal;line-height:1.3}
+.eq-row{position:relative;text-align:center;margin:20px 0;padding:0 46px}
+.eq-row .eq{display:inline-block;font-size:1.1em}
+.eq-num-tag{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--fg3);font-size:12.5px;font-family:var(--f-ui)}
+.eq-var{font-style:italic}
+.eq-fn,.eq-text,.eq-bold{font-style:normal}
+.eq-bold{font-weight:700}
+.eq-cal{font-family:"Brush Script MT",cursive;font-style:italic}
+.eq-op,.eq-bin,.eq-rel{padding:0 .15em}
+.eq-bin,.eq-rel{padding:0 .22em}
+.eq-punct{padding-right:.2em}
+.eq-space{display:inline-block}
+.eq-delim{padding:0 .05em}
+.eq-not{position:relative}
+.eq-not::after{content:"";position:absolute;left:8%;right:8%;top:-10%;bottom:-10%;border-top:.09em solid currentColor;transform:rotate(68deg)}
+.eq-unknown{color:var(--warn);font-family:var(--f-ui);font-size:.92em;padding:0 .1em}
+.eq-frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;font-size:.95em}
+.eq-frac .eq-num,.eq-frac .eq-den{display:block;padding:0 .25em}
+.eq-frac .eq-num{padding-bottom:.08em}
+.eq-frac .eq-den{padding-top:.08em;border-top:.065em solid currentColor}
+.eq-frac.eq-frac-noline .eq-den{border-top:0}
+.eq-binom{padding:0 .1em}
+.eq-sqrt{display:inline-flex;align-items:flex-start;margin:0 .1em;position:relative}
+.eq-sqrt-sym{font-size:1.15em;margin-right:-.03em;transform:scaleY(1.08)}
+.eq-rad{border-top:.07em solid currentColor;padding:.05em .12em 0 .08em;margin-top:.22em}
+.eq-sqrt-idx{font-size:.6em;margin:0 -.4em 0 .1em;position:relative;top:.3em}
+.eq-bigop{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .18em;line-height:1.15}
+.eq-bigop-sym{font-size:1.5em;line-height:1}
+.eq-bigop-sup,.eq-bigop-sub{font-size:.62em;line-height:1.25}
+.eq-int{font-size:1.5em;font-style:italic;vertical-align:-.15em;margin:0 .05em}
+.eq-subsup{display:inline-flex;align-items:center}
+.eq-ss-col{display:inline-flex;flex-direction:column;justify-content:center;font-size:.68em;line-height:1.25;margin-left:.05em}
+.eq-sup1,.eq-sub1{font-size:.68em}
+.eq-acc{display:inline-block;position:relative}
+.eq-vec::after,.eq-hat::after,.eq-bar::after,.eq-tilde::after,.eq-dot::after,.eq-ddot::after,.eq-breve::after,.eq-check::after{
+  position:absolute;left:50%;top:-.75em;transform:translateX(-50%);font-size:.8em}
+.eq-vec::after{content:"→"}
+.eq-hat::after{content:"^"}
+.eq-bar::after{content:"‾"}
+.eq-tilde::after{content:"~"}
+.eq-dot::after{content:"˙"}
+.eq-ddot::after{content:"¨"}
+.eq-breve::after{content:"˘"}
+.eq-check::after{content:"ˇ"}
+.eq-block.is-bad{display:block;text-align:left;font-family:var(--f-ui);padding:8px 0}
+.eq-block.is-bad.eq-display{text-align:center}
+.eq-err{color:var(--danger);border-bottom:1px dashed var(--danger);cursor:help}
+@media print{.eq-row{break-inside:avoid}}
+
 /* ---------------- status ---------------- */
 #status{display:flex;align-items:center;gap:14px;padding:5px 12px;font-size:11.5px;color:var(--fg3);border-top:1px solid var(--bd);background:var(--panel);flex:0 0 auto;font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap}
 #status b{font-weight:600;color:var(--fg2)}
@@ -2761,6 +2813,8 @@ const I18N = (function () {
     "Blockquote (Ctrl+Shift+.)": "Kutipan (Ctrl+Shift+.)",
     "Task list": "Daftar tugas", "Table": "Tabel",
     "Code block": "Blok kode", "Horizontal rule": "Garis pemisah", "Footnote": "Catatan kaki",
+    "Equation (a block for display, or select text first for inline)":
+      "Rumus (blok untuk tampilan, atau pilih teks dulu untuk sebaris)",
 
     /* ---- shortcuts sheet ---- */
     "Files": "Berkas", "Tabs": "Tab",
@@ -3029,6 +3083,7 @@ const I18N = (function () {
     "Blockquote": "Kutipan",
     "Insert table": "Sisipkan tabel",
     "Insert code block": "Sisipkan blok kode",
+    "Insert equation": "Sisipkan rumus",
     "Insert horizontal rule": "Sisipkan garis pemisah",
     "Insert footnote": "Sisipkan catatan kaki",
     "Continue list": "Lanjutkan daftar",
@@ -3881,7 +3936,287 @@ const MMD = (function () {
 })();
 
 /* =========================================================
-   4. Markdown parser
+   4. Math equations
+   ========================================================= */
+/* A small, hand-written subset of LaTeX math - enough for the formulas people
+   actually put in a thesis or a paper (fractions, sums, roots, sub/superscripts,
+   Greek letters, the common operators and functions) rendered as plain HTML and
+   CSS, no fonts or libraries to ship. What it does not know, it shows as typed,
+   in a different color, rather than guessing or breaking the rest of the page. */
+const MATH = (function () {
+  const E = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const esc = s => String(s).replace(/[&<>"']/g, c => E[c]);
+
+  const GREEK = {
+    alpha: "α", beta: "β", gamma: "γ", delta: "δ", epsilon: "ε", varepsilon: "ε",
+    zeta: "ζ", eta: "η", theta: "θ", vartheta: "ϑ", iota: "ι", kappa: "κ",
+    lambda: "λ", mu: "μ", nu: "ν", xi: "ξ", omicron: "ο", pi: "π", varpi: "ϖ",
+    rho: "ρ", varrho: "ϱ", sigma: "σ", varsigma: "ς", tau: "τ", upsilon: "υ",
+    phi: "φ", varphi: "ϕ", chi: "χ", psi: "ψ", omega: "ω",
+    Alpha: "Α", Beta: "Β", Gamma: "Γ", Delta: "Δ", Epsilon: "Ε", Zeta: "Ζ",
+    Eta: "Η", Theta: "Θ", Iota: "Ι", Kappa: "Κ", Lambda: "Λ", Mu: "Μ", Nu: "Ν",
+    Xi: "Ξ", Omicron: "Ο", Pi: "Π", Rho: "Ρ", Sigma: "Σ", Tau: "Τ",
+    Upsilon: "Υ", Phi: "Φ", Chi: "Χ", Psi: "Ψ", Omega: "Ω"
+  };
+  /* rendered upright, never italic - the symbol is the point, not a variable */
+  const SYMBOLS = {
+    times: "×", div: "÷", pm: "±", mp: "∓", cdot: "⋅", ast: "∗", star: "⋆",
+    circ: "∘", bullet: "•", oplus: "⊕", otimes: "⊗", odot: "⊙",
+    leq: "≤", le: "≤", geq: "≥", ge: "≥", neq: "≠", ne: "≠", approx: "≈",
+    equiv: "≡", sim: "∼", simeq: "≃", cong: "≅", propto: "∝", doteq: "≐",
+    ll: "≪", gg: "≫",
+    in: "∈", notin: "∉", ni: "∋", subset: "⊂", subseteq: "⊆", supset: "⊃",
+    supseteq: "⊇", cup: "∪", cap: "∩", setminus: "∖", emptyset: "∅",
+    varnothing: "∅", forall: "∀", exists: "∃", nexists: "∄", neg: "¬", lnot: "¬",
+    land: "∧", lor: "∨", wedge: "∧", vee: "∨", oplus2: "⊕",
+    infty: "∞", partial: "∂", nabla: "∇", hbar: "ℏ", ell: "ℓ", wp: "℘",
+    Re: "ℜ", Im: "ℑ", aleph: "ℵ", imath: "ı", jmath: "ȷ",
+    rightarrow: "→", to: "→", leftarrow: "←", gets: "←",
+    leftrightarrow: "↔", Rightarrow: "⇒", implies: "⟹", Leftarrow: "⇐",
+    Leftrightarrow: "⇔", iff: "⟺", mapsto: "↦", longrightarrow: "⟶",
+    longleftarrow: "⟵", uparrow: "↑", downarrow: "↓",
+    cdots: "⋯", ldots: "…", dots: "…", vdots: "⋮", ddots: "⋱",
+    degree: "°", perp: "⊥", parallel: "∥", angle: "∠", triangle: "△",
+    top: "⊤", bot: "⊥", langle: "⟨", rangle: "⟩", lceil: "⌈", rceil: "⌉",
+    lfloor: "⌊", rfloor: "⌋", prime: "′",
+    checkmark: "✓", square: "□", diamond: "◇",
+    "{": "{", "}": "}", "%": "%", "&": "&", _: "_", "#": "#", "$": "$"
+  };
+  const FUNCS = new Set(["sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh",
+    "tanh", "coth", "arcsin", "arccos", "arctan", "log", "ln", "lg", "exp",
+    "deg", "hom", "ker", "dim"]);
+  /* these take their subscript as a stacked limit, not a corner script, and
+     their superscript the same, for the rare case of e.g. lim^+ */
+  const BIGOPS = { sum: "∑", prod: "∏", coprod: "∐", bigcup: "⋃", bigcap: "⋂",
+    bigvee: "⋁", bigwedge: "⋀", bigoplus: "⊕", bigotimes: "⊗" };
+  const INTOPS = { int: "∫", iint: "∬", iiint: "∭", oint: "∮" };
+  const LIMOPS = new Set(["lim", "limsup", "liminf", "max", "min", "sup", "inf",
+    "det", "gcd", "Pr", "argmax", "argmin"]);
+  /* math mode ignores whitespace, so these are the only way to ask for some -
+     widths are approximate, in em, matched loosely to TeX's own */
+  const SPACES = { ",": 0.17, ";": 0.28, ":": 0.22, quad: 1, qquad: 2, "!": -0.17 };
+  const ACCENTS = { vec: "eq-vec", hat: "eq-hat", widehat: "eq-hat",
+    bar: "eq-bar", overline: "eq-bar", tilde: "eq-tilde", widetilde: "eq-tilde",
+    dot: "eq-dot", ddot: "eq-ddot", breve: "eq-breve", check: "eq-check" };
+  /* binary operators and relations get a little air on each side; TeX calls
+     this "medium" and "thick" spacing - everything else sits close */
+  const BINOP = new Set(["+", "-", "*", "/"]);
+  const RELOP = new Set(["=", "<", ">"]);
+
+  function tokenize(src) {
+    const toks = [];
+    let i = 0;
+    const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (/\s/.test(c)) { i++; continue; }
+      if (c === "%") { while (i < n && src[i] !== "\n") i++; continue; }
+      if (c === "\\") {
+        const m = /^\\([a-zA-Z]+|.)/.exec(src.slice(i));
+        if (!m) { i++; continue; }
+        toks.push({ t: "cmd", v: m[1] });
+        i += m[0].length;
+        continue;
+      }
+      if (c === "{") { toks.push({ t: "open" }); i++; continue; }
+      if (c === "}") { toks.push({ t: "close" }); i++; continue; }
+      if (c === "^") { toks.push({ t: "sup" }); i++; continue; }
+      if (c === "_") { toks.push({ t: "sub" }); i++; continue; }
+      if (c === "&") { toks.push({ t: "amp" }); i++; continue; }
+      if (/[0-9]/.test(c)) {
+        const m = /^[0-9]+(?:\.[0-9]+)?/.exec(src.slice(i));
+        toks.push({ t: "num", v: m[0] }); i += m[0].length; continue;
+      }
+      if (/[a-zA-Z]/.test(c)) { toks.push({ t: "var", v: c }); i++; continue; }
+      toks.push({ t: "sym", v: c }); i++; continue;
+    }
+    return toks;
+  }
+
+  /* a cursor over the token list, not a copy of it */
+  function reader(toks) {
+    let i = 0;
+    return {
+      peek: () => toks[i], next: () => toks[i++],
+      atEnd: () => i >= toks.length
+    };
+  }
+
+  function spacingClass(ch) {
+    if (BINOP.has(ch)) return "eq-bin";
+    if (RELOP.has(ch)) return "eq-rel";
+    if (ch === "," || ch === ";") return "eq-punct";
+    return "";
+  }
+
+  /* one base atom - a letter, a number, a symbol, or a command with however
+     many arguments it takes - plus whether it wants stacked limits */
+  function renderBase(r) {
+    const t = r.next();
+    if (!t) return { html: "", big: false };
+    if (t.t === "var") return { html: '<i class="eq-var">' + esc(t.v) + "</i>", big: false };
+    if (t.t === "num") return { html: "<span>" + esc(t.v) + "</span>", big: false };
+    if (t.t === "sym") {
+      const cls = spacingClass(t.v);
+      return { html: '<span class="' + cls + '">' + esc(t.v) + "</span>", big: false };
+    }
+    if (t.t === "amp") return { html: "", big: false };
+    if (t.t === "open") {
+      const html = renderExpr(r);
+      if (r.peek() && r.peek().t === "close") r.next();
+      return { html: html, big: false };
+    }
+    if (t.t === "close") return { html: "", big: false };
+    if (t.t === "sup" || t.t === "sub") return { html: "", big: false };
+    if (t.t === "cmd") return renderCommand(t.v, r);
+    return { html: "", big: false };
+  }
+
+  /* an argument position: a {...} group (any length), or - TeX's own shorthand
+     - just the next atom on its own, so x^2 needs no braces around the 2 */
+  function renderArg(r) {
+    const t = r.peek();
+    if (t && t.t === "open") { r.next(); const html = renderExpr(r); if (r.peek() && r.peek().t === "close") r.next(); return html; }
+    return renderBase(r).html;
+  }
+  /* \text{...} and friends: the literal characters, spaces kept, not re-parsed */
+  function renderRaw(r) {
+    const t = r.peek();
+    if (!(t && t.t === "open")) return esc(r.next() ? r.next().v || "" : "");
+    r.next();
+    let out = "";
+    while (r.peek() && r.peek().t !== "close") {
+      const tk = r.next();
+      out += tk.v !== undefined ? tk.v : tk.t === "sub" ? "_" : tk.t === "sup" ? "^" : "";
+    }
+    if (r.peek()) r.next();
+    return esc(out);
+  }
+
+  function renderCommand(name, r) {
+    if (name === "frac" || name === "dfrac" || name === "tfrac" || name === "cfrac") {
+      const num = renderArg(r), den = renderArg(r);
+      return { html: '<span class="eq-frac"><span class="eq-num">' + num +
+        '</span><span class="eq-den">' + den + "</span></span>", big: false };
+    }
+    if (name === "binom") {
+      const a = renderArg(r), b = renderArg(r);
+      return { html: '<span class="eq-binom">(<span class="eq-frac eq-frac-noline"><span class="eq-num">' +
+        a + '</span><span class="eq-den">' + b + "</span></span>)</span>", big: false };
+    }
+    if (name === "sqrt") {
+      let idx = "";
+      if (r.peek() && r.peek().t === "sym" && r.peek().v === "[") {
+        r.next();
+        let d = "";
+        while (r.peek() && !(r.peek().t === "sym" && r.peek().v === "]")) d += renderBase(r).html;
+        if (r.peek()) r.next();
+        idx = d;
+      }
+      const rad = renderArg(r);
+      return { html: '<span class="eq-sqrt">' + (idx ? '<sup class="eq-sqrt-idx">' + idx + "</sup>" : "") +
+        '<span class="eq-sqrt-sym">√</span><span class="eq-rad">' + rad + "</span></span>", big: false };
+    }
+    if (name === "text" || name === "mathrm" || name === "operatorname" || name === "mbox") {
+      return { html: '<span class="eq-text">' + renderRaw(r) + "</span>", big: name === "operatorname" };
+    }
+    if (name === "mathbf" || name === "bf") {
+      return { html: '<span class="eq-bold">' + renderArg(r) + "</span>", big: false };
+    }
+    if (name === "mathit" ) return { html: '<i class="eq-var">' + renderRaw(r) + "</i>", big: false };
+    if (name === "mathcal" || name === "mathscr") {
+      return { html: '<span class="eq-cal">' + renderArg(r) + "</span>", big: false };
+    }
+    if (ACCENTS[name]) {
+      return { html: '<span class="eq-acc ' + ACCENTS[name] + '">' + renderArg(r) + "</span>", big: false };
+    }
+    if (name === "left" || name === "right") {
+      const t = r.next();
+      const ch = t ? (t.v === "." ? "" : t.v === "\\{" ? "{" : t.v || "") : "";
+      return { html: ch ? '<span class="eq-delim">' + esc(ch) + "</span>" : "", big: false };
+    }
+    if (name in SPACES) return { html: '<span class="eq-space" style="width:' + SPACES[name] + 'em"></span>', big: false };
+    if (name === "\\") return { html: "<br>", big: false };
+    if (name === "not") {
+      /* the handful of negations people actually write get their own glyph;
+         anything else is struck through, which is what \not really means */
+      const t = r.peek();
+      const NEG = { "=": "≠", in: "∉", subset: "⊄", subseteq: "⊈", equiv: "≢",
+        sim: "≁", approx: "≉", leq: "≰", le: "≰", geq: "≱", ge: "≱",
+        exists: "∄", forall: "∄", cong: "≇", parallel: "∦" };
+      const key = t && (t.t === "sym" ? t.v : t.t === "cmd" ? t.v : null);
+      if (key && NEG[key]) { r.next(); return { html: '<span class="eq-op">' + NEG[key] + "</span>", big: false }; }
+      const inner = renderBase(r);
+      return { html: '<span class="eq-not">' + inner.html + "</span>", big: false };
+    }
+    if (GREEK[name]) return { html: '<i class="eq-var">' + GREEK[name] + "</i>", big: false };
+    if (SYMBOLS[name]) return { html: '<span class="eq-op">' + SYMBOLS[name] + "</span>", big: false };
+    if (BIGOPS[name]) return { html: '<span class="eq-bigop-sym">' + BIGOPS[name] + "</span>", big: true };
+    /* an integral's limits sit beside it, not stacked above and below like a
+       sum's - the symbol is just drawn a size larger */
+    if (INTOPS[name]) return { html: '<span class="eq-int">' + INTOPS[name] + "</span>", big: false };
+    if (FUNCS.has(name)) return { html: '<span class="eq-fn">' + name + "</span>", big: false };
+    if (LIMOPS.has(name)) return { html: '<span class="eq-fn">' + name + "</span>", big: true };
+    if (name === "{" || name === "}" || name === "$" || name === "%" || name === "&" || name === "_" || name === "#")
+      return { html: esc(name), big: false };
+    /* an unknown command: shown as typed, so nothing is silently dropped */
+    return { html: '<span class="eq-unknown">\\' + esc(name) + "</span>", big: false };
+  }
+
+  /* one atom plus whatever sub/superscripts (or, for a big operator, stacked
+     limits) immediately follow it */
+  function renderAtom(r) {
+    const base = renderBase(r);
+    let sub = null, sup = null;
+    while (r.peek() && (r.peek().t === "sub" || r.peek().t === "sup")) {
+      const t = r.next();
+      if (t.t === "sub" && sub === null) sub = renderArg(r);
+      else if (t.t === "sup" && sup === null) sup = renderArg(r);
+    }
+    if (sub === null && sup === null) return base.html;
+    if (base.big) {
+      return '<span class="eq-bigop">' +
+        (sup !== null ? '<span class="eq-bigop-sup">' + sup + "</span>" : "") +
+        base.html +
+        (sub !== null ? '<span class="eq-bigop-sub">' + sub + "</span>" : "") +
+        "</span>";
+    }
+    if (sub !== null && sup !== null) {
+      return '<span class="eq-subsup">' + base.html +
+        '<span class="eq-ss-col"><span class="eq-sup">' + sup + '</span><span class="eq-sub">' + sub + "</span></span></span>";
+    }
+    if (sup !== null) return '<span class="eq-base">' + base.html + '</span><sup class="eq-sup1">' + sup + "</sup>";
+    return '<span class="eq-base">' + base.html + '</span><sub class="eq-sub1">' + sub + "</sub>";
+  }
+
+  function renderExpr(r) {
+    let out = "";
+    while (r.peek() && r.peek().t !== "close") out += renderAtom(r);
+    return out;
+  }
+
+  /* tex -> inner HTML, or null (with a reason) when it could not be read at all -
+     which in practice is close to never, since unknown commands just show as
+     typed rather than failing the whole expression */
+  function toHtml(tex) {
+    try { return { html: renderExpr(reader(tokenize(tex))) }; }
+    catch (e) { return { error: (e && e.message) || String(e) }; }
+  }
+
+  function render(tex, display) {
+    const r = toHtml(tex);
+    if (r.error) {
+      return '<span class="eq-block is-bad' + (display ? " eq-display" : "") + '">' +
+        '<span class="eq-err" title="' + esc(r.error) + '">' + esc(tex) + "</span></span>";
+    }
+    return '<span class="eq' + (display ? " eq-display" : "") + '">' + r.html + "</span>";
+  }
+
+  return { render: render };
+})();
+
+/* =========================================================
+   5. Markdown parser
    ========================================================= */
 const MD = (function () {
   const E = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -3935,6 +4270,16 @@ const MD = (function () {
       '<button type="button" data-mmd="png" title="' + esc(tr("Save the diagram as a picture")) + '">PNG</button>' +
       '<button type="button" data-mmd="svg" title="' + esc(tr("Save the diagram as SVG")) + '">SVG</button>' +
       "</div></figure>";
+  }
+
+  /* a $$...$$ block, its own paragraph - shown as its own centered line, with
+     an equation number on the right when the source ends in (1), (2.3) and
+     so on, same as the convention the thesis guide itself uses */
+  function mathBlock(tex, A) {
+    const m = /^([\s\S]*?)(?:\\(?:qquad|quad|,|;|:|!)|\s)*\((\d+(?:\.\d+)*[a-zA-Z]?)\)\s*$/.exec(tex);
+    const body = m ? m[1] : tex, num = m ? m[2] : null;
+    return '<div class="eq-row"' + A + '>' + MATH.render(body.trim(), true) +
+      (num ? '<span class="eq-num-tag">(' + esc(num) + ")</span>" : "") + "</div>";
   }
 
   function safeUrl(u) {
@@ -4069,7 +4414,7 @@ const MD = (function () {
     while (i < n) {
       const c = text[i];
 
-      if (c === "\\" && i + 1 < n && /[\\`*_{}\[\]()#+\-.!>~|^=<>"']/.test(text[i + 1])) {
+      if (c === "\\" && i + 1 < n && /[\\`*_{}\[\]()#+\-.!>~|^=<>"'$]/.test(text[i + 1])) {
         out += esc(text[i + 1]); i += 2; continue;
       }
       if (c === "`") {
@@ -4081,6 +4426,33 @@ const MD = (function () {
           if (code.length > 1 && code[0] === " " && code[code.length - 1] === " ") code = code.slice(1, -1);
           out += "<code>" + esc(code) + "</code>";
           i = e + k; continue;
+        }
+      }
+      /* $$x^2$$ written mid-sentence instead of as its own paragraph - the
+         block form reaches here too, since only a line starting with $$ is
+         caught earlier as a block; the same rule on spacing applies */
+      if (c === "$" && text[i + 1] === "$") {
+        let j = i + 2;
+        while (j < n && !(text[j] === "$" && text[j + 1] === "$") && text[j] !== "\n") j++;
+        if (j < n && text[j] === "$" && text[j + 1] === "$") {
+          const content = text.slice(i + 2, j);
+          if (content && !/^\s|\s$/.test(content)) {
+            out += MATH.render(content, false);
+            i = j + 2; continue;
+          }
+        }
+      }
+      /* $x^2$ inline math - content may not start or end with a space, which is
+         also what keeps "$5 to $10" from being misread as an equation */
+      if (c === "$" && text[i + 1] !== "$") {
+        let j = i + 1;
+        while (j < n && text[j] !== "$" && text[j] !== "\n") j++;
+        if (j < n && text[j] === "$") {
+          const content = text.slice(i + 1, j);
+          if (content && !/^\s|\s$/.test(content)) {
+            out += MATH.render(content, false);
+            i = j + 1; continue;
+          }
         }
       }
       if (c === "<") {
@@ -4168,9 +4540,11 @@ const MD = (function () {
   const RE_ITEM = /^([ \t]*)([-*+]|\d{1,9}[.)])([ \t]+)(.*)$/;
   const RE_DELIM = /^[ \t]*\|?[ \t]*:?-{1,}:?[ \t]*(?:\|[ \t]*:?-{1,}:?[ \t]*)*\|?[ \t]*$/;
   const RE_SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
+  const RE_MATH = /^ {0,3}\$\$/;
 
   function interrupts(l) {
     return !l.trim() || RE_HEAD.test(l) || RE_FENCE.test(l) || RE_HR.test(l) ||
+      RE_MATH.test(l) ||
       /^ {0,3}>/.test(l) || /^ {0,3}(?:[-*+]|\d{1,9}[.)])[ \t]+\S/.test(l) ||
       /^ {0,3}<\/?[a-zA-Z][\w-]*[\s/>]/.test(l);
   }
@@ -4224,6 +4598,28 @@ const MD = (function () {
           esc(lang || "text") + '</span><button class="cb-c" type="button" data-copy>Copy</button></div>' +
           '<pre><code class="language-' + esc(lang || "text") + '">' + HL.highlight(code, lang) + "</code></pre></div>";
         i = j + 1; continue;
+      }
+
+      /* display math: $$...$$, on one line or spanning several, as its own
+         paragraph - the way it is typed in every LaTeX guide */
+      if (RE_MATH.test(line)) {
+        const rest = line.replace(RE_MATH, "");
+        const sameLine = rest.indexOf("$$");
+        if (sameLine !== -1) {
+          out += mathBlock(rest.slice(0, sameLine), A);
+          i++; continue;
+        }
+        let j = i + 1;
+        const buf = [rest];
+        while (j < L && lines[j].indexOf("$$") === -1) { buf.push(lines[j]); j++; }
+        if (j < L) {
+          const close = lines[j], at = close.indexOf("$$");
+          buf.push(close.slice(0, at));
+          out += mathBlock(buf.join("\n"), A);
+          i = j + 1; continue;
+        }
+        /* no closing $$ before the file runs out: not a block after all,
+           so it falls through and $ is just $ in the paragraph below */
       }
 
       /* ATX heading */
@@ -4484,7 +4880,7 @@ const MD = (function () {
 })();
 
 /* =========================================================
-   5. Application
+   6. Application
    ========================================================= */
 (function () {
   const $ = s => document.querySelector(s);
@@ -7909,6 +8305,8 @@ const MD = (function () {
     { g: "Formatting", id: "quote", label: "Blockquote", keys: ["Ctrl+Shift+."], when: "editor", run: () => togglePrefix("> ") },
     { g: "Formatting", id: "table", label: "Insert table", keys: [], run: ed1(() => insert(TABLE)) },
     { g: "Formatting", id: "codeBlock", label: "Insert code block", keys: [], run: ed1(() => wrap("```\n", "\n```", "code here")) },
+    { g: "Formatting", id: "equation", label: "Insert equation", keys: [], run: ed1(() => ed.selectionStart === ed.selectionEnd
+      ? wrap("$$\n", "\n$$", "x^2 + y^2 = z^2") : wrap("$", "$", "")) },
     { g: "Formatting", id: "hr", label: "Insert horizontal rule", keys: [], run: ed1(() => insert("\n---\n")) },
     { g: "Formatting", id: "footnote", label: "Insert footnote", keys: [], run: ed1(insertFootnote) }
   ];
@@ -8633,6 +9031,10 @@ const MD = (function () {
     { sep: 1 },
     { i: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 10h18M9 10v9M15 10v9"/>', label: "Table", run: () => insert(TABLE) },
     { i: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 9l-2.5 3L9 15m6-6l2.5 3L15 15"/>', label: "Code block", run: () => wrap("```\n", "\n```", "code here") },
+    { t: "∑", label: "Equation (a block for display, or select text first for inline)", txt: 1,
+      run: () => ed.selectionStart === ed.selectionEnd
+        ? wrap("$$\n", "\n$$", "x^2 + y^2 = z^2")
+        : wrap("$", "$", "") },
     { i: '<path d="M3 12h18"/>', label: "Horizontal rule", run: () => insert("\n---\n") },
     { i: '<path d="M12 3v18M3 8h4a3 3 0 010 6H3"/>', label: "Footnote", run: insertFootnote }
   ];
