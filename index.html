@@ -8540,6 +8540,13 @@ const MD = (function () {
       '<textarea class="pip-ed" spellcheck="false" hidden></textarea></div></div>';
     const ta = d.querySelector(".pip-ed");
     ta.addEventListener("input", () => on.edit(ta.value));
+    /* a screenshot pasted straight into the floating editor, same as the main one */
+    ta.addEventListener("paste", e => {
+      const files = clipImages(e.clipboardData);
+      if (!files.length) return;
+      e.preventDefault();
+      on.pasteImages(files, ta.selectionStart, ta.selectionEnd);
+    });
     d.addEventListener("click", e => {
       const b = e.target.closest("[data-pip]");
       if (b && b.dataset.pip === "savepos") { on.savepos(); return; }
@@ -8682,7 +8689,12 @@ const MD = (function () {
     edit(text) { if (ed.value === text) return; ed.value = text; ed.dispatchEvent(new Event("input", { bubbles: true })); },
     task(line) { const real = preview.querySelector('[data-task-line="' + line + '"]'); if (real) real.click(); },
     link(href) { followLink(href); },
-    save() { saveMarkdown(); }
+    save() { saveMarkdown(); },
+    pasteImages(files, start, end) {
+      const len = ed.value.length;
+      ed.setSelectionRange(Math.min(start, len), Math.min(end, len));
+      addImages(files).then(() => pipSync(true));
+    }
   };
 
   async function togglePip() {
@@ -8708,6 +8720,7 @@ const MD = (function () {
         pipChan.postMessage(Object.assign({ type: "state", full: true }, floatState()));
       } else if (m.type === "mode") { pipMode = pipMode === "preview" ? "edit" : "preview"; pipSync(true); }
       else if (m.type === "edit") floatDo.edit(m.text);
+      else if (m.type === "pasteImages") floatDo.pasteImages(m.files, m.start, m.end);
       else if (m.type === "task") floatDo.task(m.line);
       else if (m.type === "link") floatDo.link(m.href);
       else if (m.type === "save") floatDo.save();
@@ -8791,6 +8804,7 @@ const MD = (function () {
     let last = null;
     floatBuild(document, window, {
       edit: text => ch.postMessage({ type: "edit", text: text }),
+      pasteImages: (files, start, end) => ch.postMessage({ type: "pasteImages", files: files, start: start, end: end }),
       task: line => ch.postMessage({ type: "task", line: line }),
       link: href => ch.postMessage({ type: "link", href: href }),
       save: () => ch.postMessage({ type: "save" }),

@@ -387,6 +387,13 @@ refreshes (sign out and back in).
 
 ## Changelog
 
+### 1.17.1
+
+**Fixed**
+- Pasting a screenshot or a copied picture worked in the main editor but not inside the
+  picture-in-picture window's own editor - its textarea had no paste handling of its own.
+  Pasting a picture there now saves or embeds it exactly as it would in the main window.
+
 ### 1.17.0
 
 **Added**
