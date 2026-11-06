@@ -387,6 +387,16 @@ refreshes (sign out and back in).
 
 ## Changelog
 
+### 1.17.2
+
+**Fixed**
+- In split view, the current search hit was sometimes marked a line or two away from
+  where it actually was - most visible on a long document with reference links, where
+  the editor's hidden measuring layer could wrap a long unbroken link slightly
+  differently than the real textarea and drift out of step with it. Its position is now
+  corrected against the textarea's own measured height, so the highlight always lands on
+  the real match.
+
 ### 1.17.1
 
 **Fixed**

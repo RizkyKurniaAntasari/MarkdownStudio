@@ -9157,25 +9157,36 @@ const MD = (function () {
     trackMirror();
   }
   /* the mirror is not a scroll container, so it follows the textarea by transform */
+  /* A <textarea>'s own line-wrapping is not quite guaranteed to match this plain div's,
+     especially once long unbroken tokens (URLs) are forced to wrap in a narrow split
+     pane - a tiny per-line rounding gap between the two then adds up over a long
+     document, and the mirror's marks drift away from the real text they are meant to
+     sit on. ed.scrollHeight is always exactly right, so every mirror-space pixel is
+     scaled against it before it is used as a real scroll position, and back. */
+  function mirrorScale() {
+    const mh = mirror.scrollHeight;
+    return mh ? ed.scrollHeight / mh : 1;
+  }
   function trackMirror() {
-    mirror.style.transform = "translate(" + (-ed.scrollLeft) + "px," + (-ed.scrollTop) + "px)";
+    mirror.style.transform = "translate(" + (-ed.scrollLeft) + "px," + (-ed.scrollTop / mirrorScale()) + "px)";
   }
   function lineTop(n) {
     const kids = mirror.children;
     if (!kids.length) return 0;
     const el = kids[Math.max(0, Math.min(kids.length - 1, n))];
-    return el ? el.offsetTop : 0;
+    return el ? el.offsetTop * mirrorScale() : 0;
   }
   function lineAtY(y) {
     const kids = mirror.children;
     if (!kids.length) return 0;
+    const my = y / mirrorScale();
     let lo = 0, hi = kids.length - 1;
     while (lo < hi) {
       const mid = (lo + hi + 1) >> 1;
-      if (kids[mid].offsetTop <= y) lo = mid; else hi = mid - 1;
+      if (kids[mid].offsetTop <= my) lo = mid; else hi = mid - 1;
     }
     const top = kids[lo].offsetTop, h = kids[lo].offsetHeight || 1;
-    return lo + Math.min(1, Math.max(0, (y - top) / h));
+    return lo + Math.min(1, Math.max(0, (my - top) / h));
   }
   function elForLine(line) {
     if (!lineMap.length) return null;
